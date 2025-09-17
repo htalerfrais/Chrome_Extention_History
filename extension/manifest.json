@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "HistoricAI",
+    "name": "Engrave it",
     "version": "0.1",
     "description": "Collecte et analyse ton historique Chrome",
     "permissions": [
@@ -12,12 +12,13 @@
       "service_worker": "background.js"
     },
     "action": {
+      "default_title": "Engrave it",
       "default_popup": "popup.html",
       "default_icon": {
-        "128": "icons/Engrave128.png",
-        "48" : "icons/Engrave48.png",
-        "16" : "icons/Engrave48.png",
-    }
+        "128": "icons/Engrave2.png",
+        "48" : "icons/Engrave2.png",
+        "16" : "icons/Engrave2.png"
+      }
     },
     "host_permissions": [
       "<all_urls>"
