@@ -1,0 +1,20 @@
+{
+    "manifest_version": 3,
+    "name": "HistoricAI",
+    "version": "0.1",
+    "description": "Collecte et analyse ton historique Chrome",
+    "permissions": [
+      "history",
+      "storage",
+      "tabs"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "action": {
+      "default_popup": "popup.html"
+    },
+    "host_permissions": [
+      "<all_urls>"
+    ]
+  }
