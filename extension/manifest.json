@@ -12,7 +12,12 @@
       "service_worker": "background.js"
     },
     "action": {
-      "default_popup": "popup.html"
+      "default_popup": "popup.html",
+      "default_icon": {
+        "128": "icons/Engrave128.png",
+        "48" : "icons/Engrave48.png",
+        "16" : "icons/Engrave48.png",
+    }
     },
     "host_permissions": [
       "<all_urls>"
