@@ -11,7 +11,9 @@ function collectHistory() {
             const dated = datesFormating(results);
             const filtered = filterHistory(dated);
             chrome.storage.local.set({ historyItems: filtered }, () => {
-                console.log(`Historique collecté : ${results.length} items`);
+                console.log(`Historique collecté initial: ${results.length} items`);
+                console.log(results)
+                console.log(`Historique collecté filtré: ${filtered.length} items`);
                 console.log(filtered)
             });
         } 
