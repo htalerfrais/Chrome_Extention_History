@@ -36,6 +36,14 @@
     /* nice scrollbar */
     ul::-webkit-scrollbar { width: 10px; }
     ul::-webkit-scrollbar-thumb { background: rgba(241, 241, 241, 0.16); border: 2px solid var(--card); border-radius: 10px; }
+    /* results row layout */
+    .result-row { display: flex; align-items: center; gap: 10px; }
+    .result-row .favicon { width: 20px; height: 20px; border-radius: 4px; flex: 0 0 20px; }
+    .result-row .meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
+    .result-row .title { font-size: 13px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .result-row .date { font-size: 11px; color: var(--muted); }
+    .result-row .open-btn { background: transparent; border: none; color: var(--text); cursor: pointer; padding: 4px 6px; border-radius: 6px; }
+    .result-row .open-btn:hover { background: rgba(241, 241, 241, 0.08); }
   </style>
 </head>
 <body>

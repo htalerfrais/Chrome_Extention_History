@@ -1,5 +1,5 @@
 // background.js
-importScripts('utils.js');
+importScripts('utils/preprocess_history.js');
 
 const MAX_ITEMS = 5000;
 
@@ -9,7 +9,7 @@ function collectHistory() {
         { text: '', maxResults: MAX_ITEMS, startTime: 0 },
         function(results) {         // fonction de callback 
             const dated = datesFormating(results);
-            const filtered = filterHistory(dated);
+            const filtered = filterHistoryURL(dated);
             chrome.storage.local.set({ historyItems: filtered }, () => {
                 console.log(`Historique collecté initial: ${results.length} items`);
                 console.log(results)
@@ -28,7 +28,7 @@ chrome.history.onVisited.addListener((result) => {
     chrome.storage.local.get({ historyItems: [] }, (data) => {
         let historyItems = data.historyItems;
         // Traiter uniquement le nouvel item
-        const processedNew = filterHistory(datesFormating([result]));
+        const processedNew = filterHistoryURL(datesFormating([result]));
         if (processedNew && processedNew.length > 0) {
             historyItems.push(processedNew[0]);
         }

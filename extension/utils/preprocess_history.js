@@ -1,4 +1,4 @@
-// utils.js
+// preprocess_history.js
 
 // Enrich history items with convenient date fields derived from lastVisitTime (Unix ms)
 function datesFormating(items) {
@@ -15,9 +15,9 @@ function datesFormating(items) {
 // --- URL similarity-based collapsing for consecutive near-duplicates (Option A) ---
 // Only collapses when titles match; otherwise always keeps the item.
 // threshold in [0,1] (e.g., 0.8)
-function filterHistory(items, threshold) {
+function filterHistoryURL(items, threshold) {
     if (!Array.isArray(items)) return [];
-    const similarityThreshold = typeof threshold === 'number' ? threshold : 0.8;
+    const similarityThreshold = typeof threshold === 'number' ? threshold : 0.6;
 
     const kept = [];
     const dropped = [];
@@ -58,6 +58,12 @@ function filterHistory(items, threshold) {
     console.log('Dropped items:', dropped);
     return kept;
 }
+
+
+
+
+
+
 
 // Normalize URLs for stable similarity: lowercase host, strip protocol/hash,
 // remove tracking params, sort remaining query keys, trim trailing slashes
