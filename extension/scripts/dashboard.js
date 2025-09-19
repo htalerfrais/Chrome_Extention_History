@@ -8,7 +8,6 @@ class Dashboard {
         this.constants = window.ExtensionConstants || {};
         this.sessionManager = window.SessionManager;
         this.currentClusters = [];
-        this.currentStats = null;
         
         this.initializeElements();
         this.attachEventListeners();
@@ -25,15 +24,8 @@ class Dashboard {
         this.errorContainer = document.getElementById('error-container');
         this.dashboardContent = document.getElementById('dashboard-content');
         
-        // Summary elements
-        this.totalSessions = document.getElementById('total-sessions');
-        this.totalItems = document.getElementById('total-items');
-        this.totalClusters = document.getElementById('total-clusters');
-        this.dateRange = document.getElementById('date-range');
-        
         // Content containers
         this.clustersContainer = document.getElementById('clusters-container');
-        this.domainsContainer = document.getElementById('domains-container');
         
         // Buttons
         this.refreshBtn = document.getElementById('refresh-btn');
@@ -69,14 +61,14 @@ class Dashboard {
             this.updateStatus(this.constants.STATUS_PROCESSING_SESSIONS, 'loading');
             
             // Preprocess history using SessionManager
-            const sessions = this.sessionManager.preprocessHistory(history);
+            const sessions = this.sessionManager.processHistory(history);
             if (sessions.length === 0) {
                 throw new Error(this.constants.ERROR_NO_SESSIONS);
             }
             
             this.updateStatus(this.constants.STATUS_ANALYZING_PATTERNS, 'loading');
             
-            // Get clustering results (now includes stats)
+            // Get clustering results
             const clusterResult = await this.apiClient.clusterSessions(sessions);
             
             if (!clusterResult.success) {
@@ -84,8 +76,7 @@ class Dashboard {
             }
             
             // Store results
-            this.currentClusters = clusterResult.data.clusters;
-            this.currentStats = clusterResult.data.stats;
+            this.currentClusters = clusterResult.data;
             
             // Update UI
             this.updateStatus(this.constants.STATUS_ANALYSIS_COMPLETE, 'success');
@@ -123,24 +114,9 @@ class Dashboard {
     }
     
     populateDashboard() {
-        this.populateSummary();
         this.populateClusters();
-        this.populateDomains();
     }
     
-    populateSummary() {
-        if (!this.currentStats) return;
-        
-        this.totalSessions.textContent = this.currentStats.total_sessions;
-        this.totalItems.textContent = this.currentStats.total_items;
-        this.totalClusters.textContent = this.currentStats.total_clusters;
-        
-        if (this.currentStats.date_range.start && this.currentStats.date_range.end) {
-            const startDate = new Date(this.currentStats.date_range.start).toLocaleDateString();
-            const endDate = new Date(this.currentStats.date_range.end).toLocaleDateString();
-            this.dateRange.textContent = `${startDate} - ${endDate}`;
-        }
-    }
     
     populateClusters() {
         this.clustersContainer.innerHTML = '';
@@ -269,50 +245,6 @@ class Dashboard {
         return itemElement;
     }
     
-    populateDomains() {
-        this.domainsContainer.innerHTML = '';
-        
-        if (!this.currentStats || !this.currentStats.top_domains) {
-            return;
-        }
-        
-        this.currentStats.top_domains.forEach(domainData => {
-            const domainCard = this.createDomainCard(domainData);
-            this.domainsContainer.appendChild(domainCard);
-        });
-    }
-    
-    createDomainCard(domainData) {
-        const card = document.createElement('div');
-        card.className = 'domain-card';
-        
-        const faviconUrl = `https://www.google.com/s2/favicons?domain=${domainData.domain}`;
-        
-        const faviconImg = document.createElement('img');
-        faviconImg.src = faviconUrl;
-        faviconImg.alt = '';
-        faviconImg.className = 'domain-favicon';
-        faviconImg.addEventListener('error', () => faviconImg.style.display = 'none');
-        
-        const infoDiv = document.createElement('div');
-        infoDiv.className = 'domain-info';
-        
-        const nameDiv = document.createElement('div');
-        nameDiv.className = 'domain-name';
-        nameDiv.textContent = domainData.domain;
-        
-        const countDiv = document.createElement('div');
-        countDiv.className = 'domain-count';
-        countDiv.textContent = `${domainData.count} visits`;
-        
-        infoDiv.appendChild(nameDiv);
-        infoDiv.appendChild(countDiv);
-        
-        card.appendChild(faviconImg);
-        card.appendChild(infoDiv);
-        
-        return card;
-    }
     
     showLoading() {
         this.loadingContainer.style.display = 'flex';

@@ -38,35 +38,11 @@ class ClusteringService:
             'Research': ['wiki', 'research', 'academic', 'paper', 'study'],
         }
 
-    async def cluster_sessions(self, sessions: List[HistorySession]) -> Dict[str, Any]:
+    async def cluster_sessions(self, sessions: List[HistorySession]) -> List[ClusterResult]:
         """
-        Main clustering method - groups sessions by themes and returns clusters with stats
+        Main clustering method - groups sessions by themes
         """
         logger.info(f"Starting clustering for {len(sessions)} sessions")
-        
-        # Calculate basic stats
-        total_items = sum(len(session.items) for session in sessions)
-        all_times = []
-        for session in sessions:
-            all_times.append(session.start_time)
-            all_times.append(session.end_time)
-        
-        date_range = {
-            "start": min(all_times) if all_times else None,
-            "end": max(all_times) if all_times else None
-        }
-        
-        # Calculate top domains
-        domain_counter = Counter()
-        for session in sessions:
-            for item in session.items:
-                domain = urlparse(item.url).netloc
-                domain_counter[domain] += 1
-        
-        top_domains = [
-            {"domain": domain, "count": count}
-            for domain, count in domain_counter.most_common(10)
-        ]
         
         # Extract all items with metadata
         all_items = []
@@ -108,18 +84,7 @@ class ClusteringService:
         clusters.sort(key=lambda x: x.confidence_score, reverse=True)
         
         logger.info(f"Generated {len(clusters)} clusters")
-        
-        # Return clusters with basic stats
-        return {
-            "clusters": clusters,
-            "stats": {
-                "total_sessions": len(sessions),
-                "total_items": total_items,
-                "total_clusters": len(clusters),
-                "date_range": date_range,
-                "top_domains": top_domains
-            }
-        }
+        return clusters
 
     def _group_by_themes(self, items_data: List[tuple]) -> Dict[str, List[tuple]]:
         """Group items by detected themes"""
@@ -132,10 +97,7 @@ class ClusteringService:
             if detected_themes:
                 primary_theme = max(detected_themes.items(), key=lambda x: x[1])[0]
                 theme_groups[primary_theme].append((item, session))
-            else:
-                # Fallback to domain-based grouping
-                domain = urlparse(item.url).netloc
-                theme_groups[f"Domain: {domain}"].append((item, session))
+            # Skip items that can't be categorized into proper themes
         
         return dict(theme_groups)
 

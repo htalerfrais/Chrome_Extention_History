@@ -51,7 +51,7 @@ async def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
-@app.post("/cluster")
+@app.post("/cluster", response_model=List[ClusterResult])
 async def cluster_sessions(sessions: List[HistorySession]):
     """
     Cluster browsing history sessions into thematic groups
@@ -60,7 +60,7 @@ async def cluster_sessions(sessions: List[HistorySession]):
         sessions: List of browsing history sessions
         
     Returns:
-        Dict with clusters and stats
+        List of cluster results with thematic groupings
     """
     try:
         logger.info(f"Received {len(sessions)} sessions for clustering")
@@ -69,10 +69,10 @@ async def cluster_sessions(sessions: List[HistorySession]):
             raise HTTPException(status_code=400, detail="No sessions provided")
         
         # Process sessions through clustering service
-        result = await clustering_service.cluster_sessions(sessions)
+        clusters = await clustering_service.cluster_sessions(sessions)
         
-        logger.info(f"Generated {len(result['clusters'])} clusters")
-        return result
+        logger.info(f"Generated {len(clusters)} clusters")
+        return clusters
         
     except Exception as e:
         logger.error(f"Error clustering sessions: {str(e)}")

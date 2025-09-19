@@ -99,7 +99,7 @@ class SessionManager {
      * @param {number} sessionGapMinutes - Gap between sessions in minutes
      * @returns {Array} Formatted sessions ready for API
      */
-    preprocessHistory(historyItems, sessionGapMinutes = this.constants.SESSION_GAP_MINUTES || 30) {
+    processHistory(historyItems, sessionGapMinutes = this.constants.SESSION_GAP_MINUTES || 30) {
         try {
             console.log('Starting history preprocessing pipeline');
             

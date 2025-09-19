@@ -183,56 +183,6 @@ body {
     margin-bottom: 1.5rem;
 }
 
-/* Summary Cards */
-.summary-section {
-    margin-bottom: 2rem;
-}
-
-.summary-cards {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-    gap: 1rem;
-}
-
-.summary-card {
-    background: white;
-    border-radius: 12px;
-    padding: 1.5rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e7eb;
-    display: flex;
-    align-items: center;
-    gap: 1rem;
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.summary-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.card-icon {
-    font-size: 2rem;
-    width: 60px;
-    height: 60px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: #f8fafc;
-    border-radius: 12px;
-}
-
-.card-content h3 {
-    font-size: 1.5rem;
-    font-weight: 700;
-    color: #1f2937;
-    margin-bottom: 0.25rem;
-}
-
-.card-content p {
-    color: #6b7280;
-    font-size: 0.875rem;
-}
 
 /* Clusters Section */
 .clusters-section {
@@ -375,56 +325,6 @@ body {
     flex-shrink: 0;
 }
 
-/* Domains Section */
-.domains-section h2 {
-    margin-bottom: 1rem;
-    color: #1f2937;
-    font-size: 1.25rem;
-    font-weight: 600;
-}
-
-.domains-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 1rem;
-}
-
-.domain-card {
-    background: white;
-    border-radius: 8px;
-    padding: 1rem;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-    border: 1px solid #e5e7eb;
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-}
-
-.domain-favicon {
-    width: 24px;
-    height: 24px;
-    border-radius: 4px;
-    flex-shrink: 0;
-}
-
-.domain-info {
-    flex: 1;
-    min-width: 0;
-}
-
-.domain-name {
-    font-size: 0.875rem;
-    font-weight: 500;
-    color: #1f2937;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-
-.domain-count {
-    font-size: 0.75rem;
-    color: #6b7280;
-}
 
 /* Responsive Design */
 @media (max-width: 768px) {
@@ -447,15 +347,7 @@ body {
         padding: 1rem;
     }
     
-    .summary-cards {
-        grid-template-columns: 1fr;
-    }
-    
     .clusters-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .domains-container {
         grid-template-columns: 1fr;
     }
 }

@@ -17,7 +17,6 @@ const API_REQUEST_TIMEOUT_MS = 30000; // For main requests
 // UI constants
 const POPUP_WIDTH = 320;
 const MAX_CLUSTER_ITEMS_DISPLAY = 5;
-const MAX_DOMAINS_DISPLAY = 10;
 
 // Clustering constants
 const CONFIDENCE_THRESHOLD = 0.5;
@@ -65,7 +64,6 @@ window.ExtensionConstants = {
     API_REQUEST_TIMEOUT_MS,
     POPUP_WIDTH,
     MAX_CLUSTER_ITEMS_DISPLAY,
-    MAX_DOMAINS_DISPLAY,
     CONFIDENCE_THRESHOLD,
     MAX_CLUSTERS_DEFAULT,
     MIN_CLUSTER_SIZE_DEFAULT,
