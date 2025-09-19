@@ -51,7 +51,7 @@ async def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
-@app.post("/cluster", response_model=List[ClusterResult])
+@app.post("/cluster")
 async def cluster_sessions(sessions: List[HistorySession]):
     """
     Cluster browsing history sessions into thematic groups
@@ -60,7 +60,7 @@ async def cluster_sessions(sessions: List[HistorySession]):
         sessions: List of browsing history sessions
         
     Returns:
-        List of cluster results with thematic groupings
+        Dict with clusters and stats
     """
     try:
         logger.info(f"Received {len(sessions)} sessions for clustering")
@@ -69,26 +69,15 @@ async def cluster_sessions(sessions: List[HistorySession]):
             raise HTTPException(status_code=400, detail="No sessions provided")
         
         # Process sessions through clustering service
-        clusters = await clustering_service.cluster_sessions(sessions)
+        result = await clustering_service.cluster_sessions(sessions)
         
-        logger.info(f"Generated {len(clusters)} clusters")
-        return clusters
+        logger.info(f"Generated {len(result['clusters'])} clusters")
+        return result
         
     except Exception as e:
         logger.error(f"Error clustering sessions: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
 
-@app.post("/cluster/preview")
-async def preview_clustering(sessions: List[HistorySession]):
-    """
-    Preview clustering without full processing (for testing/debugging)
-    """
-    try:
-        preview = await clustering_service.preview_sessions(sessions)
-        return preview
-    except Exception as e:
-        logger.error(f"Error in preview: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Preview failed: {str(e)}")
 
 if __name__ == "__main__":
     import uvicorn

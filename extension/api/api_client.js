@@ -71,19 +71,6 @@ class ApiClient {
         });
     }
     
-    // Get clustering preview for preprocessed sessions
-    async previewSessions(sessions) {
-        if (!sessions || sessions.length === 0) {
-            return { success: false, error: 'No sessions provided' };
-        }
-        
-        console.log(`Getting preview for ${sessions.length} sessions`);
-        
-        return await this.makeRequest('preview', {
-            method: 'POST',
-            body: JSON.stringify(sessions)
-        });
-    }
 }
 
 // Create and export API client instance

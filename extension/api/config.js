@@ -9,14 +9,12 @@ class Config {
             development: {
                 baseUrl: 'http://localhost:8000',
                 cluster: '/cluster',
-                preview: '/cluster/preview',
                 health: '/health'
             },
             // Production (to be updated when deployed)
             production: {
                 baseUrl: 'https://your-production-api.com',
                 cluster: '/cluster',
-                preview: '/cluster/preview',
                 health: '/health'
             }
         };

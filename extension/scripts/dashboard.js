@@ -8,7 +8,7 @@ class Dashboard {
         this.constants = window.ExtensionConstants || {};
         this.sessionManager = window.SessionManager;
         this.currentClusters = [];
-        this.currentPreview = null;
+        this.currentStats = null;
         
         this.initializeElements();
         this.attachEventListeners();
@@ -69,30 +69,23 @@ class Dashboard {
             this.updateStatus(this.constants.STATUS_PROCESSING_SESSIONS, 'loading');
             
             // Preprocess history using SessionManager
-            const sessions = this.sessionManager.processHistory(history);
+            const sessions = this.sessionManager.preprocessHistory(history);
             if (sessions.length === 0) {
                 throw new Error(this.constants.ERROR_NO_SESSIONS);
             }
             
             this.updateStatus(this.constants.STATUS_ANALYZING_PATTERNS, 'loading');
             
-            // Get clustering results
-            const [clusterResult, previewResult] = await Promise.all([
-                this.apiClient.clusterSessions(sessions),
-                this.apiClient.previewSessions(sessions)
-            ]);
+            // Get clustering results (now includes stats)
+            const clusterResult = await this.apiClient.clusterSessions(sessions);
             
             if (!clusterResult.success) {
                 throw new Error(`${this.constants.ERROR_CLUSTERING_FAILED}: ${clusterResult.error}`);
             }
             
-            if (!previewResult.success) {
-                throw new Error(`${this.constants.ERROR_PREVIEW_FAILED}: ${previewResult.error}`);
-            }
-            
             // Store results
-            this.currentClusters = clusterResult.data;
-            this.currentPreview = previewResult.data;
+            this.currentClusters = clusterResult.data.clusters;
+            this.currentStats = clusterResult.data.stats;
             
             // Update UI
             this.updateStatus(this.constants.STATUS_ANALYSIS_COMPLETE, 'success');
@@ -136,15 +129,15 @@ class Dashboard {
     }
     
     populateSummary() {
-        if (!this.currentPreview) return;
+        if (!this.currentStats) return;
         
-        this.totalSessions.textContent = this.currentPreview.total_sessions;
-        this.totalItems.textContent = this.currentPreview.total_items;
-        this.totalClusters.textContent = this.currentClusters.length;
+        this.totalSessions.textContent = this.currentStats.total_sessions;
+        this.totalItems.textContent = this.currentStats.total_items;
+        this.totalClusters.textContent = this.currentStats.total_clusters;
         
-        if (this.currentPreview.date_range.start && this.currentPreview.date_range.end) {
-            const startDate = new Date(this.currentPreview.date_range.start).toLocaleDateString();
-            const endDate = new Date(this.currentPreview.date_range.end).toLocaleDateString();
+        if (this.currentStats.date_range.start && this.currentStats.date_range.end) {
+            const startDate = new Date(this.currentStats.date_range.start).toLocaleDateString();
+            const endDate = new Date(this.currentStats.date_range.end).toLocaleDateString();
             this.dateRange.textContent = `${startDate} - ${endDate}`;
         }
     }
@@ -279,11 +272,11 @@ class Dashboard {
     populateDomains() {
         this.domainsContainer.innerHTML = '';
         
-        if (!this.currentPreview || !this.currentPreview.top_domains) {
+        if (!this.currentStats || !this.currentStats.top_domains) {
             return;
         }
         
-        this.currentPreview.top_domains.forEach(domainData => {
+        this.currentStats.top_domains.forEach(domainData => {
             const domainCard = this.createDomainCard(domainData);
             this.domainsContainer.appendChild(domainCard);
         });

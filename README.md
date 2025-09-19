@@ -162,12 +162,8 @@ Health check endpoint
 ### `POST /cluster`
 Clusters browsing sessions into themes
 - **Input**: Array of browsing sessions
-- **Output**: Array of thematic clusters
+- **Output**: Object with clusters array and statistics
 
-### `POST /cluster/preview`
-Preview session data before clustering
-- **Input**: Array of browsing sessions  
-- **Output**: Summary statistics
 
 ## 🛡️ Privacy & Security
 

@@ -6,7 +6,7 @@ import re
 from urllib.parse import urlparse
 import asyncio
 
-from ..models.session_models import HistorySession, ClusterResult, ClusterItem, ClusteringPreview
+from ..models.session_models import HistorySession, ClusterResult, ClusterItem
 
 logger = logging.getLogger(__name__)
 
@@ -38,17 +38,41 @@ class ClusteringService:
             'Research': ['wiki', 'research', 'academic', 'paper', 'study'],
         }
 
-    async def cluster_sessions(self, sessions: List[HistorySession]) -> List[ClusterResult]:
+    async def cluster_sessions(self, sessions: List[HistorySession]) -> Dict[str, Any]:
         """
-        Main clustering method - groups sessions by themes
+        Main clustering method - groups sessions by themes and returns clusters with stats
         """
         logger.info(f"Starting clustering for {len(sessions)} sessions")
+        
+        # Calculate basic stats
+        total_items = sum(len(session.items) for session in sessions)
+        all_times = []
+        for session in sessions:
+            all_times.append(session.start_time)
+            all_times.append(session.end_time)
+        
+        date_range = {
+            "start": min(all_times) if all_times else None,
+            "end": max(all_times) if all_times else None
+        }
+        
+        # Calculate top domains
+        domain_counter = Counter()
+        for session in sessions:
+            for item in session.items:
+                domain = urlparse(item.url).netloc
+                domain_counter[domain] += 1
+        
+        top_domains = [
+            {"domain": domain, "count": count}
+            for domain, count in domain_counter.most_common(10)
+        ]
         
         # Extract all items with metadata
         all_items = []
         for session in sessions:
             for item in session.items:
-                cluster_item = ClusterItem( # parsing a history session to an object with our model ClusterItem
+                cluster_item = ClusterItem(
                     url=item.url,
                     title=item.title,
                     visit_time=item.visit_time,
@@ -84,7 +108,18 @@ class ClusteringService:
         clusters.sort(key=lambda x: x.confidence_score, reverse=True)
         
         logger.info(f"Generated {len(clusters)} clusters")
-        return clusters
+        
+        # Return clusters with basic stats
+        return {
+            "clusters": clusters,
+            "stats": {
+                "total_sessions": len(sessions),
+                "total_items": total_items,
+                "total_clusters": len(clusters),
+                "date_range": date_range,
+                "top_domains": top_domains
+            }
+        }
 
     def _group_by_themes(self, items_data: List[tuple]) -> Dict[str, List[tuple]]:
         """Group items by detected themes"""
@@ -191,59 +226,3 @@ class ClusteringService:
         
         return min(avg_score + size_boost, 1.0)
 
-    async def preview_sessions(self, sessions: List[HistorySession]) -> ClusteringPreview:
-        """Generate a preview of sessions for debugging"""
-        if not sessions:
-            return ClusteringPreview(
-                total_sessions=0,
-                total_items=0,
-                date_range={},
-                top_domains=[],
-                session_summary=[]
-            )
-        
-        # Calculate totals
-        total_items = sum(len(session.items) for session in sessions)
-        
-        # Date range
-        all_times = []
-        for session in sessions:
-            all_times.append(session.start_time)
-            all_times.append(session.end_time)
-        
-        date_range = {
-            "start": min(all_times),
-            "end": max(all_times)
-        }
-        
-        # Top domains
-        domain_counter = Counter()
-        for session in sessions:
-            for item in session.items:
-                domain = urlparse(item.url).netloc
-                domain_counter[domain] += 1
-        
-        top_domains = [
-            {"domain": domain, "count": count}
-            for domain, count in domain_counter.most_common(10)
-        ]
-        
-        # Session summary
-        session_summary = [
-            {
-                "session_id": session.session_id,
-                "items_count": len(session.items),
-                "duration_minutes": session.duration_minutes,
-                "start_time": session.start_time,
-                "top_domain": Counter(urlparse(item.url).netloc for item in session.items).most_common(1)[0][0] if session.items else "none"
-            }
-            for session in sessions[:5]  # Limit to first 5 sessions
-        ]
-        
-        return ClusteringPreview(
-            total_sessions=len(sessions),
-            total_items=total_items,
-            date_range=date_range,
-            top_domains=top_domains,
-            session_summary=session_summary
-        )

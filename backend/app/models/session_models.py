@@ -52,10 +52,3 @@ class ClusteringRequest(BaseModel):
     max_clusters: Optional[int] = Field(default=10, ge=1, le=50)
     min_cluster_size: Optional[int] = Field(default=2, ge=1)
     
-class ClusteringPreview(BaseModel):
-    """Preview of sessions before clustering"""
-    total_sessions: int
-    total_items: int
-    date_range: Dict[str, datetime]
-    top_domains: List[Dict[str, Any]]
-    session_summary: List[Dict[str, Any]]

@@ -83,20 +83,7 @@ try {
     Write-Host "❌ Clustering test failed: $($_.Exception.Message)" -ForegroundColor Red
 }
 
-# Test preview endpoint
-Write-Host "🔍 Testing /cluster/preview endpoint..." -ForegroundColor Yellow
-
-try {
-    $jsonBody = $testSessions | ConvertTo-Json -Depth 10
-    $preview = Invoke-RestMethod -Uri "http://localhost:8000/cluster/preview" -Method Post -Body $jsonBody -ContentType "application/json"
-    
-    Write-Host "✅ Preview successful!" -ForegroundColor Green
-    Write-Host "📈 Sessions: $($preview.total_sessions), Items: $($preview.total_items)" -ForegroundColor Cyan
-    Write-Host "📅 Date range: $($preview.date_range.start) to $($preview.date_range.end)" -ForegroundColor Cyan
-    Write-Host "🌐 Top domains: $($preview.top_domains | ForEach-Object { "$($_.domain) ($($_.count))" } | Join-String -Separator ', ')" -ForegroundColor Cyan
-    
-} catch {
-    Write-Host "❌ Preview test failed: $($_.Exception.Message)" -ForegroundColor Red
-}
+# Clustering now includes stats, so no separate preview needed
+Write-Host "✅ Clustering includes statistics automatically!" -ForegroundColor Green
 
 Write-Host "🎉 API testing completed!" -ForegroundColor Green

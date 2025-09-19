@@ -18,7 +18,6 @@ const API_REQUEST_TIMEOUT_MS = 30000; // For main requests
 const POPUP_WIDTH = 320;
 const MAX_CLUSTER_ITEMS_DISPLAY = 5;
 const MAX_DOMAINS_DISPLAY = 10;
-const MAX_SESSIONS_PREVIEW = 5;
 
 // Clustering constants
 const CONFIDENCE_THRESHOLD = 0.5;
@@ -44,7 +43,6 @@ const ERROR_NO_HISTORY = 'No browsing history found';
 const ERROR_NO_SESSIONS = 'No valid sessions found in history';
 const ERROR_API_UNAVAILABLE = 'API not available';
 const ERROR_CLUSTERING_FAILED = 'Clustering failed';
-const ERROR_PREVIEW_FAILED = 'Preview failed';
 
 // Status messages
 const STATUS_CHECKING_API = 'Checking API connection...';
@@ -68,7 +66,6 @@ window.ExtensionConstants = {
     POPUP_WIDTH,
     MAX_CLUSTER_ITEMS_DISPLAY,
     MAX_DOMAINS_DISPLAY,
-    MAX_SESSIONS_PREVIEW,
     CONFIDENCE_THRESHOLD,
     MAX_CLUSTERS_DEFAULT,
     MIN_CLUSTER_SIZE_DEFAULT,
@@ -84,7 +81,6 @@ window.ExtensionConstants = {
     ERROR_NO_SESSIONS,
     ERROR_API_UNAVAILABLE,
     ERROR_CLUSTERING_FAILED,
-    ERROR_PREVIEW_FAILED,
     STATUS_CHECKING_API,
     STATUS_FETCHING_HISTORY,
     STATUS_PROCESSING_SESSIONS,
