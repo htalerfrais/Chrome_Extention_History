@@ -6,7 +6,7 @@ import re
 from urllib.parse import urlparse
 import asyncio
 
-from ..models.session_models import HistorySession, ClusterResult, ClusterItem
+from ..models.session_models import HistorySession, ClusterResult, ClusterItem, SessionClusteringResponse
 
 logger = logging.getLogger(__name__)
 
@@ -38,15 +38,22 @@ class ClusteringService:
             'Research': ['wiki', 'research', 'academic', 'paper', 'study'],
         }
 
-    async def cluster_sessions(self, sessions: List[HistorySession]) -> List[ClusterResult]:
+    async def cluster_sessions(self, sessions: List[HistorySession]) -> Dict[str, SessionClusteringResponse]:
         """
-        Main clustering method - groups sessions by themes
+        Main clustering method - groups sessions by themes, processing each session independently
+        
+        Returns:
+            Dict mapping session_id to SessionClusteringResponse
         """
         logger.info(f"Starting clustering for {len(sessions)} sessions")
         
-        # Extract all items with metadata
-        all_items = []
+        session_results = {}
+        
         for session in sessions:
+            logger.info(f"Processing session {session.session_id} with {len(session.items)} items")
+            
+            # Convert session items to cluster items
+            cluster_items = []
             for item in session.items:
                 cluster_item = ClusterItem(
                     url=item.url,
@@ -54,44 +61,52 @@ class ClusteringService:
                     visit_time=item.visit_time,
                     session_id=session.session_id
                 )
-                all_items.append((cluster_item, session))
-        
-        # Group items by detected themes
-        theme_groups = self._group_by_themes(all_items)
-        
-        # Convert to cluster results
-        clusters = []
-        for theme, items_data in theme_groups.items():
-            if len(items_data) < 2:  # Skip single-item clusters
-                continue
-                
-            items = [item for item, _ in items_data]
-            sessions_involved = list(set(session.session_id for _, session in items_data))
+                cluster_items.append(cluster_item)
             
-            cluster = ClusterResult(
-                cluster_id=f"cluster_{theme.lower().replace(' ', '_')}_{len(clusters)}",
-                theme=theme,
-                items=items
+            # Group items by themes for this session only
+            theme_groups = self._group_by_themes_for_session(cluster_items, session.session_id)
+            
+            # Convert to cluster results
+            clusters = []
+            for theme, items in theme_groups.items():
+                if len(items) < 2:  # Skip single-item clusters
+                    continue
+                    
+                cluster = ClusterResult(
+                    cluster_id=f"cluster_{session.session_id}_{theme.lower().replace(' ', '_')}_{len(clusters)}",
+                    theme=theme,
+                    items=items
+                )
+                clusters.append(cluster)
+            
+            # Sort clusters by theme name for consistent ordering
+            clusters.sort(key=lambda x: x.theme)
+            
+            # Create session response
+            session_response = SessionClusteringResponse(
+                session_id=session.session_id,
+                session_start_time=session.start_time,
+                session_end_time=session.end_time,
+                clusters=clusters
             )
-            clusters.append(cluster)
+            
+            session_results[session.session_id] = session_response
+            logger.info(f"Session {session.session_id}: generated {len(clusters)} clusters")
         
-        # Sort by theme name for consistent ordering
-        clusters.sort(key=lambda x: x.theme)
-        
-        logger.info(f"Generated {len(clusters)} clusters")
-        return clusters
+        logger.info(f"Generated clustering results for {len(session_results)} sessions")
+        return session_results
 
-    def _group_by_themes(self, items_data: List[tuple]) -> Dict[str, List[tuple]]:
-        """Group items by detected themes"""
+    def _group_by_themes_for_session(self, items: List[ClusterItem], session_id: str) -> Dict[str, List[ClusterItem]]:
+        """Group items by detected themes for a single session"""
         theme_groups = defaultdict(list)
         
-        for item, session in items_data:
+        for item in items:
             detected_themes = self._detect_themes(item)
             
             # Assign to primary theme (highest scoring)
             if detected_themes:
                 primary_theme = max(detected_themes.items(), key=lambda x: x[1])[0]
-                theme_groups[primary_theme].append((item, session))
+                theme_groups[primary_theme].append(item)
             # Skip items that can't be categorized into proper themes
         
         return dict(theme_groups)

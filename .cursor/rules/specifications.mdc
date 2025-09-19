@@ -1,0 +1,41 @@
+---
+description:
+globs:
+alwaysApply: true
+---
+📌 Version V0.2 — IN PROGRESS 🚧
+
+🎯 Goal
+
+Enhance the extension so that the browsing history is organized into sessions, processed into thematic clusters, and displayed in a dedicated dashboard page inside the extension.
+
+This removes the need to keep multiple tabs open by giving the user a structured overview of their past browsing.
+
+🔑 Features Implemented
+
+✅ Backend Minimal NLP (Python + FastAPI + Docker)
+- Accepts browsing history data from the extension
+- Basic session grouping (time-based segmentation)
+- Basic clustering method to extract browsing themes/topics
+- Returns structured results as JSON groups
+- Runs locally via Docker (deployable to cloud)
+
+✅ Extension ↔ Backend Communication
+- Extension sends session data to backend API (localhost:8000)
+- Receives JSON response with thematic groups
+- API URL abstracted for dev/production switching
+
+✅ Dedicated Dashboard Page (dashboard.html)
+- Separate extension page (not popup)
+- Ultra-clean UI showing only theme names and actual pages
+- Minimal design: theme + browsing history items with favicons
+
+📦 Remaining Tasks for V0.2
+
+- [ ] Rework groupIntoSession for smarter session creation
+- [ ] Rework clustering_service.py for simpler approach
+  - Change theme detection to use proper NLP
+  - Work on theme detection independently for each session
+- [ ] Improve frontend design and user experience
+
+🎨 Current State: Basic implementation with ultra-minimal dashboard. Core functionality works but needs refinement for better session grouping, smarter clustering, and improved UI.

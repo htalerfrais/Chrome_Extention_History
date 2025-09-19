@@ -7,7 +7,8 @@ class Dashboard {
         this.config = window.ExtensionConfig;
         this.constants = window.ExtensionConstants || {};
         this.sessionManager = window.SessionManager;
-        this.currentClusters = [];
+        this.currentSessionResults = {};
+        this.activeSessionId = null;
         
         this.initializeElements();
         this.attachEventListeners();
@@ -24,8 +25,13 @@ class Dashboard {
         this.errorContainer = document.getElementById('error-container');
         this.dashboardContent = document.getElementById('dashboard-content');
         
+        // Session tabs
+        this.sessionsTabs = document.getElementById('sessions-tabs');
+        
         // Content containers
         this.clustersContainer = document.getElementById('clusters-container');
+        this.clustersTitle = document.getElementById('clusters-title');
+        this.sessionInfo = document.getElementById('session-info');
         
         // Buttons
         this.refreshBtn = document.getElementById('refresh-btn');
@@ -76,7 +82,13 @@ class Dashboard {
             }
             
             // Store results
-            this.currentClusters = clusterResult.data;
+            this.currentSessionResults = clusterResult.data;
+            
+            // Set first session as active
+            const sessionIds = Object.keys(this.currentSessionResults);
+            if (sessionIds.length > 0) {
+                this.activeSessionId = sessionIds[0];
+            }
             
             // Update UI
             this.updateStatus(this.constants.STATUS_ANALYSIS_COMPLETE, 'success');
@@ -114,22 +126,104 @@ class Dashboard {
     }
     
     populateDashboard() {
-        this.populateClusters();
+        this.populateSessionTabs();
+        this.populateSessionClusters();
     }
     
-    
-    populateClusters() {
-        this.clustersContainer.innerHTML = '';
+    populateSessionTabs() {
+        this.sessionsTabs.innerHTML = '';
         
-        if (!this.currentClusters || this.currentClusters.length === 0) {
-            this.clustersContainer.innerHTML = '<p>No clusters found in your browsing history.</p>';
+        const sessionIds = Object.keys(this.currentSessionResults);
+        if (sessionIds.length === 0) {
             return;
         }
         
-        this.currentClusters.forEach(cluster => {
+        sessionIds.forEach(sessionId => {
+            const sessionData = this.currentSessionResults[sessionId];
+            const tab = this.createSessionTab(sessionId, sessionData);
+            this.sessionsTabs.appendChild(tab);
+        });
+    }
+    
+    createSessionTab(sessionId, sessionData) {
+        const tab = document.createElement('button');
+        tab.className = `session-tab ${sessionId === this.activeSessionId ? 'active' : ''}`;
+        tab.dataset.sessionId = sessionId;
+        
+        const startTime = new Date(sessionData.session_start_time);
+        const endTime = new Date(sessionData.session_end_time);
+        const duration = Math.round((endTime - startTime) / (1000 * 60)); // minutes
+        
+        tab.innerHTML = `
+            <div class="session-tab-content">
+                <div class="session-tab-title">Session ${sessionId.split('_').pop()}</div>
+                <div class="session-tab-meta">
+                    ${startTime.toLocaleDateString()} • ${duration}min • ${sessionData.clusters.length} topics
+                </div>
+            </div>
+        `;
+        
+        tab.addEventListener('click', () => this.switchToSession(sessionId));
+        
+        return tab;
+    }
+    
+    switchToSession(sessionId) {
+        // Update active tab
+        document.querySelectorAll('.session-tab').forEach(tab => {
+            tab.classList.remove('active');
+        });
+        document.querySelector(`[data-session-id="${sessionId}"]`).classList.add('active');
+        
+        // Update active session
+        this.activeSessionId = sessionId;
+        
+        // Update clusters display
+        this.populateSessionClusters();
+    }
+    
+    populateSessionClusters() {
+        this.clustersContainer.innerHTML = '';
+        
+        if (!this.activeSessionId || !this.currentSessionResults[this.activeSessionId]) {
+            this.clustersContainer.innerHTML = '<p>No session selected.</p>';
+            return;
+        }
+        
+        const sessionData = this.currentSessionResults[this.activeSessionId];
+        const clusters = sessionData.clusters;
+        
+        if (!clusters || clusters.length === 0) {
+            this.clustersContainer.innerHTML = '<p>No clusters found in this session.</p>';
+            return;
+        }
+        
+        // Update session info
+        this.updateSessionInfo(sessionData);
+        
+        // Populate clusters
+        clusters.forEach(cluster => {
             const clusterCard = this.createClusterCard(cluster);
             this.clustersContainer.appendChild(clusterCard);
         });
+    }
+    
+    updateSessionInfo(sessionData) {
+        const startTime = new Date(sessionData.session_start_time);
+        const endTime = new Date(sessionData.session_end_time);
+        const duration = Math.round((endTime - startTime) / (1000 * 60)); // minutes
+        
+        this.sessionInfo.innerHTML = `
+            <div class="session-info-item">
+                <strong>Duration:</strong> ${duration} minutes
+            </div>
+            <div class="session-info-item">
+                <strong>Time:</strong> ${startTime.toLocaleString()} - ${endTime.toLocaleString()}
+            </div>
+            <div class="session-info-item">
+                <strong>Topics:</strong> ${sessionData.clusters.length}
+            </div>
+        `;
     }
     
     createClusterCard(cluster) {
@@ -231,8 +325,9 @@ class Dashboard {
         // For now, just show environment info
         const currentEnv = this.config.currentEnvironment;
         const apiUrl = this.config.getApiBaseUrl();
+        const sessionGap = this.constants.SESSION_GAP_MINUTES;
         
-        alert(`Settings\n\nEnvironment: ${currentEnv}\nAPI URL: ${apiUrl}\n\nTo switch environments, modify extension/utils/config.js`);
+        alert(`Settings\n\nEnvironment: ${currentEnv}\nAPI URL: ${apiUrl}\nSession Gap: ${sessionGap} minutes\n\nTo switch environments, modify extension/utils/config.js`);
     }
     
 }

@@ -6,7 +6,7 @@ import logging
 from datetime import datetime
 
 from .services.clustering_service import ClusteringService
-from .models.session_models import HistorySession, ClusterResult
+from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -51,16 +51,16 @@ async def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
-@app.post("/cluster", response_model=List[ClusterResult])
+@app.post("/cluster", response_model=Dict[str, SessionClusteringResponse])
 async def cluster_sessions(sessions: List[HistorySession]):
     """
-    Cluster browsing history sessions into thematic groups
+    Cluster browsing history sessions into thematic groups, processing each session independently
     
     Args:
         sessions: List of browsing history sessions
         
     Returns:
-        List of cluster results with thematic groupings
+        Dict mapping session_id to SessionClusteringResponse with clusters for each session
     """
     try:
         logger.info(f"Received {len(sessions)} sessions for clustering")
@@ -69,10 +69,10 @@ async def cluster_sessions(sessions: List[HistorySession]):
             raise HTTPException(status_code=400, detail="No sessions provided")
         
         # Process sessions through clustering service
-        clusters = await clustering_service.cluster_sessions(sessions)
+        session_results = await clustering_service.cluster_sessions(sessions)
         
-        logger.info(f"Generated {len(clusters)} clusters")
-        return clusters
+        logger.info(f"Generated clustering results for {len(session_results)} sessions")
+        return session_results
         
     except Exception as e:
         logger.error(f"Error clustering sessions: {str(e)}")

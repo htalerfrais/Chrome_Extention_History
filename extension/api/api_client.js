@@ -65,10 +65,16 @@ class ApiClient {
         
         console.log(`Sending ${sessions.length} sessions for clustering`);
         
-        return await this.makeRequest('cluster', {
+        const result = await this.makeRequest('cluster', {
             method: 'POST',
             body: JSON.stringify(sessions)
         });
+        
+        if (result.success) {
+            console.log(`Received clustering results for ${Object.keys(result.data).length} sessions`);
+        }
+        
+        return result;
     }
     
 }

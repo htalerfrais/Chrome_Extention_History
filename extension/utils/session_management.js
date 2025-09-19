@@ -17,7 +17,7 @@ class SessionManager {
             return [];
         }
         
-        console.log(`Grouping ${historyItems.length} history items into sessions`);
+        console.log(`Grouping ${historyItems.length} history items into sessions with gap: ${sessionGapMinutes} minutes`);
         
         // Sort by visit time
         const sortedItems = [...historyItems].sort((a, b) => {

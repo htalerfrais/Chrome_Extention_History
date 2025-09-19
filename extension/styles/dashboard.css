@@ -184,16 +184,87 @@ body {
 }
 
 
+/* Sessions Tabs */
+.sessions-tabs {
+    display: flex;
+    background: white;
+    border-bottom: 1px solid #e1e5e9;
+    overflow-x: auto;
+    padding: 0 2rem;
+}
+
+.session-tab {
+    padding: 1rem 1.5rem;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    font-size: 0.9rem;
+    color: #6c757d;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+    min-width: fit-content;
+}
+
+.session-tab:hover {
+    color: #495057;
+    background: #f8f9fa;
+}
+
+.session-tab.active {
+    color: #667eea;
+    border-bottom-color: #667eea;
+    font-weight: 600;
+}
+
+.session-tab-content {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.session-tab-title {
+    font-weight: 600;
+}
+
+.session-tab-meta {
+    font-size: 0.75rem;
+    color: #6c757d;
+}
+
 /* Clusters Section */
 .clusters-section {
-    margin-bottom: 2rem;
+    padding: 2rem;
+}
+
+.clusters-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.5rem;
 }
 
 .clusters-section h2 {
-    margin-bottom: 1rem;
-    color: #1f2937;
-    font-size: 1.25rem;
+    color: #2c3e50;
+    font-size: 1.5rem;
     font-weight: 600;
+    margin: 0;
+}
+
+.session-info {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+.session-info-item {
+    margin-bottom: 0.25rem;
+}
+
+.session-info-item:last-child {
+    margin-bottom: 0;
 }
 
 .clusters-container {
