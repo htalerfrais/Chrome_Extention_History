@@ -6,6 +6,7 @@ class Dashboard {
         this.apiClient = window.ApiClient;
         this.config = window.ExtensionConfig;
         this.constants = window.ExtensionConstants || {};
+        this.sessionManager = window.SessionManager;
         this.currentClusters = [];
         this.currentPreview = null;
         
@@ -67,8 +68,8 @@ class Dashboard {
             
             this.updateStatus(this.constants.STATUS_PROCESSING_SESSIONS, 'loading');
             
-            // Format history for API
-            const sessions = this.apiClient.formatHistoryForApi(history);
+            // Preprocess history using SessionManager
+            const sessions = this.sessionManager.processHistory(history);
             if (sessions.length === 0) {
                 throw new Error(this.constants.ERROR_NO_SESSIONS);
             }
@@ -107,17 +108,22 @@ class Dashboard {
     
     async getChromeHistory() {
         return new Promise((resolve, reject) => {
-            const oneWeekAgo = Date.now() - (this.constants.HISTORY_DAYS_BACK * this.constants.DAY_MS);
-            
-            chrome.history.search({
-                text: '',
-                startTime: oneWeekAgo,
-                maxResults: this.constants.MAX_HISTORY_RESULTS
-            }, (historyItems) => {
+            // Utilise les données déjà préprocessées par background.js
+            chrome.storage.local.get({ historyItems: [] }, (data) => {
                 if (chrome.runtime.lastError) {
                     reject(new Error(chrome.runtime.lastError.message));
                 } else {
-                    resolve(historyItems);
+                    console.log(`Récupération de ${data.historyItems.length} items préprocessés depuis le storage`);
+                    
+                    // Filtrer par date si nécessaire (les données du storage peuvent être plus anciennes)
+                    const oneWeekAgo = Date.now() - (this.constants.HISTORY_DAYS_BACK * this.constants.DAY_MS);
+                    const recentItems = data.historyItems.filter(item => {
+                        const itemTime = item.lastVisitTime || item.visitTime || 0;
+                        return itemTime >= oneWeekAgo;
+                    });
+                    
+                    console.log(`${recentItems.length} items dans la période des ${this.constants.HISTORY_DAYS_BACK} derniers jours`);
+                    resolve(recentItems);
                 }
             });
         });

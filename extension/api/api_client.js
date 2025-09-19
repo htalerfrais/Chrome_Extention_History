@@ -57,7 +57,7 @@ class ApiClient {
         return await this.makeRequest('health');
     }
     
-    // Send sessions for clustering
+    // Send preprocessed sessions for clustering
     async clusterSessions(sessions) {
         if (!sessions || sessions.length === 0) {
             return { success: false, error: 'No sessions provided' };
@@ -71,7 +71,7 @@ class ApiClient {
         });
     }
     
-    // Get clustering preview
+    // Get clustering preview for preprocessed sessions
     async previewSessions(sessions) {
         if (!sessions || sessions.length === 0) {
             return { success: false, error: 'No sessions provided' };
@@ -83,80 +83,6 @@ class ApiClient {
             method: 'POST',
             body: JSON.stringify(sessions)
         });
-    }
-    
-    // Convert Chrome history to API format
-    formatHistoryForApi(chromeHistory) {
-        try {
-            // Group history items into sessions (simple time-based grouping)
-            const sessions = this.groupIntoSessions(chromeHistory);
-            
-            // Format sessions for API
-            return sessions.map(session => ({
-                session_id: session.sessionId,
-                start_time: new Date(session.startTime).toISOString(),
-                end_time: new Date(session.endTime).toISOString(),
-                items: session.items.map(item => ({
-                    url: item.url,
-                    title: item.title || 'Untitled',
-                    visit_time: new Date(item.lastVisitTime || item.visitTime).toISOString(),
-                    visit_count: item.visitCount || 1,
-                    typed_count: item.typedCount || 0
-                })),
-                duration_minutes: Math.round((session.endTime - session.startTime) / (1000 * 60))
-            }));
-        } catch (error) {
-            console.error('Error formatting history for API:', error);
-            return [];
-        }
-    }
-    
-    // Simple session grouping by time gaps
-    groupIntoSessions(historyItems, sessionGapMinutes = window.ExtensionConstants?.SESSION_GAP_MINUTES || 30) {
-        if (!historyItems || historyItems.length === 0) {
-            return [];
-        }
-        
-        // Sort by visit time
-        const sortedItems = [...historyItems].sort((a, b) => {
-            const timeA = a.lastVisitTime || a.visitTime || 0;
-            const timeB = b.lastVisitTime || b.visitTime || 0;
-            return timeA - timeB;
-        });
-        
-        const sessions = [];
-        let currentSession = null;
-        const sessionGapMs = sessionGapMinutes * 60 * 1000;
-        
-        for (const item of sortedItems) {
-            const itemTime = item.lastVisitTime || item.visitTime || Date.now();
-            
-            if (!currentSession || (itemTime - currentSession.endTime) > sessionGapMs) {
-                // Start new session
-                if (currentSession) {
-                    sessions.push(currentSession);
-                }
-                
-                currentSession = {
-                    sessionId: `session_${sessions.length + 1}_${Date.now()}`,
-                    startTime: itemTime,
-                    endTime: itemTime,
-                    items: [item]
-                };
-            } else {
-                // Add to current session
-                currentSession.items.push(item);
-                currentSession.endTime = itemTime;
-            }
-        }
-        
-        // Add the last session
-        if (currentSession) {
-            sessions.push(currentSession);
-        }
-        
-        // Filter out sessions with too few items
-        return sessions.filter(session => session.items.length >= (window.ExtensionConstants?.MIN_SESSION_ITEMS || 2));
     }
 }
 
