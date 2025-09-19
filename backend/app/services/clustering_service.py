@@ -71,17 +71,12 @@ class ClusteringService:
             cluster = ClusterResult(
                 cluster_id=f"cluster_{theme.lower().replace(' ', '_')}_{len(clusters)}",
                 theme=theme,
-                description=self._generate_description(theme, items),
-                keywords=self._extract_keywords(theme, items),
-                items=items,
-                confidence_score=self._calculate_confidence(theme, items),
-                session_ids=sessions_involved,
-                total_items=len(items)
+                items=items
             )
             clusters.append(cluster)
         
-        # Sort by confidence score
-        clusters.sort(key=lambda x: x.confidence_score, reverse=True)
+        # Sort by theme name for consistent ordering
+        clusters.sort(key=lambda x: x.theme)
         
         logger.info(f"Generated {len(clusters)} clusters")
         return clusters
@@ -128,63 +123,4 @@ class ClusteringService:
         
         return themes
 
-    def _generate_description(self, theme: str, items: List[ClusterItem]) -> str:
-        """Generate a description for the cluster"""
-        domains = Counter(urlparse(item.url).netloc for item in items)
-        top_domain = domains.most_common(1)[0][0] if domains else "various sites"
-        
-        descriptions = {
-            'Development': f"Programming and development activities on {top_domain} and related sites",
-            'Social Media': f"Social media browsing and interaction on {top_domain}",
-            'Shopping': f"Online shopping and product research on {top_domain}",
-            'Learning': f"Educational content and learning resources from {top_domain}",
-            'Entertainment': f"Entertainment and media consumption on {top_domain}",
-            'News': f"News reading and current events from {top_domain}",
-            'Productivity': f"Work and productivity tools usage on {top_domain}",
-            'Research': f"Research and information gathering from {top_domain}",
-        }
-        
-        return descriptions.get(theme, f"Browsing session focused on {theme.lower()} from {top_domain}")
-
-    def _extract_keywords(self, theme: str, items: List[ClusterItem]) -> List[str]:
-        """Extract relevant keywords for the cluster"""
-        # Start with theme keywords
-        keywords = set(self.theme_patterns.get(theme, []))
-        
-        # Add domain-specific keywords
-        for item in items:
-            domain = urlparse(item.url).netloc
-            if domain in self.domain_keywords:
-                keywords.update(self.domain_keywords[domain])
-        
-        # Extract from titles (simple approach)
-        title_words = []
-        for item in items:
-            words = re.findall(r'\b\w{4,}\b', item.title.lower())
-            title_words.extend(words)
-        
-        # Add most common title words
-        common_title_words = [word for word, count in Counter(title_words).most_common(3)]
-        keywords.update(common_title_words)
-        
-        return list(keywords)[:10]  # Limit to 10 keywords
-
-    def _calculate_confidence(self, theme: str, items: List[ClusterItem]) -> float:
-        """Calculate confidence score for the cluster"""
-        if not items:
-            return 0.0
-        
-        # Base confidence on theme detection strength
-        total_score = 0
-        for item in items:
-            theme_scores = self._detect_themes(item)
-            total_score += theme_scores.get(theme, 0)
-        
-        # Normalize by number of items
-        avg_score = total_score / len(items)
-        
-        # Boost for larger clusters (more evidence)
-        size_boost = min(len(items) / 10, 0.3)
-        
-        return min(avg_score + size_boost, 1.0)
 

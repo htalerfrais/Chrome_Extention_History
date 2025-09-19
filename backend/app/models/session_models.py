@@ -35,16 +35,7 @@ class ClusterResult(BaseModel):
     """Result of clustering algorithm"""
     cluster_id: str
     theme: str
-    description: str
-    keywords: List[str]
     items: List[ClusterItem]
-    confidence_score: float = Field(ge=0.0, le=1.0)
-    session_ids: List[str]
-    total_items: int
-    
-    def __post_init__(self):
-        if self.total_items is None:
-            self.total_items = len(self.items)
 
 class ClusteringRequest(BaseModel):
     """Request model for clustering endpoint"""

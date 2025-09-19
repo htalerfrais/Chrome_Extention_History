@@ -136,52 +136,12 @@ class Dashboard {
         const card = document.createElement('div');
         card.className = 'cluster-card';
         
-        const confidence = Math.round(cluster.confidence_score * 100);
-        
-        // Header
-        const header = document.createElement('div');
-        header.className = 'cluster-header';
-        
+        // Theme header
         const themeDiv = document.createElement('div');
         themeDiv.className = 'cluster-theme';
         themeDiv.textContent = cluster.theme;
         
-        const confidenceDiv = document.createElement('div');
-        confidenceDiv.className = 'cluster-confidence';
-        confidenceDiv.textContent = `${confidence}% confidence`;
-        
-        header.appendChild(themeDiv);
-        header.appendChild(confidenceDiv);
-        
-        // Description
-        const descriptionDiv = document.createElement('div');
-        descriptionDiv.className = 'cluster-description';
-        descriptionDiv.textContent = cluster.description;
-        
-        // Keywords
-        const keywordsDiv = document.createElement('div');
-        keywordsDiv.className = 'cluster-keywords';
-        cluster.keywords.forEach(keyword => {
-            const tag = document.createElement('span');
-            tag.className = 'keyword-tag';
-            tag.textContent = keyword;
-            keywordsDiv.appendChild(tag);
-        });
-        
-        // Stats
-        const statsDiv = document.createElement('div');
-        statsDiv.className = 'cluster-stats';
-        
-        const pagesSpan = document.createElement('span');
-        pagesSpan.textContent = `${cluster.total_items} pages`;
-        
-        const sessionsSpan = document.createElement('span');
-        sessionsSpan.textContent = `${cluster.session_ids.length} sessions`;
-        
-        statsDiv.appendChild(pagesSpan);
-        statsDiv.appendChild(sessionsSpan);
-        
-        // Items
+        // Items list
         const itemsDiv = document.createElement('div');
         itemsDiv.className = 'cluster-items';
         
@@ -197,10 +157,7 @@ class Dashboard {
         }
         
         // Assemble card
-        card.appendChild(header);
-        card.appendChild(descriptionDiv);
-        card.appendChild(keywordsDiv);
-        card.appendChild(statsDiv);
+        card.appendChild(themeDiv);
         card.appendChild(itemsDiv);
         
         return card;
