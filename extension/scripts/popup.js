@@ -68,3 +68,8 @@ document.getElementById('searchInput').addEventListener('keydown', (e) => {
         document.getElementById('searchBtn').click();
     }
 });
+
+// Dashboard button handler
+document.getElementById('dashboardBtn').addEventListener('click', () => {
+    chrome.tabs.create({ url: chrome.runtime.getURL('dashboard.html') });
+});

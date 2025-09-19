@@ -1,4 +1,5 @@
 .env
 /venv/
 /history-samples/
+.cursor/
 

@@ -1,0 +1,61 @@
+from pydantic import BaseModel, Field
+from typing import List, Optional, Dict, Any
+from datetime import datetime
+
+class HistoryItem(BaseModel):
+    """Individual browsing history item"""
+    url: str
+    title: str
+    visit_time: datetime
+    visit_count: int = 1
+    typed_count: int = 0
+    last_visit_time: Optional[datetime] = None
+
+class HistorySession(BaseModel):
+    """A session of browsing history items grouped by time"""
+    session_id: str
+    start_time: datetime
+    end_time: datetime
+    items: List[HistoryItem]
+    duration_minutes: Optional[int] = None
+    
+    def __post_init__(self):
+        if self.duration_minutes is None:
+            delta = self.end_time - self.start_time
+            self.duration_minutes = int(delta.total_seconds() / 60)
+
+class ClusterItem(BaseModel):
+    """A history item within a cluster"""
+    url: str
+    title: str
+    visit_time: datetime
+    session_id: str
+
+class ClusterResult(BaseModel):
+    """Result of clustering algorithm"""
+    cluster_id: str
+    theme: str
+    description: str
+    keywords: List[str]
+    items: List[ClusterItem]
+    confidence_score: float = Field(ge=0.0, le=1.0)
+    session_ids: List[str]
+    total_items: int
+    
+    def __post_init__(self):
+        if self.total_items is None:
+            self.total_items = len(self.items)
+
+class ClusteringRequest(BaseModel):
+    """Request model for clustering endpoint"""
+    sessions: List[HistorySession]
+    max_clusters: Optional[int] = Field(default=10, ge=1, le=50)
+    min_cluster_size: Optional[int] = Field(default=2, ge=1)
+    
+class ClusteringPreview(BaseModel):
+    """Preview of sessions before clustering"""
+    total_sessions: int
+    total_items: int
+    date_range: Dict[str, datetime]
+    top_domains: List[Dict[str, Any]]
+    session_summary: List[Dict[str, Any]]
