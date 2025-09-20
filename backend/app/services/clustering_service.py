@@ -41,7 +41,8 @@ class ClusteringService:
                     nr_topics=self.nr_topics,
                     low_memory=True,
                     calculate_probabilities=True,
-                    verbose=False
+                    verbose=False,
+                    hdbscan_model=None  # Use default clustering instead of HDBSCAN
                 )
                 logger.info(f"Initialized BERTopic with model {self.embedding_model_name}")
             except Exception as e:
