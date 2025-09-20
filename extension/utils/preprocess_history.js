@@ -134,3 +134,117 @@ function diceCoefficient(a, b) {
 }
 
 
+
+// --- URL feature extraction for NLP-friendly fields ---
+// Adds: urlHostname, urlPathnameClean, and optionally urlSearchQuery (for useful search params)
+function addUrlFeatures(items) {
+    if (!Array.isArray(items)) return [];
+    return items.map((item) => {
+        if (!item || typeof item.url !== 'string') return item;
+        const features = extractUrlFeatures(item.url);
+        return Object.assign({}, item, features);
+    });
+}
+
+function extractUrlFeatures(raw) {
+    const result = { urlHostname: '', urlPathnameClean: '/', urlSearchQuery: undefined };
+    if (typeof raw !== 'string' || raw.length === 0) return result;
+
+    let u;
+    try {
+        u = new URL(raw);
+    } catch (e) {
+        try {
+            u = new URL('http://' + raw);
+        } catch (e2) {
+            return result;
+        }
+    }
+
+    // Hostname in lowercase
+    const hostname = (u.hostname || '').toLowerCase();
+    result.urlHostname = hostname;
+
+    // Extract useful search query if present
+    const useful = extractUsefulSearchQuery(u.search);
+    if (useful) {
+        result.urlSearchQuery = useful;
+    }
+
+    // Build cleaned pathname
+    let pathname = u.pathname || '/';
+    // Normalize slashes and trim trailing slash (except root)
+    pathname = pathname.replace(/\/+/, '/');
+    if (pathname.length > 1 && pathname.endsWith('/')) pathname = pathname.slice(0, -1);
+
+    const segments = pathname.split('/').filter(Boolean).map(safeDecodeLower);
+    const cleanedSegments = segments
+        .map(stripCommonExtensions)
+        .filter((seg) => !isNoiseSegment(seg))
+        .filter((seg) => !isNumericId(seg))
+        .filter((seg) => !isUuid(seg))
+        .filter((seg) => !isHexLong(seg))
+        .filter((seg) => !isLongSlug(seg));
+
+    result.urlPathnameClean = '/' + cleanedSegments.join('/');
+    if (result.urlPathnameClean === '/') {
+        // Keep root if nothing meaningful remains
+        result.urlPathnameClean = '/';
+    }
+
+    return result;
+}
+
+function extractUsefulSearchQuery(search) {
+    if (!search) return '';
+    const params = new URLSearchParams(search);
+    // Ordered by commonality across engines/sites
+    const usefulKeys = ['q', 'query', 'text', 'search', 'keyword'];
+    for (const key of usefulKeys) {
+        if (params.has(key)) {
+            const val = (params.get(key) || '').trim();
+            if (val) return val;
+        }
+    }
+    return '';
+}
+
+function safeDecodeLower(s) {
+    if (!s) return '';
+    try {
+        return decodeURIComponent(s).toLowerCase();
+    } catch (e) {
+        return s.toLowerCase();
+    }
+}
+
+function stripCommonExtensions(seg) {
+    return seg.replace(/\.(html?|php|asp|aspx|jsp|cfm|cgi)$/i, '');
+}
+
+function isNoiseSegment(seg) {
+    if (!seg) return true;
+    const noise = new Set([
+        'index','home','default','page','pages','view','item','items','category','categories','tag','tags','archive','search'
+    ]);
+    return noise.has(seg);
+}
+
+function isNumericId(seg) {
+    // Purely numeric with length >= 4
+    return /^\d{4,}$/.test(seg);
+}
+
+function isUuid(seg) {
+    return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(seg);
+}
+
+function isHexLong(seg) {
+    // Long hex blobs (8+ chars) often noise/hash
+    return /^[0-9a-f]{8,}$/i.test(seg);
+}
+
+function isLongSlug(seg) {
+    // Very long slugs with only lowercase letters, digits, and hyphens
+    return /^[a-z0-9-]{16,}$/.test(seg);
+}

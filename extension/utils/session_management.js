@@ -110,7 +110,7 @@ class SessionManager {
             const formattedSessions = this.formatSessionsForApi(sessions);
             
             console.log(`Preprocessing complete: ${formattedSessions.length} sessions ready for API`);
-            
+            console.log('Formatted sessions:', formattedSessions);
             return formattedSessions;
             
         } catch (error) {
