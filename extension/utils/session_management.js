@@ -87,7 +87,10 @@ class SessionManager {
                 title: item.title || 'Untitled',
                 visit_time: new Date(item.lastVisitTime || item.visitTime).toISOString(),
                 visit_count: item.visitCount || 1,
-                typed_count: item.typedCount || 0
+                typed_count: item.typedCount || 0,
+                url_hostname: item.urlHostname || safeGetHostname(item.url),
+                url_pathname_clean: item.urlPathnameClean || '/',
+                url_search_query: item.urlSearchQuery || ''
             })),
             duration_minutes: Math.round((session.endTime - session.startTime) / (1000 * 60))
         }));
@@ -166,4 +169,18 @@ if (typeof window !== 'undefined') {
 // For Node.js/module environments
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = SessionManager;
+}
+
+// Utility used in formatting when the enriched hostname is missing
+function safeGetHostname(rawUrl) {
+    if (typeof rawUrl !== 'string' || rawUrl.length === 0) return '';
+    try {
+        return new URL(rawUrl).hostname;
+    } catch (e) {
+        try {
+            return new URL('http://' + rawUrl).hostname;
+        } catch (e2) {
+            return '';
+        }
+    }
 }

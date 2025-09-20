@@ -10,6 +10,10 @@ class HistoryItem(BaseModel):
     visit_count: int = 1
     typed_count: int = 0
     last_visit_time: Optional[datetime] = None
+    # Optional enriched URL features from the extension
+    url_hostname: Optional[str] = None
+    url_pathname_clean: Optional[str] = None
+    url_search_query: Optional[str] = None
 
 class HistorySession(BaseModel):
     """A session of browsing history items grouped by time"""
