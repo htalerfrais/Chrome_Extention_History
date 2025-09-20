@@ -138,14 +138,23 @@ class Dashboard {
             return;
         }
         
-        sessionIds.forEach(sessionId => {
-            const sessionData = this.currentSessionResults[sessionId];
-            const tab = this.createSessionTab(sessionId, sessionData);
+        // Sort sessions chronologically by start time
+        const sortedSessions = sessionIds
+            .map(sessionId => ({
+                sessionId,
+                sessionData: this.currentSessionResults[sessionId],
+                startTime: new Date(this.currentSessionResults[sessionId].session_start_time)
+            }))
+            .sort((a, b) => a.startTime - b.startTime);
+        
+        // Create tabs with chronological numbering
+        sortedSessions.forEach((session, index) => {
+            const tab = this.createSessionTab(session.sessionId, session.sessionData, index + 1);
             this.sessionsTabs.appendChild(tab);
         });
     }
     
-    createSessionTab(sessionId, sessionData) {
+    createSessionTab(sessionId, sessionData, sessionNumber) {
         const tab = document.createElement('button');
         tab.className = `session-tab ${sessionId === this.activeSessionId ? 'active' : ''}`;
         tab.dataset.sessionId = sessionId;
@@ -156,7 +165,7 @@ class Dashboard {
         
         tab.innerHTML = `
             <div class="session-tab-content">
-                <div class="session-tab-title">Session ${sessionId.split('_').pop()}</div>
+                <div class="session-tab-title">Session ${sessionNumber}</div>
                 <div class="session-tab-meta">
                     ${startTime.toLocaleDateString()} • ${duration}min • ${sessionData.clusters.length} topics
                 </div>
