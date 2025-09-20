@@ -2,4 +2,4 @@
 /venv/
 /history-samples/
 cursor/
-
+/__pycache__/

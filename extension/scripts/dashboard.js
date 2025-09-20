@@ -68,6 +68,7 @@ class Dashboard {
             
             // Preprocess history using SessionManager
             const sessions = this.sessionManager.processHistory(history);
+            console.log('Sessions:', sessions);
             if (sessions.length === 0) {
                 throw new Error(this.constants.ERROR_NO_SESSIONS);
             }
