@@ -34,10 +34,6 @@ class ClusterItem(BaseModel):
     title: str
     visit_time: datetime
     session_id: str
-    # Optional enriched URL features propagated from HistoryItem
-    url_hostname: Optional[str] = None
-    url_pathname_clean: Optional[str] = None
-    url_search_query: Optional[str] = None
 
 class ClusterResult(BaseModel):
     """Result of clustering algorithm"""
