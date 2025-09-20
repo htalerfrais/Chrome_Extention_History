@@ -166,7 +166,7 @@ function extractUrlFeatures(raw) {
     result.urlHostname = hostname;
 
     // Extract useful search query if present
-    const useful = extractUsefulSearchQuery(u.search);
+    const useful = extractUsefulSearchQuery(u.search, hostname, u.pathname || '/');
     if (useful) {
         result.urlSearchQuery = useful;
     }
@@ -195,17 +195,52 @@ function extractUrlFeatures(raw) {
     return result;
 }
 
-function extractUsefulSearchQuery(search) {
+function extractUsefulSearchQuery(search, hostname, pathname) {
     if (!search) return '';
     const params = new URLSearchParams(search);
-    // Ordered by commonality across engines/sites
-    const usefulKeys = ['q', 'query', 'text', 'search', 'keyword'];
-    for (const key of usefulKeys) {
+    const host = (hostname || '').toLowerCase();
+    const path = (pathname || '/').toLowerCase();
+
+    // Host/path-specific priority keys
+    const hostKeyMap = [
+        { match: /youtube\.com$/, keys: path.startsWith('/results') ? ['search_query', 'q', 'query'] : ['search_query', 'q', 'query'] },
+        { match: /google\.[a-z.]+$/, keys: ['q'] },
+        { match: /bing\.com$/, keys: ['q'] },
+        { match: /duckduckgo\.com$/, keys: ['q'] },
+        { match: /search\.yahoo\.com$/, keys: ['p', 'q'] },
+        { match: /yahoo\.[a-z.]+$/, keys: ['p', 'q'] },
+        { match: /leboncoin\.fr$/, keys: ['text', 'q'] },
+        { match: /amazon\.[a-z.]+$/, keys: ['k', 'field-keywords', 'keyword'] },
+        { match: /ebay\.[a-z.]+$/, keys: ['_nkw', 'kw', 'q'] },
+        { match: /reddit\.com$/, keys: ['q'] },
+        { match: /twitter\.com$/, keys: ['q'] },
+        { match: /x\.com$/, keys: ['q'] },
+        { match: /github\.com$/, keys: ['q'] },
+        { match: /stackoverflow\.com$/, keys: ['q'] }
+    ];
+
+    let prioritizedKeys = [];
+    for (const entry of hostKeyMap) {
+        if (entry.match.test(host)) {
+            prioritizedKeys = entry.keys;
+            break;
+        }
+    }
+
+    // Generic fallback keys (ordered by commonality)
+    const genericKeys = ['q', 'query', 'text', 'search', 'keyword', 's'];
+    const tryKeys = prioritizedKeys.length > 0 ? prioritizedKeys.concat(genericKeys) : genericKeys;
+
+    for (const key of tryKeys) {
         if (params.has(key)) {
-            const val = (params.get(key) || '').trim();
+            let val = params.get(key) || '';
+            // Normalize '+' to space for engines that use plus as space
+            val = val.replace(/\+/g, ' ');
+            val = val.trim();
             if (val) return val;
         }
     }
+
     return '';
 }
 
