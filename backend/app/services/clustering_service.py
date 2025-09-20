@@ -2,9 +2,10 @@ import logging
 import os
 import time
 from typing import List, Dict, Any
-from collections import defaultdict
+from collections import defaultdict, Counter
 from urllib.parse import urlparse
 import asyncio
+import re
 
 from ..models.session_models import HistorySession, ClusterResult, ClusterItem, SessionClusteringResponse
 
@@ -89,7 +90,7 @@ class ClusteringService:
                     for t_id, indices in topic_to_indices.items():
                         if len(indices) < 2:
                             continue
-                        label = self._get_topic_label(t_id)
+                        
                         cluster_items: List[ClusterItem] = []
                         for i in indices:
                             src = item_refs[i]
@@ -102,6 +103,10 @@ class ClusteringService:
                                 url_pathname_clean=getattr(src, 'url_pathname_clean', None),
                                 url_search_query=getattr(src, 'url_search_query', None)
                             ))
+                        
+                        # Generate label using actual page titles
+                        label = self._get_topic_label_from_items(cluster_items)
+                        
                         clusters.append(ClusterResult(
                             cluster_id=f"cluster_{session.session_id}_{t_id}",
                             theme=label,
@@ -139,18 +144,80 @@ class ClusteringService:
         search = getattr(item, 'url_search_query', None) or ''
         host = getattr(item, 'url_hostname', None) or ''
         path = getattr(item, 'url_pathname_clean', None) or ''
-        if title:
+        
+        # Prioritize meaningful content with context
+        if title and len(title.strip()) > 3:
             parts.append(title)
-        if search:
-            parts.append(search)
-        if host:
-            parts.append(host)
-        if path and path != '/':
-            parts.append(path.replace('/', ' '))
+        if search and len(search.strip()) > 2:
+            parts.append(f"search: {search}")
+        if host and host not in ['www.google.com', 'www.youtube.com']:  # Skip generic domains
+            parts.append(f"site: {host}")
+        if path and path != '/' and len(path.split('/')) > 2:  # Only meaningful paths
+            path_clean = path.replace('/', ' ').replace('_', ' ').replace('-', ' ')
+            parts.append(f"section: {path_clean}")
+        
         doc = ' '.join(parts).strip().lower()
         return doc
 
+    def _get_topic_label_from_items(self, items: List[ClusterItem]) -> str:
+        """Generate label based on actual page titles and content in the cluster"""
+        if not items:
+            return "Unknown Topic"
+        
+        # Extract titles and search queries
+        titles = [item.title for item in items if item.title and len(item.title.strip()) > 3]
+        searches = [item.url_search_query for item in items if item.url_search_query and len(item.url_search_query.strip()) > 2]
+        hosts = [item.url_hostname for item in items if item.url_hostname]
+        
+        # Strategy 1: Use search queries if available (most descriptive)
+        if searches:
+            # Find most common search terms
+            all_search_words = []
+            for search in searches:
+                words = re.findall(r'\b\w+\b', search.lower())
+                all_search_words.extend([w for w in words if len(w) > 2])
+            
+            if all_search_words:
+                word_counts = Counter(all_search_words)
+                common_words = [w for w, count in word_counts.most_common(3) if count > 1]
+                if common_words:
+                    return f"Recherche: {' '.join(common_words).title()}"
+                else:
+                    return f"Recherche: {searches[0].title()}"
+        
+        # Strategy 2: Use titles to find common themes
+        if titles:
+            # Extract meaningful words from titles
+            all_title_words = []
+            for title in titles:
+                # Remove common suffixes and clean
+                clean_title = re.sub(r'\s*-\s*(Recherche|Search|YouTube|Google).*$', '', title, flags=re.IGNORECASE)
+                words = re.findall(r'\b\w+\b', clean_title.lower())
+                all_title_words.extend([w for w in words if len(w) > 2 and w not in ['the', 'and', 'for', 'with', 'from', 'page']])
+            
+            if all_title_words:
+                word_counts = Counter(all_title_words)
+                common_words = [w for w, count in word_counts.most_common(3) if count > 1]
+                if common_words:
+                    return ' '.join(common_words).title()
+                else:
+                    # Use the first meaningful title
+                    first_title = titles[0]
+                    clean_title = re.sub(r'\s*-\s*(Recherche|Search|YouTube|Google).*$', '', first_title, flags=re.IGNORECASE)
+                    return clean_title[:30] + "..." if len(clean_title) > 30 else clean_title
+        
+        # Strategy 3: Use hostname as fallback
+        if hosts:
+            host_counts = Counter(hosts)
+            primary_host = host_counts.most_common(1)[0][0]
+            clean_host = primary_host.replace('www.', '').replace('.com', '').replace('.fr', '').replace('.org', '')
+            return f"{clean_host.title()}"
+        
+        # Strategy 4: Generic fallback
+        return f"Cluster {len(items)} items"
+
     def _get_topic_label(self, topic_id: int) -> str:
+        """Legacy method - kept for compatibility but not used"""
         if self.topic_model is None:
             return f"Topic {topic_id}"
         try:
@@ -180,11 +247,13 @@ class ClusteringService:
         for host, items in groups.items():
             if len(items) < 2:
                 continue
+            
+            # Use the new label generation method for fallback too
+            label = self._get_topic_label_from_items(items)
+            
             clusters.append(ClusterResult(
                 cluster_id=f"cluster_{session.session_id}_{host}",
-                theme=host,
+                theme=label,
                 items=items
             ))
         return clusters
-
-
