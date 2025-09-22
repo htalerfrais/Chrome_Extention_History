@@ -1,145 +1,217 @@
 import logging
 from typing import List, Dict, Any
-from collections import defaultdict, Counter
-from datetime import datetime
-import re
-from urllib.parse import urlparse
-import asyncio
+import json
 
 from ..models.session_models import HistorySession, ClusterResult, ClusterItem, SessionClusteringResponse
+from ..models.llm_models import LLMRequest
+from .llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
 class ClusteringService:
-    """Service for clustering browsing history into thematic groups"""
-    
+    """LLM-driven clustering service: identifies clusters and assigns items per session."""
+
     def __init__(self):
-        self.domain_keywords = {
-            'github.com': ['code', 'development', 'programming', 'repository'],
-            'stackoverflow.com': ['programming', 'development', 'questions', 'coding'],
-            'youtube.com': ['video', 'entertainment', 'learning', 'tutorial'],
-            'reddit.com': ['discussion', 'community', 'social', 'forum'],
-            'linkedin.com': ['professional', 'career', 'networking', 'business'],
-            'twitter.com': ['social', 'news', 'updates', 'microblogging'],
-            'medium.com': ['articles', 'blog', 'writing', 'learning'],
-            'docs.google.com': ['documents', 'productivity', 'collaboration'],
-            'gmail.com': ['email', 'communication', 'productivity'],
-            'amazon.com': ['shopping', 'ecommerce', 'products'],
-        }
-        
-        self.theme_patterns = {
-            'Development': ['github', 'stackoverflow', 'code', 'programming', 'api', 'documentation', 'tutorial'],
-            'Social Media': ['twitter', 'facebook', 'instagram', 'reddit', 'social'],
-            'Shopping': ['amazon', 'shop', 'buy', 'store', 'product', 'cart'],
-            'Learning': ['course', 'tutorial', 'learn', 'education', 'university', 'study'],
-            'Entertainment': ['youtube', 'netflix', 'movie', 'video', 'game', 'music'],
-            'News': ['news', 'article', 'breaking', 'politics', 'world'],
-            'Productivity': ['docs', 'drive', 'calendar', 'email', 'office', 'work'],
-            'Research': ['wiki', 'research', 'academic', 'paper', 'study'],
-        }
+        self.llm_service = LLMService()
 
     async def cluster_sessions(self, sessions: List[HistorySession]) -> Dict[str, SessionClusteringResponse]:
         """
-        Main clustering method - groups sessions by themes, processing each session independently
-        
-        Returns:
-            Dict mapping session_id to SessionClusteringResponse
+        For each session: identify clusters with summaries using the LLM, then
+        assign each item to one of those clusters. Returns a mapping of
+        session_id to SessionClusteringResponse.
         """
-        logger.info(f"Starting clustering for {len(sessions)} sessions")
-        
-        session_results = {}
-        
+        logger.info(f"Starting LLM clustering for {len(sessions)} sessions")
+
+        results: Dict[str, SessionClusteringResponse] = {}
+
         for session in sessions:
             logger.info(f"Processing session {session.session_id} with {len(session.items)} items")
-            
-            # Convert session items to cluster items
-            cluster_items = []
-            for item in session.items:
-                cluster_item = ClusterItem(
-                    id=item.id,
-                    url=item.url,
-                    title=item.title,
-                    visit_time=item.visit_time,
-                    session_id=session.session_id,
-                    url_hostname=item.url_hostname,
-                    url_pathname_clean=item.url_pathname_clean,
-                    url_search_query=item.url_search_query
-                )
-                cluster_items.append(cluster_item)
-            
-            # Group items by themes for this session only
-            theme_groups = self._group_by_themes_for_session(cluster_items, session.session_id)
-            
-            # Convert to cluster results
-            clusters = []
-            for theme, items in theme_groups.items():
-                if len(items) < 2:  # Skip single-item clusters
+
+            # Step 1: Ask LLM to propose clusters for this session
+            clusters_meta = await self._identify_clusters_for_session(session)
+
+            # Step 2: Assign each item to one of the identified clusters
+            cluster_id_to_items = await self._assign_items_to_clusters(session, clusters_meta)
+
+            # Build ClusterResult objects
+            cluster_results: List[ClusterResult] = []
+            for meta in clusters_meta:
+                cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_id}_{len(cluster_results)}"
+                theme: str = meta.get("theme") or "Miscellaneous"
+                summary: str = meta.get("summary") or ""
+
+                items = cluster_id_to_items.get(cluster_id, [])
+                if len(items) == 0:
+                    # Skip empty clusters to keep output compact
                     continue
-                    
-                cluster = ClusterResult(
-                    cluster_id=f"cluster_{session.session_id}_{theme.lower().replace(' ', '_')}_{len(clusters)}",
+
+                cluster_results.append(ClusterResult(
+                    cluster_id=cluster_id,
                     theme=theme,
+                    summary=summary,
                     items=items
-                )
-                clusters.append(cluster)
-            
-            # Sort clusters by theme name for consistent ordering
-            clusters.sort(key=lambda x: x.theme)
-            
+                ))
+
             # Create session response
-            session_response = SessionClusteringResponse(
+            response = SessionClusteringResponse(
                 session_id=session.session_id,
                 session_start_time=session.start_time,
                 session_end_time=session.end_time,
-                clusters=clusters
+                clusters=cluster_results
             )
-            
-            session_results[session.session_id] = session_response
-            logger.info(f"Session {session.session_id}: generated {len(clusters)} clusters")
-        
-        logger.info(f"Generated clustering results for {len(session_results)} sessions")
-        return session_results
 
-    def _group_by_themes_for_session(self, items: List[ClusterItem], session_id: str) -> Dict[str, List[ClusterItem]]:
-        """Group items by detected themes for a single session"""
-        theme_groups = defaultdict(list)
-        
-        for item in items:
-            detected_themes = self._detect_themes(item)
-            
-            # Assign to primary theme (highest scoring)
-            if detected_themes:
-                primary_theme = max(detected_themes.items(), key=lambda x: x[1])[0]
-                theme_groups[primary_theme].append(item)
-            # Skip items that can't be categorized into proper themes
-        
-        return dict(theme_groups)
+            results[session.session_id] = response
+            logger.info(f"Session {session.session_id}: generated {len(cluster_results)} clusters")
 
-    def _detect_themes(self, item: ClusterItem) -> Dict[str, float]:
-        """Detect themes for a single item based on URL and title"""
-        themes = {}
-        
-        # Analyze URL and title
-        text = f"{item.url} {item.title}".lower()
-        domain = urlparse(item.url).netloc
-        
-        # Check theme patterns
-        for theme, keywords in self.theme_patterns.items():
-            score = 0
-            for keyword in keywords:
-                if keyword in text:
-                    score += 1
-            
-            # Domain-specific boost
-            if domain in self.domain_keywords:
-                domain_kws = self.domain_keywords[domain]
-                for kw in domain_kws:
-                    if any(theme_kw in kw or kw in theme_kw for theme_kw in keywords):
-                        score += 2
-            
-            if score > 0:
-                themes[theme] = score / len(keywords)  # Normalize
-        
-        return themes
+        logger.info(f"Generated clustering results for {len(results)} sessions")
+        return results
+
+    async def _identify_clusters_for_session(self, session: HistorySession) -> List[Dict[str, Any]]:
+        """Use LLM to propose clusters (cluster_id, theme, summary) for a session."""
+        simplified_items = self._prepare_session_items_for_llm(session)
+
+        example = [
+            {
+                "cluster_id": "cluster_1",
+                "theme": "Web Development",
+                "summary": "Pages related to coding, GitHub repositories, and development tools"
+            },
+            {
+                "cluster_id": "cluster_2",
+                "theme": "Research",
+                "summary": "Documentation, tutorials, and learning resources"
+            }
+        ]
+
+        prompt = (
+            "You are an assistant that organizes web browsing sessions into thematic clusters.\n"
+            "Given the simplified list of session items, identify between 3 and 8 clusters.\n"
+            "Return ONLY a compact JSON array. Each element must have keys: \"cluster_id\", \"theme\", \"summary\".\n"
+            "Do not include any other text.\n\n"
+            f"Example format:\n{json.dumps(example, ensure_ascii=False)}\n\n"
+            f"Session items (simplified):\n{json.dumps(simplified_items, ensure_ascii=False)}\n"
+        )
+
+        try:
+            req = LLMRequest(prompt=prompt, provider="google", max_tokens=800, temperature=0.2)
+            resp = await self.llm_service.generate_text(req)
+            raw = resp.generated_text.strip()
+            data = self._extract_json(raw)
+            if isinstance(data, list):
+                # Basic schema cleanup
+                cleaned: List[Dict[str, Any]] = []
+                for idx, c in enumerate(data):
+                    if not isinstance(c, dict):
+                        continue
+                    cid = str(c.get("cluster_id") or f"cluster_{idx+1}")
+                    theme = str(c.get("theme") or "Miscellaneous")
+                    summary = str(c.get("summary") or "")
+                    cleaned.append({"cluster_id": cid, "theme": theme, "summary": summary})
+                if cleaned:
+                    return cleaned
+        except Exception as e:
+            logger.error(f"LLM cluster identification failed for session {session.session_id}: {e}")
+
+        # Fallback: single generic cluster
+        return [{
+            "cluster_id": "cluster_generic",
+            "theme": "General",
+            "summary": "General browsing activity"
+        }]
+
+    async def _assign_items_to_clusters(self, session: HistorySession, clusters_meta: List[Dict[str, Any]]) -> Dict[str, List[ClusterItem]]:
+        """Assign each item to one of the identified clusters using the LLM."""
+        cluster_map: Dict[str, List[ClusterItem]] = {c["cluster_id"]: [] for c in clusters_meta}
+
+        clusters_json = json.dumps(clusters_meta, ensure_ascii=False)
+        valid_ids = {c["cluster_id"] for c in clusters_meta}
+
+        for item in session.items:
+            simplified_item = self._simplify_item_for_llm(item)
+
+            prompt = (
+                "You are assigning a single browsing item to one of the predefined clusters.\n"
+                "Return ONLY the \"cluster_id\" string of the best matching cluster from the provided list.\n"
+                "If uncertain, choose the closest reasonable cluster. Do not add quotes or extra text.\n\n"
+                f"Clusters:\n{clusters_json}\n\n"
+                f"Item:\n{json.dumps(simplified_item, ensure_ascii=False)}\n"
+            )
+
+            assigned_id: str = None
+            try:
+                req = LLMRequest(prompt=prompt, provider="google", max_tokens=16, temperature=0.0)
+                resp = await self.llm_service.generate_text(req)
+                raw = resp.generated_text.strip()
+                # Normalize potential quotes / code fences
+                raw = raw.strip().strip('`').strip()
+                # If response is JSON like {"cluster_id": "..."}
+                try:
+                    obj = self._extract_json(raw)
+                    if isinstance(obj, dict) and "cluster_id" in obj:
+                        assigned_id = str(obj["cluster_id"]).strip()
+                except Exception:
+                    pass
+                if not assigned_id:
+                    assigned_id = raw.split()[0]
+            except Exception as e:
+                logger.warning(f"LLM assignment failed for item {getattr(item, 'id', 'unknown')}: {e}")
+
+            if assigned_id not in valid_ids:
+                # Fallback: assign to the first cluster
+                assigned_id = next(iter(valid_ids))
+
+            cluster_item = ClusterItem(
+                id=item.id,
+                url=item.url,
+                title=item.title,
+                visit_time=item.visit_time,
+                session_id=session.session_id,
+                url_hostname=item.url_hostname,
+                url_pathname_clean=item.url_pathname_clean,
+                url_search_query=item.url_search_query
+            )
+            cluster_map[assigned_id].append(cluster_item)
+
+        return cluster_map
+
+    def _prepare_session_items_for_llm(self, session: HistorySession) -> List[Dict[str, Any]]:
+        """Return simplified items for prompts: only title, url_hostname, url_pathname_clean, url_search_query."""
+        return [
+            {
+                "title": it.title,
+                "url_hostname": it.url_hostname,
+                "url_pathname_clean": it.url_pathname_clean,
+                "url_search_query": it.url_search_query,
+            }
+            for it in session.items
+        ]
+
+    def _simplify_item_for_llm(self, item: Any) -> Dict[str, Any]:
+        """Simplified representation of a single HistoryItem for assignment prompts."""
+        return {
+            "title": item.title,
+            "url_hostname": item.url_hostname,
+            "url_pathname_clean": item.url_pathname_clean,
+            "url_search_query": item.url_search_query,
+        }
+
+    def _extract_json(self, text: str) -> Any:
+        """Extract JSON array/object from raw LLM text output."""
+        text = text.strip()
+        # Direct parse
+        try:
+            return json.loads(text)
+        except Exception:
+            pass
+        # Try to locate first '[' or '{' and last matching bracket
+        start_idx = min([i for i in [text.find('['), text.find('{')] if i != -1] or [-1])
+        if start_idx == -1:
+            raise ValueError("No JSON start found in LLM response")
+        # Heuristic: find last closing bracket
+        end_idx = max(text.rfind(']'), text.rfind('}'))
+        if end_idx == -1 or end_idx <= start_idx:
+            raise ValueError("No JSON end found in LLM response")
+        snippet = text[start_idx:end_idx+1]
+        return json.loads(snippet)
 
 

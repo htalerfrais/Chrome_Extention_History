@@ -46,6 +46,7 @@ class ClusterResult(BaseModel):
     """Result of clustering algorithm"""
     cluster_id: str
     theme: str
+    summary: str
     items: List[ClusterItem]
 
 class ClusteringRequest(BaseModel):
