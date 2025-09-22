@@ -6,7 +6,9 @@ import logging
 from datetime import datetime
 
 from .services.clustering_service import ClusteringService
+from .services.llm_service import LLMService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
+from .models.llm_models import LLMRequest, LLMResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -27,8 +29,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Initialize clustering service
+# Initialize services
 clustering_service = ClusteringService()
+llm_service = LLMService()
 
 @app.get("/")
 async def root():
@@ -46,7 +49,8 @@ async def health_check():
     return {
         "status": "healthy",
         "services": {
-            "clustering": "operational"
+            "clustering": "operational",
+            "llm": "operational"
         },
         "timestamp": datetime.now().isoformat()
     }
@@ -77,6 +81,36 @@ async def cluster_sessions(sessions: List[HistorySession]):
     except Exception as e:
         logger.error(f"Error clustering sessions: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
+
+@app.post("/llm/generate", response_model=LLMResponse)
+async def generate_text(request: LLMRequest):
+    """
+    Generate text using specified LLM provider
+    
+    Args:
+        request: LLM generation request with prompt and provider settings
+        
+    Returns:
+        LLMResponse with generated text and metadata
+    """
+    try:
+        logger.info(f"Received LLM request for provider: {request.provider}")
+        
+        if not request.prompt.strip():
+            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+        
+        # Generate text using LLM service
+        response = await llm_service.generate_text(request)
+        
+        logger.info(f"Successfully generated text with {request.provider}")
+        return response
+        
+    except ValueError as e:
+        logger.error(f"Invalid LLM request: {str(e)}")
+        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as e:
+        logger.error(f"Error generating text: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Text generation failed: {str(e)}")
 
 
 if __name__ == "__main__":
