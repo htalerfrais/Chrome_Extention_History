@@ -20,25 +20,20 @@ class ClusteringService:
         assign each item to one of those clusters. Returns a mapping of
         session_id to SessionClusteringResponse.
         """
-        logger.info(f"🚀 Starting LLM clustering for {len(sessions)} sessions")
+        logger.info(f"Starting LLM clustering for {len(sessions)} sessions")
 
         results: Dict[str, SessionClusteringResponse] = {}
 
-        for session_idx, session in enumerate(sessions, 1):
-            logger.info(f"📊 Processing session {session_idx}/{len(sessions)}: {session.session_id} with {len(session.items)} items")
+        for session in sessions:
+            logger.info(f"Processing session {session.session_id} with {len(session.items)} items")
 
             # Step 1: Ask LLM to propose clusters for this session
-            logger.info(f"🔍 Step 1: Identifying clusters for session {session.session_id}")
             clusters_meta = await self._identify_clusters_for_session(session)
-            logger.info(f"✅ Step 1 complete: Found {len(clusters_meta)} clusters for session {session.session_id}")
 
             # Step 2: Assign each item to one of the identified clusters
-            logger.info(f"🎯 Step 2: Assigning {len(session.items)} items to clusters for session {session.session_id}")
             cluster_id_to_items = await self._assign_items_to_clusters(session, clusters_meta)
-            logger.info(f"✅ Step 2 complete: Items assigned to clusters for session {session.session_id}")
 
             # Build ClusterResult objects
-            logger.info(f"🏗️ Building cluster results for session {session.session_id}")
             cluster_results: List[ClusterResult] = []
             for meta in clusters_meta:
                 cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_id}_{len(cluster_results)}"
@@ -47,7 +42,7 @@ class ClusteringService:
 
                 items = cluster_id_to_items.get(cluster_id, [])
                 if len(items) == 0:
-                    logger.debug(f"⏭️ Skipping empty cluster {cluster_id} for session {session.session_id}")
+                    # Skip empty clusters to keep output compact
                     continue
 
                 cluster_results.append(ClusterResult(
@@ -56,7 +51,6 @@ class ClusteringService:
                     summary=summary,
                     items=items
                 ))
-                logger.debug(f"📦 Created cluster '{theme}' with {len(items)} items")
 
             # Create session response
             response = SessionClusteringResponse(
@@ -67,9 +61,9 @@ class ClusteringService:
             )
 
             results[session.session_id] = response
-            logger.info(f"✅ Session {session.session_id} complete: {len(cluster_results)} clusters generated")
+            logger.info(f"Session {session.session_id}: generated {len(cluster_results)} clusters")
 
-        logger.info(f"🎉 LLM clustering complete! Generated results for {len(results)} sessions")
+        logger.info(f"Generated clustering results for {len(results)} sessions")
         return results
 
     async def _identify_clusters_for_session(self, session: HistorySession) -> List[Dict[str, Any]]:
@@ -126,59 +120,66 @@ class ClusteringService:
         }]
 
     async def _assign_items_to_clusters(self, session: HistorySession, clusters_meta: List[Dict[str, Any]]) -> Dict[str, List[ClusterItem]]:
-        """Assign each item to one of the identified clusters using the LLM."""
+        """Assign items in batches to reduce the number of LLM calls."""
         cluster_map: Dict[str, List[ClusterItem]] = {c["cluster_id"]: [] for c in clusters_meta}
-
-        clusters_json = json.dumps(clusters_meta, ensure_ascii=False)
         valid_ids = {c["cluster_id"] for c in clusters_meta}
 
-        for item in session.items:
-            simplified_item = self._simplify_item_for_llm(item)
+        BATCH_SIZE = 20
+        items = session.items
+        for start in range(0, len(items), BATCH_SIZE):
+            batch = items[start:start + BATCH_SIZE]
+            assigned_ids = await self._assign_batch_to_clusters(batch, clusters_meta)
 
-            prompt = (
-                "You are assigning a single browsing item to one of the predefined clusters.\n"
-                "Return ONLY the \"cluster_id\" string of the best matching cluster from the provided list.\n"
-                "If uncertain, choose the closest reasonable cluster. Do not add quotes or extra text.\n\n"
-                f"Clusters:\n{clusters_json}\n\n"
-                f"Item:\n{json.dumps(simplified_item, ensure_ascii=False)}\n"
-            )
+            # Safety: ensure alignment
+            if len(assigned_ids) != len(batch):
+                first_cluster = next(iter(valid_ids)) if valid_ids else "cluster_generic"
+                assigned_ids = [first_cluster] * len(batch)
 
-            assigned_id: str = None
-            try:
-                req = LLMRequest(prompt=prompt, provider="google", max_tokens=16, temperature=0.0)
-                resp = await self.llm_service.generate_text(req)
-                raw = resp.generated_text.strip()
-                # Normalize potential quotes / code fences
-                raw = raw.strip().strip('`').strip()
-                # If response is JSON like {"cluster_id": "..."}
-                try:
-                    obj = self._extract_json(raw)
-                    if isinstance(obj, dict) and "cluster_id" in obj:
-                        assigned_id = str(obj["cluster_id"]).strip()
-                except Exception:
-                    pass
-                if not assigned_id:
-                    assigned_id = raw.split()[0]
-            except Exception as e:
-                logger.warning(f"LLM assignment failed for item {getattr(item, 'id', 'unknown')}: {e}")
+            for item, assigned_id in zip(batch, assigned_ids):
+                if assigned_id not in valid_ids:
+                    assigned_id = next(iter(valid_ids)) if valid_ids else "cluster_generic"
 
-            if assigned_id not in valid_ids:
-                # Fallback: assign to the first cluster
-                assigned_id = next(iter(valid_ids))
-
-            cluster_item = ClusterItem(
-                id=item.id,
-                url=item.url,
-                title=item.title,
-                visit_time=item.visit_time,
-                session_id=session.session_id,
-                url_hostname=item.url_hostname,
-                url_pathname_clean=item.url_pathname_clean,
-                url_search_query=item.url_search_query
-            )
-            cluster_map[assigned_id].append(cluster_item)
+                cluster_item = ClusterItem(
+                    id=item.id,
+                    url=item.url,
+                    title=item.title,
+                    visit_time=item.visit_time,
+                    session_id=session.session_id,
+                    url_hostname=item.url_hostname,
+                    url_pathname_clean=item.url_pathname_clean,
+                    url_search_query=item.url_search_query
+                )
+                cluster_map[assigned_id].append(cluster_item)
 
         return cluster_map
+
+    async def _assign_batch_to_clusters(self, items_batch: List[Any], clusters_meta: List[Dict[str, Any]]) -> List[str]:
+        """Assign a batch of items to clusters with a single LLM call. Returns a list of cluster_ids."""
+        clusters_json = json.dumps(clusters_meta, ensure_ascii=False)
+        simplified_batch = [self._simplify_item_for_llm(item) for item in items_batch]
+
+        prompt = (
+            "You are assigning browsing items to predefined clusters.\n"
+            "Return ONLY a JSON array of cluster_id strings, one for each item in order.\n\n"
+            f"Clusters:\n{clusters_json}\n\n"
+            f"Items to assign (in order):\n{json.dumps(simplified_batch, ensure_ascii=False)}\n\n"
+            "Return format example: [\"cluster_1\", \"cluster_2\", \"cluster_1\"]\n"
+        )
+
+        try:
+            req = LLMRequest(prompt=prompt, provider="google", max_tokens=256, temperature=0.0)
+            resp = await self.llm_service.generate_text(req)
+            raw = resp.generated_text.strip()
+            assignments = self._extract_json(raw)
+            # Expecting a list of strings
+            if isinstance(assignments, list) and all(isinstance(x, (str,)) for x in assignments):
+                return [str(x).strip() for x in assignments]
+        except Exception as e:
+            logger.warning(f"Batch assignment failed: {e}")
+
+        # Fallback: assign everything to the first cluster (if any)
+        first_cluster = clusters_meta[0]["cluster_id"] if clusters_meta else "cluster_generic"
+        return [first_cluster] * len(items_batch)
 
     def _prepare_session_items_for_llm(self, session: HistorySession) -> List[Dict[str, Any]]:
         """Return simplified items for prompts: only title, url_hostname, url_pathname_clean, url_search_query."""
