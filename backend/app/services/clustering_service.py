@@ -20,20 +20,25 @@ class ClusteringService:
         assign each item to one of those clusters. Returns a mapping of
         session_id to SessionClusteringResponse.
         """
-        logger.info(f"Starting LLM clustering for {len(sessions)} sessions")
+        logger.info(f"🚀 Starting LLM clustering for {len(sessions)} sessions")
 
         results: Dict[str, SessionClusteringResponse] = {}
 
-        for session in sessions:
-            logger.info(f"Processing session {session.session_id} with {len(session.items)} items")
+        for session_idx, session in enumerate(sessions, 1):
+            logger.info(f"📊 Processing session {session_idx}/{len(sessions)}: {session.session_id} with {len(session.items)} items")
 
             # Step 1: Ask LLM to propose clusters for this session
+            logger.info(f"🔍 Step 1: Identifying clusters for session {session.session_id}")
             clusters_meta = await self._identify_clusters_for_session(session)
+            logger.info(f"✅ Step 1 complete: Found {len(clusters_meta)} clusters for session {session.session_id}")
 
             # Step 2: Assign each item to one of the identified clusters
+            logger.info(f"🎯 Step 2: Assigning {len(session.items)} items to clusters for session {session.session_id}")
             cluster_id_to_items = await self._assign_items_to_clusters(session, clusters_meta)
+            logger.info(f"✅ Step 2 complete: Items assigned to clusters for session {session.session_id}")
 
             # Build ClusterResult objects
+            logger.info(f"🏗️ Building cluster results for session {session.session_id}")
             cluster_results: List[ClusterResult] = []
             for meta in clusters_meta:
                 cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_id}_{len(cluster_results)}"
@@ -42,7 +47,7 @@ class ClusteringService:
 
                 items = cluster_id_to_items.get(cluster_id, [])
                 if len(items) == 0:
-                    # Skip empty clusters to keep output compact
+                    logger.debug(f"⏭️ Skipping empty cluster {cluster_id} for session {session.session_id}")
                     continue
 
                 cluster_results.append(ClusterResult(
@@ -51,6 +56,7 @@ class ClusteringService:
                     summary=summary,
                     items=items
                 ))
+                logger.debug(f"📦 Created cluster '{theme}' with {len(items)} items")
 
             # Create session response
             response = SessionClusteringResponse(
@@ -61,9 +67,9 @@ class ClusteringService:
             )
 
             results[session.session_id] = response
-            logger.info(f"Session {session.session_id}: generated {len(cluster_results)} clusters")
+            logger.info(f"✅ Session {session.session_id} complete: {len(cluster_results)} clusters generated")
 
-        logger.info(f"Generated clustering results for {len(results)} sessions")
+        logger.info(f"🎉 LLM clustering complete! Generated results for {len(results)} sessions")
         return results
 
     async def _identify_clusters_for_session(self, session: HistorySession) -> List[Dict[str, Any]]:
