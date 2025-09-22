@@ -110,13 +110,14 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
   - Error handling and logging
 
 #### **Clustering Service** (`clustering_service.py`)
-- **Responsibility**: Theme detection and pattern analysis
+- **Responsibility**: LLM-driven thematic clustering and session analysis
 - **Key Functions**:
-  - Keyword-based theme detection
-  - Domain-specific pattern matching
-  - Session-independent clustering
-  - Theme scoring and categorization
-  - **Future**: AI-enhanced theme detection via LLM integration
+  - **LLM-powered cluster identification**: Uses AI to propose thematic clusters per session
+  - **Intelligent item assignment**: Batched LLM calls to assign items to identified clusters
+  - **Session-based processing**: Processes each session independently for personalized clustering
+  - **Robust error handling**: Fallback mechanisms for LLM failures
+  - **JSON extraction**: Parses LLM responses with error recovery
+  - **Batch optimization**: Groups items for efficient LLM API usage
 
 #### **LLM Service** (`llm_service.py`)
 - **Responsibility**: AI-powered text generation and analysis
@@ -159,12 +160,34 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
   - `LLMResponse`: Generated text with metadata and usage info
   - Provider-agnostic request/response handling
 
+## LLM Clustering Workflow
+
+The clustering service now operates through a sophisticated two-phase LLM-driven process:
+
+### **Phase 1: Cluster Identification**
+1. **Session Analysis**: Each session is processed independently
+2. **LLM Prompting**: Simplified item data (title, hostname, path, search query) sent to LLM
+3. **Cluster Proposal**: LLM returns 3-8 thematic clusters with IDs, themes, and summaries
+4. **Schema Validation**: Response parsed and cleaned with fallback to generic cluster
+
+### **Phase 2: Item Assignment**
+1. **Batch Processing**: Items grouped into batches of 20 for efficiency
+2. **LLM Assignment**: Each batch assigned to identified clusters via LLM
+3. **Error Recovery**: Fallback mechanisms ensure all items are assigned
+4. **Result Assembly**: ClusterResult objects created with assigned items
+
+### **Key Features**
+- **Provider Flexibility**: Uses Google Gemini by default, configurable to other providers
+- **Robust Parsing**: JSON extraction with error recovery from malformed LLM responses
+- **Performance Optimization**: Batched processing reduces API calls and costs
+- **Graceful Degradation**: Fallback clusters ensure system reliability
+
 ## Data Flow
 
 1. **Data Collection**: Chrome history → Background worker → Local storage
 2. **Analysis Request**: Dashboard → Session grouping → API call to backend
-3. **Processing**: Backend receives sessions → Theme detection → Clustering
-4. **AI Enhancement**: LLM service can enhance theme detection and analysis
+3. **LLM Processing**: Backend receives sessions → LLM cluster identification → Batched item assignment
+4. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
 5. **Response**: Backend returns clustered results → Dashboard visualization
 
 ## Key Design Patterns
@@ -173,8 +196,10 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 - **API Gateway Pattern**: Centralized backend service for complex processing
 - **Provider Abstraction Pattern**: Unified interface for multiple LLM providers
 - **Session-based Processing**: Groups related browsing activities by time
-- **Theme-based Clustering**: Categorizes pages by detected topics/themes
-- **Separation of Concerns**: Extension handles UI/data collection, backend handles analysis
+- **LLM-driven Clustering**: AI-powered thematic analysis and intelligent categorization
+- **Batch Processing Pattern**: Efficient LLM API usage through item batching
+- **Fallback Strategy Pattern**: Robust error handling with graceful degradation
+- **Separation of Concerns**: Extension handles UI/data collection, backend handles AI analysis
 
 ## Technology Stack
 
@@ -203,7 +228,8 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 - **History Limit**: 5000 items maximum
 - **API Timeout**: 30 seconds for main requests
 - **Retry Logic**: 3 attempts with exponential backoff
-- **Theme Detection**: Keyword-based pattern matching (enhanceable with LLM)
+- **LLM Clustering**: AI-powered thematic analysis with Google Gemini (primary provider)
+- **Batch Size**: 20 items per LLM assignment call for efficiency
 - **LLM Providers**: Configurable via environment variables
 - **API Keys**: Secure environment-based configuration
 
@@ -224,5 +250,5 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 ---
 
 **Last Updated**: September 22, 2025
-**Version**: 0.3.0
-**Status**: Enhanced with LLM Services 🚀
+**Version**: 0.4.0
+**Status**: Fully LLM-Driven Clustering 🚀
