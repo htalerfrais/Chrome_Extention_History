@@ -8,7 +8,7 @@ from datetime import datetime
 from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
-from .models.llm_models import LLMRequest, LLMResponse, LLMProvider
+from .models.llm_models import LLMRequest, LLMResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -111,19 +111,6 @@ async def generate_text(request: LLMRequest):
     except Exception as e:
         logger.error(f"Error generating text: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Text generation failed: {str(e)}")
-
-@app.get("/llm/providers")
-async def get_available_providers():
-    """Get list of available LLM providers"""
-    try:
-        providers = llm_service.get_available_providers()
-        return {
-            "available_providers": [provider.value for provider in providers],
-            "count": len(providers)
-        }
-    except Exception as e:
-        logger.error(f"Error getting providers: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Failed to get providers: {str(e)}")
 
 
 if __name__ == "__main__":

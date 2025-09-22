@@ -8,7 +8,7 @@ alwaysApply: true
 
 ## Overview
 
-This is a **Chrome Extension + Backend API** system that analyzes browsing history and organizes it into thematic sessions. The architecture follows a client-server pattern with local data processing and remote analysis capabilities.
+This is a **Chrome Extension + Backend API** system that analyzes browsing history and organizes it into thematic sessions. The architecture follows a client-server pattern with local data processing and remote analysis capabilities, now enhanced with AI-powered LLM services.
 
 ## High-Level Architecture
 
@@ -27,10 +27,24 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 ┌─────────────────────────────────────────────────────────────────┐
 │                    BACKEND API (Python FastAPI)                 │
 ├─────────────────────────────────────────────────────────────────┤
-│  FastAPI Server  │  Clustering Service  │  Data Models         │
-│  - REST Endpoints│  - Theme Detection   │  - Session Schemas   │
-│  - Health Checks │  - Pattern Analysis  │  - Validation        │
-│  - CORS Support  │  - Keyword Matching  │  - Type Safety       │
+│  FastAPI Server  │  Clustering Service  │  LLM Service         │
+│  - REST Endpoints│  - Theme Detection   │  - AI Text Generation│
+│  - Health Checks │  - Pattern Analysis  │  - Multi-Provider   │
+│  - CORS Support  │  - Keyword Matching  │  - Provider Abstraction│
+│                  │  - Session Clustering│  - OpenAI/Anthropic │
+│                  │                      │  - Google/Ollama    │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                │ Data Models & Validation
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATA LAYER (Pydantic Models)                  │
+├─────────────────────────────────────────────────────────────────┤
+│  Session Models  │  LLM Models         │  Validation           │
+│  - HistoryItem   │  - LLMRequest       │  - Type Safety        │
+│  - HistorySession│  - LLMResponse      │  - Input Validation   │
+│  - ClusterResult │  - Provider Support │  - Error Handling    │
+│  - ClusteringResp│  - Multi-Provider   │  - Schema Validation  │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -91,6 +105,7 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 - **Key Functions**:
   - Health check endpoints (`/`, `/health`)
   - Clustering endpoint (`/cluster`)
+  - LLM text generation endpoint (`/llm/generate`)
   - CORS configuration for Chrome extension
   - Error handling and logging
 
@@ -101,26 +116,62 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
   - Domain-specific pattern matching
   - Session-independent clustering
   - Theme scoring and categorization
+  - **Future**: AI-enhanced theme detection via LLM integration
 
-#### **Data Models** (`session_models.py`)
-- **Responsibility**: Data structure definition and validation
-- **Key Models**:
+#### **LLM Service** (`llm_service.py`)
+- **Responsibility**: AI-powered text generation and analysis
+- **Key Functions**:
+  - Multi-provider LLM abstraction
+  - Provider management and routing
+  - Request validation and error handling
+  - Usage tracking and metadata extraction
+
+#### **LLM Providers** (`providers/`)
+- **Provider Interface** (`base_provider.py`):
+  - Abstract base class for all LLM providers
+  - Standardized interface for text generation
+  - Request validation and model management
+- **OpenAI Provider** (`openai_provider.py`):
+  - GPT models integration (GPT-3.5, GPT-4)
+  - OpenAI API communication
+  - Token usage tracking
+- **Anthropic Provider** (`anthropic_provider.py`):
+  - Claude models integration (Claude-3 Sonnet)
+  - Anthropic API communication
+  - Usage metadata extraction
+- **Google Provider** (`google_provider.py`):
+  - Gemini models integration (Gemini-1.5 Flash/Pro)
+  - Google Generative AI API
+  - Response parsing and metadata
+- **Ollama Provider** (`ollama_provider.py`):
+  - Local LLM models (Llama2, etc.)
+  - Local API communication
+  - Offline text generation capability
+
+#### **Data Models** (`models/`)
+- **Session Models** (`session_models.py`):
   - `HistoryItem`: Individual browsing entry
   - `HistorySession`: Time-grouped browsing session
   - `ClusterResult`: Thematic grouping result
   - `SessionClusteringResponse`: API response format
+- **LLM Models** (`llm_models.py`):
+  - `LLMRequest`: Text generation request with provider settings
+  - `LLMResponse`: Generated text with metadata and usage info
+  - Provider-agnostic request/response handling
 
 ## Data Flow
 
 1. **Data Collection**: Chrome history → Background worker → Local storage
 2. **Analysis Request**: Dashboard → Session grouping → API call to backend
 3. **Processing**: Backend receives sessions → Theme detection → Clustering
-4. **Response**: Backend returns clustered results → Dashboard visualization
+4. **AI Enhancement**: LLM service can enhance theme detection and analysis
+5. **Response**: Backend returns clustered results → Dashboard visualization
 
 ## Key Design Patterns
 
 - **Service Worker Pattern**: Background processing for continuous data collection
 - **API Gateway Pattern**: Centralized backend service for complex processing
+- **Provider Abstraction Pattern**: Unified interface for multiple LLM providers
 - **Session-based Processing**: Groups related browsing activities by time
 - **Theme-based Clustering**: Categorizes pages by detected topics/themes
 - **Separation of Concerns**: Extension handles UI/data collection, backend handles analysis
@@ -136,8 +187,15 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 ### Backend
 - **FastAPI**: Modern Python web framework
 - **Pydantic**: Data validation and serialization
+- **httpx**: Async HTTP client for LLM API calls
 - **Docker**: Containerized deployment
 - **Uvicorn**: ASGI server
+
+### LLM Integration
+- **OpenAI API**: GPT models for text generation
+- **Anthropic API**: Claude models for advanced reasoning
+- **Google Generative AI**: Gemini models for multimodal capabilities
+- **Ollama**: Local LLM models for offline processing
 
 ## Configuration
 
@@ -145,171 +203,26 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 - **History Limit**: 5000 items maximum
 - **API Timeout**: 30 seconds for main requests
 - **Retry Logic**: 3 attempts with exponential backoff
-- **Theme Detection**: Keyword-based pattern matching
+- **Theme Detection**: Keyword-based pattern matching (enhanceable with LLM)
+- **LLM Providers**: Configurable via environment variables
+- **API Keys**: Secure environment-based configuration
+
+## Environment Variables
+
+- `OPENAI_API_KEY`: OpenAI API access key
+- `ANTHROPIC_API_KEY`: Anthropic API access key
+- `GOOGLE_API_KEY`: Google Generative AI API key
+- `OLLAMA_BASE_URL`: Custom Ollama server URL (default: localhost:11434)
 
 ## Deployment
 
 - **Extension**: Chrome Web Store (future) / Developer mode (current)
 - **Backend**: Docker container on localhost:8000 (dev) / Cloud (production)
 - **Development**: Docker Compose for local development
+- **LLM Services**: External API dependencies (OpenAI, Anthropic, Google)
 
 ---
 
-**Last Updated**: [Current Date]
-**Version**: 0.2.0
-**Status**: In Progress 🚧# Current Architecture - Chrome Extension History Project
-
-> **⚠️ IMPORTANT**: This document must be updated whenever the architecture is modified, components are added/removed, or significant structural changes are made to the project.
-
-## Overview
-
-This is a **Chrome Extension + Backend API** system that analyzes browsing history and organizes it into thematic sessions. The architecture follows a client-server pattern with local data processing and remote analysis capabilities.
-
-## High-Level Architecture
-
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                    CHROME EXTENSION (Frontend)                  │
-├─────────────────────────────────────────────────────────────────┤
-│  Background Service Worker  │  Popup Interface  │  Dashboard UI  │
-│  - Data Collection          │  - Quick Search   │  - Full Analysis│
-│  - Real-time Updates       │  - History Lookup │  - Session View │
-│  - Local Storage           │  - Simple UI      │  - Theme Clusters│
-└─────────────────────────────────────────────────────────────────┘
-                                │
-                                │ HTTP API Calls
-                                ▼
-┌─────────────────────────────────────────────────────────────────┐
-│                    BACKEND API (Python FastAPI)                 │
-├─────────────────────────────────────────────────────────────────┤
-│  FastAPI Server  │  Clustering Service  │  Data Models         │
-│  - REST Endpoints│  - Theme Detection   │  - Session Schemas   │
-│  - Health Checks │  - Pattern Analysis  │  - Validation        │
-│  - CORS Support  │  - Keyword Matching  │  - Type Safety       │
-└─────────────────────────────────────────────────────────────────┘
-```
-
-## Component Responsibilities
-
-### **Frontend (Chrome Extension)**
-
-#### **Background Service Worker** (`background.js`)
-- **Responsibility**: Continuous data collection and preprocessing
-- **Key Functions**:
-  - Collects Chrome history data (up to 5000 items)
-  - Real-time updates via `chrome.history.onVisited` listener
-  - Stores preprocessed data in `chrome.storage.local`
-  - Applies URL filtering and deduplication
-
-#### **Popup Interface** (`popup.html`, `popup.js`)
-- **Responsibility**: Quick access search interface
-- **Key Functions**:
-  - Simple search functionality across stored history
-  - Displays search results with favicons and metadata
-  - Provides access to full dashboard
-  - Compact 320px width design
-
-#### **Dashboard Interface** (`dashboard.html`, `dashboard.js`)
-- **Responsibility**: Comprehensive analysis and visualization
-- **Key Functions**:
-  - Orchestrates the complete analysis workflow
-  - Displays session-based browsing patterns
-  - Shows thematic clusters with visual cards
-  - Handles API communication and error states
-  - Session tab navigation
-
-#### **Data Processing Layer** (`utils/`)
-- **Session Manager** (`session_management.js`):
-  - Groups history items into time-based sessions (120min gap)
-  - Formats data for API consumption
-  - Handles session statistics and validation
-- **History Preprocessor** (`preprocess_history.js`):
-  - URL normalization and cleaning
-  - Duplicate detection and removal
-  - Feature extraction (hostname, path, search queries)
-  - Date formatting and enrichment
-
-#### **API Client** (`api/`)
-- **API Client** (`api_client.js`):
-  - Handles HTTP communication with backend
-  - Implements retry logic and error handling
-  - Manages request timeouts and failures
-- **Configuration** (`config.js`):
-  - Environment management (dev/production)
-  - API endpoint configuration
-  - Request settings and timeouts
-
-### **Backend (Python FastAPI)**
-
-#### **API Server** (`main.py`)
-- **Responsibility**: RESTful API endpoints and request handling
-- **Key Functions**:
-  - Health check endpoints (`/`, `/health`)
-  - Clustering endpoint (`/cluster`)
-  - CORS configuration for Chrome extension
-  - Error handling and logging
-
-#### **Clustering Service** (`clustering_service.py`)
-- **Responsibility**: Theme detection and pattern analysis
-- **Key Functions**:
-  - Keyword-based theme detection
-  - Domain-specific pattern matching
-  - Session-independent clustering
-  - Theme scoring and categorization
-
-#### **Data Models** (`session_models.py`)
-- **Responsibility**: Data structure definition and validation
-- **Key Models**:
-  - `HistoryItem`: Individual browsing entry
-  - `HistorySession`: Time-grouped browsing session
-  - `ClusterResult`: Thematic grouping result
-  - `SessionClusteringResponse`: API response format
-
-## Data Flow
-
-1. **Data Collection**: Chrome history → Background worker → Local storage
-2. **Analysis Request**: Dashboard → Session grouping → API call to backend
-3. **Processing**: Backend receives sessions → Theme detection → Clustering
-4. **Response**: Backend returns clustered results → Dashboard visualization
-
-## Key Design Patterns
-
-- **Service Worker Pattern**: Background processing for continuous data collection
-- **API Gateway Pattern**: Centralized backend service for complex processing
-- **Session-based Processing**: Groups related browsing activities by time
-- **Theme-based Clustering**: Categorizes pages by detected topics/themes
-- **Separation of Concerns**: Extension handles UI/data collection, backend handles analysis
-
-## Technology Stack
-
-### Frontend
-- **Chrome Extension API**: History, Storage, Tabs permissions
-- **Vanilla JavaScript**: No frameworks, pure ES6+
-- **CSS Custom Properties**: Consistent theming system
-- **Local Storage**: Chrome storage API for data persistence
-
-### Backend
-- **FastAPI**: Modern Python web framework
-- **Pydantic**: Data validation and serialization
-- **Docker**: Containerized deployment
-- **Uvicorn**: ASGI server
-
-## Configuration
-
-- **Session Gap**: 120 minutes between sessions
-- **History Limit**: 5000 items maximum
-- **API Timeout**: 30 seconds for main requests
-- **Retry Logic**: 3 attempts with exponential backoff
-- **Theme Detection**: Keyword-based pattern matching
-
-## Deployment
-
-- **Extension**: Chrome Web Store (future) / Developer mode (current)
-- **Backend**: Docker container on localhost:8000 (dev) / Cloud (production)
-- **Development**: Docker Compose for local development
-
----
-
-**Last Updated**: [Current Date]
-**Version**: 0.2.0
-**Status**: In Progress 🚧
+**Last Updated**: September 22, 2025
+**Version**: 0.3.0
+**Status**: Enhanced with LLM Services 🚀

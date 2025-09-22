@@ -2,8 +2,8 @@ import httpx
 from typing import Optional
 import logging
 
-from ..base_provider import LLMProviderInterface
-from ...models.llm_models import LLMRequest, LLMResponse, LLMProvider
+from .base_provider import LLMProviderInterface
+from ...models.llm_models import LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 
@@ -19,7 +19,7 @@ class OllamaProvider(LLMProviderInterface):
         return "llama2"
     
     def validate_request(self, request: LLMRequest) -> bool:
-        return request.provider == LLMProvider.OLLAMA
+        return request.provider == "ollama"
     
     async def generate_text(self, request: LLMRequest) -> LLMResponse:
         model = request.model or self.get_default_model()
@@ -52,7 +52,7 @@ class OllamaProvider(LLMProviderInterface):
                 
                 return LLMResponse(
                     generated_text=generated_text,
-                    provider=LLMProvider.OLLAMA,
+                    provider="ollama",
                     model=model,
                     usage={"prompt_tokens": len(request.prompt.split()), "completion_tokens": len(generated_text.split())},
                     metadata={"done": data.get("done")}

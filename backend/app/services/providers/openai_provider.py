@@ -3,8 +3,8 @@ import httpx
 from typing import Optional
 import logging
 
-from ..base_provider import LLMProviderInterface
-from ...models.llm_models import LLMRequest, LLMResponse, LLMProvider
+from .base_provider import LLMProviderInterface
+from ...models.llm_models import LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class OpenAIProvider(LLMProviderInterface):
         return "gpt-3.5-turbo"
     
     def validate_request(self, request: LLMRequest) -> bool:
-        return request.provider == LLMProvider.OPENAI
+        return request.provider == "openai"
     
     async def generate_text(self, request: LLMRequest) -> LLMResponse:
         if not self.api_key:
@@ -63,7 +63,7 @@ class OpenAIProvider(LLMProviderInterface):
                 
                 return LLMResponse(
                     generated_text=generated_text,
-                    provider=LLMProvider.OPENAI,
+                    provider="openai",
                     model=model,
                     usage=usage,
                     metadata={"response_id": data.get("id")}

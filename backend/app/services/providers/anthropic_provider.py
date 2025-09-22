@@ -3,8 +3,8 @@ import httpx
 from typing import Optional
 import logging
 
-from ..base_provider import LLMProviderInterface
-from ...models.llm_models import LLMRequest, LLMResponse, LLMProvider
+from .base_provider import LLMProviderInterface
+from ...models.llm_models import LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 
@@ -23,7 +23,7 @@ class AnthropicProvider(LLMProviderInterface):
         return "claude-3-sonnet-20240229"
     
     def validate_request(self, request: LLMRequest) -> bool:
-        return request.provider == LLMProvider.ANTHROPIC
+        return request.provider == "anthropic"
     
     async def generate_text(self, request: LLMRequest) -> LLMResponse:
         if not self.api_key:
@@ -64,7 +64,7 @@ class AnthropicProvider(LLMProviderInterface):
                 
                 return LLMResponse(
                     generated_text=generated_text,
-                    provider=LLMProvider.ANTHROPIC,
+                    provider="anthropic",
                     model=model,
                     usage=usage,
                     metadata={"response_id": data.get("id")}
