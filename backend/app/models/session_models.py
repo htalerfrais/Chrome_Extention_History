@@ -4,6 +4,7 @@ from datetime import datetime
 
 class HistoryItem(BaseModel):
     """Individual browsing history item"""
+    id: str
     url: str
     title: str
     visit_time: datetime
@@ -30,6 +31,7 @@ class HistorySession(BaseModel):
 
 class ClusterItem(BaseModel):
     """A history item within a cluster"""
+    id: str
     url: str
     title: str
     visit_time: datetime

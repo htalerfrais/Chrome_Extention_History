@@ -56,10 +56,14 @@ class ClusteringService:
             cluster_items = []
             for item in session.items:
                 cluster_item = ClusterItem(
+                    id=item.id,
                     url=item.url,
                     title=item.title,
                     visit_time=item.visit_time,
-                    session_id=session.session_id
+                    session_id=session.session_id,
+                    url_hostname=item.url_hostname,
+                    url_pathname_clean=item.url_pathname_clean,
+                    url_search_query=item.url_search_query
                 )
                 cluster_items.append(cluster_item)
             
