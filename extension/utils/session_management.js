@@ -83,6 +83,7 @@ class SessionManager {
             start_time: new Date(session.startTime).toISOString(),
             end_time: new Date(session.endTime).toISOString(),
             items: session.items.map(item => ({
+                id: item.id,
                 url: item.url,
                 title: item.title || 'Untitled',
                 visit_time: new Date(item.lastVisitTime || item.visitTime).toISOString(),
