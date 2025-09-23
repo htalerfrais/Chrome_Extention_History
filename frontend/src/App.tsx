@@ -94,11 +94,28 @@ function App() {
         
         // Auto-analyze the first session
         setStatus('Analyzing most recent session...')
-        await analyzeSession(sortedSessions[0].session_id)
+        // Call with immediate session object to avoid pending state depending on setState order
+        const firstSession = sortedSessions[0]
+        setSessionAnalysisStates(prev => ({
+          ...prev,
+          [firstSession.session_id]: 'loading'
+        }))
+        const clusterResult = await extensionBridge.clusterSession(firstSession)
+        if (!clusterResult.success) {
+          throw new Error(`Clustering failed: ${clusterResult.error}`)
+        }
+        setCurrentSessionResults((prev: any) => ({
+          ...prev,
+          [firstSession.session_id]: clusterResult.data
+        }))
+        setSessionAnalysisStates(prev => ({
+          ...prev,
+          [firstSession.session_id]: 'completed'
+        }))
+        setStatus(`Session ${firstSession.session_id} analyzed successfully`)
+        setStatusType('success')
       }
       
-      setStatus('Most recent session analyzed. Use navigation to explore other sessions.')
-      setStatusType('success')
       
     } catch (error) {
       console.error('Dashboard loading failed:', error)

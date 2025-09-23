@@ -12460,10 +12460,23 @@ function App() {
         setCurrentSessionIndex(0);
         setActiveSessionId(sortedSessions[0].session_id);
         setStatus("Analyzing most recent session...");
-        await analyzeSession(sortedSessions[0].session_id);
+        const firstSession = sortedSessions[0];
+        setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
+          [firstSession.session_id]: "loading"
+        }));
+        const clusterResult = await extensionBridge.clusterSession(firstSession);
+        if (!clusterResult.success) {
+          throw new Error(`Clustering failed: ${clusterResult.error}`);
+        }
+        setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
+          [firstSession.session_id]: clusterResult.data
+        }));
+        setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
+          [firstSession.session_id]: "completed"
+        }));
+        setStatus(`Session ${firstSession.session_id} analyzed successfully`);
+        setStatusType("success");
       }
-      setStatus("Most recent session analyzed. Use navigation to explore other sessions.");
-      setStatusType("success");
     } catch (error2) {
       console.error("Dashboard loading failed:", error2);
       setError(error2 instanceof Error ? error2.message : "Unknown error");
