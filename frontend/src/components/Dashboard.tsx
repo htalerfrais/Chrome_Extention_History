@@ -25,9 +25,17 @@ interface DashboardProps {
   currentSessionResults: Record<string, SessionData>;
   activeSessionId: string | null;
   onSessionChange: (sessionId: string) => void;
+  availableSessions: any[];
+  sessionAnalysisStates: Record<string, 'pending' | 'loading' | 'completed' | 'error'>;
 }
 
-export default function Dashboard({ currentSessionResults, activeSessionId, onSessionChange }: DashboardProps) {
+export default function Dashboard({ 
+  currentSessionResults, 
+  activeSessionId, 
+  onSessionChange, 
+  availableSessions, 
+  sessionAnalysisStates 
+}: DashboardProps) {
   // Get the current session data
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
 
@@ -37,6 +45,8 @@ export default function Dashboard({ currentSessionResults, activeSessionId, onSe
         currentSessionResults={currentSessionResults}
         activeSessionId={activeSessionId}
         onSessionChange={onSessionChange}
+        availableSessions={availableSessions}
+        sessionAnalysisStates={sessionAnalysisStates}
       />
       <ClustersSection sessionData={currentSessionData} />
     </div>

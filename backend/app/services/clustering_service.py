@@ -14,59 +14,50 @@ class ClusteringService:
     def __init__(self):
         self.llm_service = LLMService()
 
-    async def cluster_sessions(self, sessions: List[HistorySession]) -> Dict[str, SessionClusteringResponse]:
+    async def cluster_session(self, session: HistorySession) -> SessionClusteringResponse:
         """
-        For each session: identify clusters with summaries using the LLM, then
-        assign each item to one of those clusters. Returns a mapping of
-        session_id to SessionClusteringResponse.
+        For a single session: identify clusters with summaries using the LLM, then
+        assign each item to one of those clusters. Returns a SessionClusteringResponse.
         """
-        logger.info(f"Starting LLM clustering for {len(sessions)} sessions")
+        logger.info(f"Starting LLM clustering for session {session.session_id} with {len(session.items)} items")
 
-        results: Dict[str, SessionClusteringResponse] = {}
+        # Step 1: Ask LLM to propose clusters for this session
+        clusters_meta = await self.identify_clusters_for_session(session)
 
-        for session in sessions:
-            logger.info(f"Processing session {session.session_id} with {len(session.items)} items")
+        # Step 2: Assign each item to one of the identified clusters
+        cluster_id_to_items = await self.assign_items_to_clusters(session, clusters_meta)
 
-            # Step 1: Ask LLM to propose clusters for this session
-            clusters_meta = await self._identify_clusters_for_session(session)
+        # Build ClusterResult objects
+        cluster_results: List[ClusterResult] = []
+        for meta in clusters_meta:
+            cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_id}_{len(cluster_results)}"
+            theme: str = meta.get("theme") or "Miscellaneous"
+            summary: str = meta.get("summary") or ""
 
-            # Step 2: Assign each item to one of the identified clusters
-            cluster_id_to_items = await self._assign_items_to_clusters(session, clusters_meta)
+            items = cluster_id_to_items.get(cluster_id, [])
+            if len(items) == 0:
+                # Skip empty clusters to keep output compact
+                continue
 
-            # Build ClusterResult objects
-            cluster_results: List[ClusterResult] = []
-            for meta in clusters_meta:
-                cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_id}_{len(cluster_results)}"
-                theme: str = meta.get("theme") or "Miscellaneous"
-                summary: str = meta.get("summary") or ""
+            cluster_results.append(ClusterResult(
+                cluster_id=cluster_id,
+                theme=theme,
+                summary=summary,
+                items=items
+            ))
 
-                items = cluster_id_to_items.get(cluster_id, [])
-                if len(items) == 0:
-                    # Skip empty clusters to keep output compact
-                    continue
+        # Create session response
+        response = SessionClusteringResponse(
+            session_id=session.session_id,
+            session_start_time=session.start_time,
+            session_end_time=session.end_time,
+            clusters=cluster_results
+        )
 
-                cluster_results.append(ClusterResult(
-                    cluster_id=cluster_id,
-                    theme=theme,
-                    summary=summary,
-                    items=items
-                ))
+        logger.info(f"Session {session.session_id}: generated {len(cluster_results)} clusters")
+        return response
 
-            # Create session response
-            response = SessionClusteringResponse(
-                session_id=session.session_id,
-                session_start_time=session.start_time,
-                session_end_time=session.end_time,
-                clusters=cluster_results
-            )
-
-            results[session.session_id] = response
-            logger.info(f"Session {session.session_id}: generated {len(cluster_results)} clusters")
-
-        logger.info(f"Generated clustering results for {len(results)} sessions")
-        return results
-
-    async def _identify_clusters_for_session(self, session: HistorySession) -> List[Dict[str, Any]]:
+    async def identify_clusters_for_session(self, session: HistorySession) -> List[Dict[str, Any]]:
         """Use LLM to propose clusters (cluster_id, theme, summary) for a session."""
         simplified_items = self._prepare_session_items_for_llm(session)
 
@@ -119,7 +110,7 @@ class ClusteringService:
             "summary": "General browsing activity"
         }]
 
-    async def _assign_items_to_clusters(self, session: HistorySession, clusters_meta: List[Dict[str, Any]]) -> Dict[str, List[ClusterItem]]:
+    async def assign_items_to_clusters(self, session: HistorySession, clusters_meta: List[Dict[str, Any]]) -> Dict[str, List[ClusterItem]]:
         """Assign items in batches to reduce the number of LLM calls."""
         cluster_map: Dict[str, List[ClusterItem]] = {c["cluster_id"]: [] for c in clusters_meta}
         valid_ids = {c["cluster_id"] for c in clusters_meta}

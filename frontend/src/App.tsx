@@ -16,6 +16,10 @@ function App() {
   const [currentSessionResults, setCurrentSessionResults] = useState<any>({})
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [servicesReady, setServicesReady] = useState(false)
+  const [availableSessions, setAvailableSessions] = useState<any[]>([])
+  const [sessionAnalysisStates, setSessionAnalysisStates] = useState<{
+    [sessionId: string]: 'pending' | 'loading' | 'completed' | 'error'
+  }>({})
 
   // Wait for extension services to be ready
   useEffect(() => {
@@ -37,7 +41,7 @@ function App() {
     initializeServices();
   }, []);
 
-  // Load Dashboard function (using ExtensionBridge)
+  // Load Dashboard function - now only loads sessions, no clustering
   const loadDashboard = async () => {
     if (!servicesReady) {
       setError('Extension services not ready');
@@ -76,25 +80,20 @@ function App() {
         throw new Error(constants.ERROR_NO_SESSIONS)
       }
       
-      setStatus(constants.STATUS_ANALYZING_PATTERNS)
+      // Store available sessions and initialize analysis states
+      setAvailableSessions(sessions)
+      const initialStates: { [sessionId: string]: 'pending' } = {}
+      sessions.forEach((session: any) => {
+        initialStates[session.session_id] = 'pending'
+      })
+      setSessionAnalysisStates(initialStates)
       
-      // Get clustering results using extension service
-      const clusterResult = await extensionBridge.clusterSessions(sessions)
-      
-      if (!clusterResult.success) {
-        throw new Error(`${constants.ERROR_CLUSTERING_FAILED}: ${clusterResult.error}`)
+      // Set first session as active (but don't analyze yet)
+      if (sessions.length > 0) {
+        setActiveSessionId(sessions[0].session_id)
       }
       
-      // Store results and update UI
-      setCurrentSessionResults(clusterResult.data)
-      
-      // Set first session as active
-      const sessionIds = Object.keys(clusterResult.data)
-      if (sessionIds.length > 0) {
-        setActiveSessionId(sessionIds[0])
-      }
-      
-      setStatus(constants.STATUS_ANALYSIS_COMPLETE)
+      setStatus('Sessions loaded. Click on a session tab to analyze it.')
       setStatusType('success')
       
     } catch (error) {
@@ -104,6 +103,75 @@ function App() {
       setStatusType('error')
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  // Analyze single session when user clicks on a tab
+  const analyzeSession = async (sessionId: string) => {
+    const session = availableSessions.find(s => s.session_id === sessionId)
+    if (!session) {
+      console.error(`Session ${sessionId} not found`)
+      return
+    }
+
+    // Skip if already completed
+    if (sessionAnalysisStates[sessionId] === 'completed') {
+      return
+    }
+
+    try {
+      // Update session state to loading
+      setSessionAnalysisStates(prev => ({
+        ...prev,
+        [sessionId]: 'loading'
+      }))
+
+      setStatus(`Analyzing session ${sessionId}...`)
+      setStatusType('loading')
+
+      // Cluster single session using extension service
+      const clusterResult = await extensionBridge.clusterSession(session)
+      
+      if (!clusterResult.success) {
+        throw new Error(`Clustering failed: ${clusterResult.error}`)
+      }
+
+      // Store result for this session
+      setCurrentSessionResults((prev: any) => ({
+        ...prev,
+        [sessionId]: clusterResult.data
+      }))
+
+      // Update session state to completed
+      setSessionAnalysisStates(prev => ({
+        ...prev,
+        [sessionId]: 'completed'
+      }))
+
+      setStatus(`Session ${sessionId} analyzed successfully`)
+      setStatusType('success')
+      
+    } catch (error) {
+      console.error(`Session analysis failed for ${sessionId}:`, error)
+      
+      // Update session state to error
+      setSessionAnalysisStates(prev => ({
+        ...prev,
+        [sessionId]: 'error'
+      }))
+
+      setStatus(`Session ${sessionId} analysis failed`)
+      setStatusType('error')
+    }
+  }
+
+  // Handle session change - analyze if needed
+  const handleSessionChange = async (sessionId: string) => {
+    setActiveSessionId(sessionId)
+    
+    // Analyze session if not already completed
+    if (sessionAnalysisStates[sessionId] === 'pending') {
+      await analyzeSession(sessionId)
     }
   }
 
@@ -129,7 +197,9 @@ function App() {
         <Dashboard 
           currentSessionResults={currentSessionResults}
           activeSessionId={activeSessionId}
-          onSessionChange={setActiveSessionId}
+          onSessionChange={handleSessionChange}
+          availableSessions={availableSessions}
+          sessionAnalysisStates={sessionAnalysisStates}
         />
       </main>
     </div>

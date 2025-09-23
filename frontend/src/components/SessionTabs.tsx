@@ -11,15 +11,23 @@ interface SessionTabsProps {
   currentSessionResults: Record<string, SessionData>;
   activeSessionId: string | null;
   onSessionChange: (sessionId: string) => void;
+  availableSessions: any[];
+  sessionAnalysisStates: Record<string, 'pending' | 'loading' | 'completed' | 'error'>;
 }
 
-export default function SessionTabs({ currentSessionResults, activeSessionId, onSessionChange }: SessionTabsProps) {
-  // Sort sessions chronologically by start time
-  const sortedSessions = Object.keys(currentSessionResults)
-    .map(sessionId => ({
-      sessionId,
-      sessionData: currentSessionResults[sessionId],
-      startTime: new Date(currentSessionResults[sessionId].session_start_time)
+export default function SessionTabs({ 
+  currentSessionResults, 
+  activeSessionId, 
+  onSessionChange, 
+  availableSessions, 
+  sessionAnalysisStates 
+}: SessionTabsProps) {
+  // Sort available sessions chronologically by start time
+  const sortedSessions = availableSessions
+    .map(session => ({
+      sessionId: session.session_id,
+      sessionData: session,
+      startTime: new Date(session.start_time)
     }))
     .sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
 
@@ -31,21 +39,48 @@ export default function SessionTabs({ currentSessionResults, activeSessionId, on
     <div className="sessions-tabs">
       {sortedSessions.map((session, index) => {
         const sessionNumber = index + 1;
-        const startTime = new Date(session.sessionData.session_start_time);
-        const endTime = new Date(session.sessionData.session_end_time);
+        const startTime = new Date(session.sessionData.start_time);
+        const endTime = new Date(session.sessionData.end_time);
         const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // minutes
-        const clusterCount = session.sessionData.clusters?.length || 0;
+        const itemCount = session.sessionData.items?.length || 0;
+        
+        // Get analysis state and result
+        const analysisState = sessionAnalysisStates[session.sessionId] || 'pending';
+        const sessionResult = currentSessionResults[session.sessionId];
+        const clusterCount = sessionResult?.clusters?.length || 0;
+
+        // Determine display text based on state
+        let statusText = '';
+        let statusClass = '';
+        switch (analysisState) {
+          case 'pending':
+            statusText = `${itemCount} items • Click to analyze`;
+            statusClass = 'pending';
+            break;
+          case 'loading':
+            statusText = 'Analyzing...';
+            statusClass = 'loading';
+            break;
+          case 'completed':
+            statusText = `${duration}min • ${clusterCount} topics`;
+            statusClass = 'completed';
+            break;
+          case 'error':
+            statusText = 'Analysis failed • Click to retry';
+            statusClass = 'error';
+            break;
+        }
 
         return (
           <button
             key={session.sessionId}
-            className={`session-tab ${session.sessionId === activeSessionId ? 'active' : ''}`}
+            className={`session-tab ${session.sessionId === activeSessionId ? 'active' : ''} ${statusClass}`}
             onClick={() => onSessionChange(session.sessionId)}
           >
             <div className="session-tab-content">
               <div className="session-tab-title">Session {sessionNumber}</div>
               <div className="session-tab-meta">
-                {startTime.toLocaleDateString()} • {duration}min • {clusterCount} topics
+                {startTime.toLocaleDateString()} • {statusText}
               </div>
             </div>
           </button>

@@ -55,20 +55,20 @@ class ExtensionBridge {
   }
 
   /**
-   * Send sessions to backend for clustering using extension's ApiClient
+   * Send single session to backend for clustering using extension's ApiClient
    * This uses the existing api_client.js logic
    */
-  async clusterSessions(sessions: any[]): Promise<any> {
+  async clusterSession(session: any): Promise<any> {
     if (!window.ApiClient) {
       throw new Error('ApiClient not available. Extension services not loaded.');
     }
 
     try {
-      const result = await window.ApiClient.clusterSessions(sessions);
-      console.log('Clustering result:', result);
+      const result = await window.ApiClient.clusterSession(session);
+      console.log('Single session clustering result:', result);
       return result;
     } catch (error) {
-      console.error('Error clustering sessions:', error);
+      console.error('Error clustering single session:', error);
       throw error;
     }
   }
