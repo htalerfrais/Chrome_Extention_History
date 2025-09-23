@@ -55,31 +55,31 @@ async def health_check():
         "timestamp": datetime.now().isoformat()
     }
 
-@app.post("/cluster", response_model=Dict[str, SessionClusteringResponse])
-async def cluster_sessions(sessions: List[HistorySession]):
+@app.post("/cluster-session", response_model=SessionClusteringResponse)
+async def cluster_session(session: HistorySession):
     """
-    Cluster browsing history sessions into thematic groups, processing each session independently
+    Cluster a single browsing history session into thematic groups
     
     Args:
-        sessions: List of browsing history sessions
+        session: Single browsing history session to cluster
         
     Returns:
-        Dict mapping session_id to SessionClusteringResponse with clusters for each session
+        SessionClusteringResponse with clusters for the session
     """
     try:
-        logger.info(f"Received {len(sessions)} sessions for clustering")
+        logger.info(f"Received session {session.session_id} with {len(session.items)} items for clustering")
         
-        if not sessions:
-            raise HTTPException(status_code=400, detail="No sessions provided")
+        if not session.items:
+            raise HTTPException(status_code=400, detail="Session has no items to cluster")
         
-        # Process sessions through clustering service
-        session_results = await clustering_service.cluster_sessions(sessions)
+        # Process single session through clustering service
+        session_result = await clustering_service.cluster_session(session)
         
-        logger.info(f"Generated clustering results for {len(session_results)} sessions")
-        return session_results
+        logger.info(f"Generated clustering result for session {session.session_id} with {len(session_result.clusters)} clusters")
+        return session_result
         
     except Exception as e:
-        logger.error(f"Error clustering sessions: {str(e)}")
+        logger.error(f"Error clustering session {getattr(session, 'session_id', 'unknown')}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
 
 @app.post("/llm/generate", response_model=LLMResponse)
