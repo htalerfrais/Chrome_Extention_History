@@ -1,14 +1,13 @@
 ---
 alwaysApply: true
 ---
-
 # Current Architecture - Chrome Extension History Project
 
 > **⚠️ IMPORTANT**: This document must be updated whenever the architecture is modified, components are added/removed, or significant structural changes are made to the project.
 
 ## Overview
 
-This is a **Chrome Extension + Backend API** system that analyzes browsing history and organizes it into thematic sessions. The architecture follows a client-server pattern with local data processing and remote analysis capabilities, now enhanced with AI-powered LLM services.
+This is a **Chrome Extension + React Frontend + Backend API** system that analyzes browsing history and organizes it into thematic sessions using AI-powered LLM services. The architecture follows a modern client-server pattern with React UI, extension services bridge, and remote AI analysis capabilities.
 
 ## High-Level Architecture
 
@@ -16,10 +15,23 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 ┌─────────────────────────────────────────────────────────────────┐
 │                    CHROME EXTENSION (Frontend)                  │
 ├─────────────────────────────────────────────────────────────────┤
-│  Background Service Worker  │  Popup Interface  │  Dashboard UI  │
-│  - Data Collection          │  - Quick Search   │  - Full Analysis│
-│  - Real-time Updates       │  - History Lookup │  - Session View │
-│  - Local Storage           │  - Simple UI      │  - Theme Clusters│
+│  Background Service Worker  │  Popup Interface  │  React Dashboard│
+│  - Data Collection          │  - Quick Search   │  - Modern UI    │
+│  - Real-time Updates       │  - History Lookup │  - State Mgmt   │
+│  - Local Storage           │  - Simple UI      │  - Component Tree│
+│                             │                   │  - ExtensionBridge│
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                │ ExtensionBridge Pattern
+                                │ (React ↔ Extension Services)
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    EXTENSION SERVICES LAYER                     │
+├─────────────────────────────────────────────────────────────────┤
+│  Session Management  │  API Client       │  Data Processing    │
+│  - session_mgmt.js   │  - api_client.js  │  - preprocess.js   │
+│  - Time grouping     │  - HTTP comm      │  - URL filtering   │
+│  - API formatting    │  - Error handling │  - Feature extract │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 │ HTTP API Calls
@@ -50,7 +62,7 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 
 ## Component Responsibilities
 
-### **Frontend (Chrome Extension)**
+### **Frontend (Chrome Extension + React)**
 
 #### **Background Service Worker** (`background.js`)
 - **Responsibility**: Continuous data collection and preprocessing
@@ -65,19 +77,29 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
 - **Key Functions**:
   - Simple search functionality across stored history
   - Displays search results with favicons and metadata
-  - Provides access to full dashboard
+  - Provides access to React dashboard
   - Compact 320px width design
 
-#### **Dashboard Interface** (`dashboard.html`, `dashboard.js`)
-- **Responsibility**: Comprehensive analysis and visualization
+#### **React Dashboard** (`frontend/src/`)
+- **Responsibility**: Modern UI with comprehensive analysis and visualization
 - **Key Functions**:
-  - Orchestrates the complete analysis workflow
-  - Displays session-based browsing patterns
-  - Shows thematic clusters with visual cards
-  - Handles API communication and error states
-  - Session tab navigation
+  - **App Component**: Main state management and ExtensionBridge integration
+  - **Header Component**: Logo, title, and action buttons with click handlers
+  - **StatusBar Component**: Real-time status updates with loading/success/error states
+  - **Dashboard Component**: Main content area for session and cluster display
+  - **LoadingSpinner & ErrorDisplay**: User feedback components
+  - **ExtensionBridge Service**: Clean interface to extension services
 
-#### **Data Processing Layer** (`utils/`)
+#### **Extension Services Bridge** (`frontend/src/services/extensionBridge.ts`)
+- **Responsibility**: Connect React UI to existing extension services
+- **Key Functions**:
+  - Access Chrome storage and APIs
+  - Use existing SessionManager for data processing
+  - Use existing ApiClient for backend communication
+  - Provide type-safe interface for React components
+  - Handle service initialization and error recovery
+
+#### **Data Processing Layer** (`extension/utils/`)
 - **Session Manager** (`session_management.js`):
   - Groups history items into time-based sessions (120min gap)
   - Formats data for API consumption
@@ -88,7 +110,7 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
   - Feature extraction (hostname, path, search queries)
   - Date formatting and enrichment
 
-#### **API Client** (`api/`)
+#### **API Client** (`extension/api/`)
 - **API Client** (`api_client.js`):
   - Handles HTTP communication with backend
   - Implements retry logic and error handling
@@ -160,6 +182,36 @@ This is a **Chrome Extension + Backend API** system that analyzes browsing histo
   - `LLMResponse`: Generated text with metadata and usage info
   - Provider-agnostic request/response handling
 
+## React Frontend Architecture
+
+### **Component Tree**
+```
+App (State Management + ExtensionBridge)
+├── Header (Logo + Action Buttons)
+├── StatusBar (Loading/Success/Error States)
+├── LoadingSpinner (Conditional Rendering)
+├── ErrorDisplay (Error Handling + Retry)
+└── Dashboard (Main Content)
+    ├── SessionTabs (Session Navigation)
+    └── ClustersSection (Cluster Display)
+        ├── SessionInfo (Session Metadata)
+        └── ClusterGrid
+            └── ClusterCard[] (Individual Clusters)
+                └── ClusterItem[] (History Items)
+```
+
+### **State Management**
+- **React Hooks**: useState, useEffect for local component state
+- **Props Flow**: Top-down data flow with callback props for user actions
+- **ExtensionBridge**: Service layer for Chrome extension integration
+- **Type Safety**: TypeScript interfaces for all props and state
+
+### **Build Process**
+- **Development**: Vite dev server at `http://localhost:5173`
+- **Production**: Vite builds to `extension/dashboard-assets/`
+- **Chrome Extension**: Loads React bundle from `dashboard-assets/index.js`
+- **CSS**: Bundled into `dashboard-assets/assets/index.css`
+
 ## LLM Clustering Workflow
 
 The clustering service now operates through a sophisticated two-phase LLM-driven process:
@@ -185,29 +237,36 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ## Data Flow
 
 1. **Data Collection**: Chrome history → Background worker → Local storage
-2. **Analysis Request**: Dashboard → Session grouping → API call to backend
-3. **LLM Processing**: Backend receives sessions → LLM cluster identification → Batched item assignment
-4. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
-5. **Response**: Backend returns clustered results → Dashboard visualization
+2. **React Initialization**: Dashboard loads → ExtensionBridge waits for services
+3. **User Action**: Click Refresh → React calls ExtensionBridge methods
+4. **Service Layer**: ExtensionBridge → SessionManager → ApiClient → Backend
+5. **LLM Processing**: Backend receives sessions → LLM cluster identification → Batched item assignment
+6. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
+7. **React Update**: Backend returns clustered results → React state updates → UI re-renders
 
 ## Key Design Patterns
 
+- **Extension Services Bridge Pattern**: Clean separation between React UI and Chrome extension services
 - **Service Worker Pattern**: Background processing for continuous data collection
 - **API Gateway Pattern**: Centralized backend service for complex processing
 - **Provider Abstraction Pattern**: Unified interface for multiple LLM providers
 - **Session-based Processing**: Groups related browsing activities by time
 - **LLM-driven Clustering**: AI-powered thematic analysis and intelligent categorization
+- **Component Composition**: React components with clear responsibilities
+- **Props Down, Events Up**: Unidirectional data flow with callback props
 - **Batch Processing Pattern**: Efficient LLM API usage through item batching
 - **Fallback Strategy Pattern**: Robust error handling with graceful degradation
-- **Separation of Concerns**: Extension handles UI/data collection, backend handles AI analysis
+- **Separation of Concerns**: Extension handles data/APIs, React handles UI/UX
 
 ## Technology Stack
 
 ### Frontend
+- **React 18**: Modern UI library with hooks and functional components
+- **TypeScript**: Type safety and better developer experience
+- **Vite**: Fast build tool and development server
 - **Chrome Extension API**: History, Storage, Tabs permissions
-- **Vanilla JavaScript**: No frameworks, pure ES6+
-- **CSS Custom Properties**: Consistent theming system
-- **Local Storage**: Chrome storage API for data persistence
+- **ExtensionBridge Pattern**: Service layer for Chrome API access
+- **CSS**: Component-based styling with build-time bundling
 
 ### Backend
 - **FastAPI**: Modern Python web framework
@@ -232,6 +291,7 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **Batch Size**: 20 items per LLM assignment call for efficiency
 - **LLM Providers**: Configurable via environment variables
 - **API Keys**: Secure environment-based configuration
+- **React Build**: Outputs to extension/dashboard-assets/ for Chrome extension compatibility
 
 ## Environment Variables
 
@@ -244,11 +304,19 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 
 - **Extension**: Chrome Web Store (future) / Developer mode (current)
 - **Backend**: Docker container on localhost:8000 (dev) / Cloud (production)
-- **Development**: Docker Compose for local development
+- **React Frontend**: Built into extension/dashboard-assets/ via Vite
+- **Development**: Docker Compose for backend + Vite dev server for React
 - **LLM Services**: External API dependencies (OpenAI, Anthropic, Google)
+
+## Development Workflow
+
+1. **Backend**: `.\scripts\dev_up.ps1` (Docker)
+2. **Frontend**: `cd frontend && npm run dev` (Vite dev server)
+3. **Extension**: Load unpacked from `extension/` folder
+4. **Production**: `cd frontend && npm run build` (builds to extension/)
 
 ---
 
-**Last Updated**: September 22, 2025
-**Version**: 0.4.0
-**Status**: Fully LLM-Driven Clustering 🚀
+**Last Updated**: September 23, 2025
+**Version**: 0.5.0
+**Status**: React Frontend Integration Complete 🚀
