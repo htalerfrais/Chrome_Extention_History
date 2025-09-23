@@ -52,14 +52,6 @@ export default function ClustersSection({ sessionData, isAnalyzing = false }: Cl
           </div>
         </>
       )}
-      {isAnalyzing && (
-        <div className="clusters-overlay">
-          <div className="loading-container">
-            <div className="loading-spinner" />
-            <p className="status-text">Analyzing session...</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

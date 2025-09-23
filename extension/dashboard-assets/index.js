@@ -12233,19 +12233,13 @@ function ClustersSection({ sessionData, isAnalyzing = false }) {
   if (!isAnalyzing && (!sessionData || clusters.length === 0)) {
     return null;
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-section", children: [
-    sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Browsing Topics" }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData })
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-section", children: sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Browsing Topics" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData })
     ] }),
-    isAnalyzing && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-overlay", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "loading-container", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "loading-spinner" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "status-text", children: "Analyzing session..." })
-    ] }) })
-  ] });
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
+  ] }) });
 }
 function Dashboard({
   currentSessionResults,
