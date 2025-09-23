@@ -2,6 +2,9 @@
 /venv/
 /history-samples/
 cursor/
+<<<<<<< HEAD
+__pycache__/
+=======
 # Python cache files
 __pycache__/
 *.py[cod]
@@ -23,3 +26,4 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+>>>>>>> 353088e58e646eb998a9e3c472a1034bd59a9444

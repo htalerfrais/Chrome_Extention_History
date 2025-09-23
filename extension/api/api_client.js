@@ -57,21 +57,21 @@ class ApiClient {
         return await this.makeRequest('health');
     }
     
-    // Send preprocessed sessions for clustering
-    async clusterSessions(sessions) {
-        if (!sessions || sessions.length === 0) {
-            return { success: false, error: 'No sessions provided' };
+    // Send single session for clustering
+    async clusterSession(session) {
+        if (!session || !session.items || session.items.length === 0) {
+            return { success: false, error: 'No valid session provided' };
         }
         
-        console.log(`Sending ${sessions.length} sessions for clustering`);
+        console.log(`Sending session ${session.session_id} with ${session.items.length} items for clustering`);
         
-        const result = await this.makeRequest('cluster', {
+        const result = await this.makeRequest('cluster-session', {
             method: 'POST',
-            body: JSON.stringify(sessions)
+            body: JSON.stringify(session)
         });
         
         if (result.success) {
-            console.log(`Received clustering results for ${Object.keys(result.data).length} sessions`);
+            console.log(`Received clustering result for session ${session.session_id} with ${result.data.clusters?.length || 0} clusters`);
         }
         
         return result;
