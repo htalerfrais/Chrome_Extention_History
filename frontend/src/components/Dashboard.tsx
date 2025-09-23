@@ -31,10 +31,11 @@ export default function Dashboard({
 }: DashboardProps) {
   // Get the current session data
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
+  const isAnalyzing = !currentSessionData;
 
   return (
     <div className="dashboard-content">
-      <ClustersSection sessionData={currentSessionData} />
+      <ClustersSection sessionData={currentSessionData} isAnalyzing={isAnalyzing} />
     </div>
   );
 }

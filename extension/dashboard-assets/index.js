@@ -12221,35 +12221,30 @@ function ClusterItem({ item }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-time", children: visitTime })
   ] });
 }
-function ClusterCard({ cluster, maxItemsDisplay = 5 }) {
-  const displayedItems = cluster.items.slice(0, maxItemsDisplay);
-  const remainingCount = cluster.items.length - maxItemsDisplay;
+function ClusterCard({ cluster }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cluster-card", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-theme", children: cluster.theme }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cluster-items", children: [
-      displayedItems.map((item, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index}`)),
-      remainingCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "item-more", children: [
-        "+",
-        remainingCount,
-        " more items"
-      ] })
-    ] })
+    cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-summary", title: cluster.summary, children: cluster.summary }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-items", children: cluster.items.map((item, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index}`)) })
   ] });
 }
-function ClustersSection({ sessionData }) {
-  if (!sessionData) {
-    return null;
-  }
-  const clusters = sessionData.clusters || [];
-  if (clusters.length === 0) {
+function ClustersSection({ sessionData, isAnalyzing = false }) {
+  const clusters = (sessionData == null ? void 0 : sessionData.clusters) || [];
+  if (!isAnalyzing && (!sessionData || clusters.length === 0)) {
     return null;
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-section", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Browsing Topics" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData })
+    sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Browsing Topics" }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData })
+      ] }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
+    isAnalyzing && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-overlay", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "loading-container", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "loading-spinner" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "status-text", children: "Analyzing session..." })
+    ] }) })
   ] });
 }
 function Dashboard({
@@ -12257,7 +12252,8 @@ function Dashboard({
   activeSessionId
 }) {
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData }) });
+  const isAnalyzing = !currentSessionData;
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing }) });
 }
 class ExtensionBridge {
   /**
@@ -12560,6 +12556,7 @@ Session Gap: ${sessionGap} minutes
 
 To switch environments, modify extension/api/config.js`);
   };
+  const activeIsLoading = activeSessionId ? sessionAnalysisStates[activeSessionId] === "loading" : false;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dashboard-container", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       Header,
@@ -12575,7 +12572,7 @@ To switch environments, modify extension/api/config.js`);
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBar, { status, statusType }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "dashboard-main", children: [
-      isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx(LoadingSpinner, {}),
+      (isLoading || activeIsLoading) && /* @__PURE__ */ jsxRuntimeExports.jsx(LoadingSpinner, {}),
       error && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: loadDashboard }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         Dashboard,

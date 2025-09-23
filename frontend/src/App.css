@@ -580,7 +580,7 @@ body {
 }
 
 .cluster-items {
-    max-height: 250px;
+    max-height: 380px;
     overflow-y: auto;
     scrollbar-width: thin;
     scrollbar-color: var(--accent) transparent;
@@ -677,22 +677,37 @@ body {
 }
 
 .item-more {
-    font-size: 0.8rem;
-    color: var(--muted);
-    font-style: italic;
-    padding: 1rem 0;
-    text-align: center;
-    background: var(--input-bg);
-    border-radius: 8px;
-    margin: 0.5rem 0;
-    border: 1px dashed var(--glass-border);
-    transition: all 0.3s ease;
+    display: none;
 }
 
 .item-more:hover {
-    background: var(--glass-bg);
-    color: var(--accent);
-    border-color: var(--accent);
+    display: none;
+}
+
+/* Cluster summary text */
+.cluster-summary {
+    font-size: 0.95rem;
+    color: var(--muted);
+    background: var(--input-bg);
+    border: 1px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    margin: 0 0 1rem 0;
+    line-height: 1.5;
+}
+
+/* Overlay while analyzing */
+.clusters-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(3px);
+    -webkit-backdrop-filter: blur(3px);
+    border-radius: 16px;
+    z-index: 10;
 }
 
 /* Responsive Design */

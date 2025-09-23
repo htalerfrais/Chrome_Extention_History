@@ -23,32 +23,43 @@ interface SessionData {
 
 interface ClustersSectionProps {
   sessionData: SessionData | null;
+  isAnalyzing?: boolean;
 }
 
-export default function ClustersSection({ sessionData }: ClustersSectionProps) {
-  // If there is no data yet (e.g., first session is still analyzing), render nothing
-  if (!sessionData) {
+export default function ClustersSection({ sessionData, isAnalyzing = false }: ClustersSectionProps) {
+  // Compute clusters when available
+  const clusters = sessionData?.clusters || [];
+
+  // If not analyzing and nothing to show, render nothing
+  if (!isAnalyzing && (!sessionData || clusters.length === 0)) {
     return null;
   }
 
-  const clusters = sessionData.clusters || [];
-
-  // While analyzing or if no clusters are available yet, render nothing
-  if (clusters.length === 0) {
-    return null;
-  }
+  // Render container with optional content and overlay
 
   return (
     <div className="clusters-section">
-      <div className="clusters-header">
-        <h2>Browsing Topics</h2>
-        <SessionInfo sessionData={sessionData} />
-      </div>
-      <div className="clusters-container">
-        {clusters.map((cluster, index) => (
-          <ClusterCard key={`${cluster.theme}-${index}`} cluster={cluster} />
-        ))}
-      </div>
+      {sessionData && clusters.length > 0 && (
+        <>
+          <div className="clusters-header">
+            <h2>Browsing Topics</h2>
+            <SessionInfo sessionData={sessionData} />
+          </div>
+          <div className="clusters-container">
+            {clusters.map((cluster, index) => (
+              <ClusterCard key={`${cluster.theme}-${index}`} cluster={cluster} />
+            ))}
+          </div>
+        </>
+      )}
+      {isAnalyzing && (
+        <div className="clusters-overlay">
+          <div className="loading-container">
+            <div className="loading-spinner" />
+            <p className="status-text">Analyzing session...</p>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

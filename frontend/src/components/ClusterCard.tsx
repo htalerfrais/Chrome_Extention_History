@@ -11,32 +11,29 @@ interface HistoryItem {
 
 interface Cluster {
   theme: string;
+  summary?: string;
   items: HistoryItem[];
 }
 
 interface ClusterCardProps {
   cluster: Cluster;
-  maxItemsDisplay?: number;
 }
 
-export default function ClusterCard({ cluster, maxItemsDisplay = 5 }: ClusterCardProps) {
-  const displayedItems = cluster.items.slice(0, maxItemsDisplay);
-  const remainingCount = cluster.items.length - maxItemsDisplay;
-
+export default function ClusterCard({ cluster }: ClusterCardProps) {
   return (
     <div className="cluster-card">
       <div className="cluster-theme">
         {cluster.theme}
       </div>
+      {cluster.summary && (
+        <div className="cluster-summary" title={cluster.summary}>
+          {cluster.summary}
+        </div>
+      )}
       <div className="cluster-items">
-        {displayedItems.map((item, index) => (
+        {cluster.items.map((item, index) => (
           <ClusterItem key={`${item.url}-${item.visit_time}-${index}`} item={item} />
         ))}
-        {remainingCount > 0 && (
-          <div className="item-more">
-            +{remainingCount} more items
-          </div>
-        )}
       </div>
     </div>
   );

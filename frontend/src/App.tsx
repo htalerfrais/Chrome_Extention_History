@@ -231,6 +231,9 @@ function App() {
     alert(`Settings\n\nEnvironment: ${currentEnv}\nAPI URL: ${apiUrl}\nSession Gap: ${sessionGap} minutes\n\nTo switch environments, modify extension/api/config.js`)
   }
 
+  // Determine if the active session is currently analyzing
+  const activeIsLoading = activeSessionId ? sessionAnalysisStates[activeSessionId] === 'loading' : false
+
   return (
     <div className="dashboard-container">
       <Header 
@@ -244,7 +247,7 @@ function App() {
       />
       <StatusBar status={status} statusType={statusType} />
       <main className="dashboard-main">
-        {isLoading && <LoadingSpinner />}
+        {(isLoading || activeIsLoading) && <LoadingSpinner />}
         {error && <ErrorDisplay message={error} onRetry={loadDashboard} />}
         <Dashboard 
           currentSessionResults={currentSessionResults}
