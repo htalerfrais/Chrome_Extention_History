@@ -3,8 +3,9 @@
 
 export default function LoadingSpinner() {
   return (
-    <div>
-      {/* Loading spinner content will go here */}
+    <div className="loading-container">
+      <div className="loading-spinner" />
+      <p className="status-text">Analyzing session...</p>
     </div>
   );
 }

@@ -1,7 +1,6 @@
 // Dashboard component - main content area
-// Orchestrates session tabs and clusters section
+// Displays clusters for the current session
 
-import SessionTabs from './SessionTabs';
 import ClustersSection from './ClustersSection';
 
 interface HistoryItem {
@@ -24,30 +23,17 @@ interface SessionData {
 interface DashboardProps {
   currentSessionResults: Record<string, SessionData>;
   activeSessionId: string | null;
-  onSessionChange: (sessionId: string) => void;
-  availableSessions: any[];
-  sessionAnalysisStates: Record<string, 'pending' | 'loading' | 'completed' | 'error'>;
 }
 
 export default function Dashboard({ 
   currentSessionResults, 
-  activeSessionId, 
-  onSessionChange, 
-  availableSessions, 
-  sessionAnalysisStates 
+  activeSessionId
 }: DashboardProps) {
   // Get the current session data
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
 
   return (
     <div className="dashboard-content">
-      <SessionTabs
-        currentSessionResults={currentSessionResults}
-        activeSessionId={activeSessionId}
-        onSessionChange={onSessionChange}
-        availableSessions={availableSessions}
-        sessionAnalysisStates={sessionAnalysisStates}
-      />
       <ClustersSection sessionData={currentSessionData} />
     </div>
   );

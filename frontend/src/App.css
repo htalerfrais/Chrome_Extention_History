@@ -61,14 +61,17 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    max-width: 1400px;
-  margin: 0 auto;
+    width: 100%;
+    padding: 0 1rem;
+    gap: 1rem;
+    min-width: 0;
 }
 
 .logo-section {
     display: flex;
     align-items: center;
     gap: 1rem;
+    flex-shrink: 0;
 }
 
 .logo {
@@ -95,11 +98,76 @@ body {
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 300px;
+}
+
+/* Session Navigation */
+.session-navigation {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    background: var(--glass-bg);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--glass-border);
+    border-radius: 12px;
+    padding: 0.5rem 1rem;
+    box-shadow: var(--shadow-light);
+    flex-shrink: 0;
+    margin: 0 1rem;
+}
+
+.session-counter {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--text);
+    white-space: nowrap;
+    padding: 0 0.5rem;
+}
+
+.btn-nav {
+    background: var(--input-bg);
+    color: var(--text);
+    border: 1px solid var(--glass-border);
+    padding: 8px 12px;
+    border-radius: 8px;
+    font-size: 1rem;
+    font-weight: 600;
+    min-width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-nav:hover:not(:disabled) {
+    background: var(--glass-bg);
+    border-color: var(--accent);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-light);
+}
+
+.btn-nav:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.btn-nav:disabled:hover {
+    background: var(--input-bg);
+    border-color: var(--glass-border);
+    transform: none;
+    box-shadow: none;
 }
 
 .header-actions {
     display: flex;
     gap: 0.75rem;
+    flex-shrink: 0;
 }
 
 /* Buttons */
@@ -188,8 +256,8 @@ body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
+    padding: 0 1rem;
 }
 
 .status-text {
@@ -234,8 +302,7 @@ body {
 .dashboard-main {
     padding: 2rem;
     background: var(--bg);
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
     min-height: calc(100vh - 200px);
 }
 
@@ -399,8 +466,7 @@ body {
 /* Clusters Section */
 .clusters-section {
     padding: 2rem;
-    max-width: 1400px;
-    margin: 0 auto;
+    width: 100%;
 }
 
 .clusters-header {
@@ -646,6 +712,12 @@ body {
         align-items: flex-start;
     }
     
+    .session-navigation {
+        order: 2;
+        width: 100%;
+        justify-content: center;
+    }
+    
     .header-content h1 {
         font-size: 1.5rem;
     }
@@ -692,6 +764,21 @@ body {
         flex-direction: column;
         gap: 0.5rem;
         width: 100%;
+    }
+    
+    .session-navigation {
+        padding: 0.4rem 0.8rem;
+        gap: 0.8rem;
+    }
+    
+    .session-counter {
+        font-size: 0.8rem;
+    }
+    
+    .btn-nav {
+        min-width: 36px;
+        height: 36px;
+        font-size: 0.9rem;
     }
     
     .btn {

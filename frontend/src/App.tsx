@@ -15,21 +15,25 @@ function App() {
   const [statusType, setStatusType] = useState<'loading' | 'success' | 'error'>('loading')
   const [currentSessionResults, setCurrentSessionResults] = useState<any>({})
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
-  const [servicesReady, setServicesReady] = useState(false)
+  // Services readiness is handled internally; we auto-run loadDashboard when ready
+  // Services readiness handled internally by extensionBridge
   const [availableSessions, setAvailableSessions] = useState<any[]>([])
   const [sessionAnalysisStates, setSessionAnalysisStates] = useState<{
     [sessionId: string]: 'pending' | 'loading' | 'completed' | 'error'
   }>({})
+  const [currentSessionIndex, setCurrentSessionIndex] = useState(0)
 
-  // Wait for extension services to be ready
+  // Wait for extension services to be ready and auto-load sessions
   useEffect(() => {
     const initializeServices = async () => {
       try {
         await extensionBridge.waitForExtensionServices();
-        setServicesReady(true);
-        setStatus('Extension services ready');
-        setStatusType('success');
+        setStatus('Analyzing most recent session...');
+        setStatusType('loading');
         console.log('Extension services are ready');
+        
+        // Automatically load sessions after services are ready
+        await loadDashboard();
       } catch (error) {
         console.error('Failed to initialize extension services:', error);
         setError('Failed to load extension services');
@@ -41,20 +45,14 @@ function App() {
     initializeServices();
   }, []);
 
-  // Load Dashboard function - now only loads sessions, no clustering
+  // Load Dashboard function - loads sessions and auto-analyzes most recent
   const loadDashboard = async () => {
-    if (!servicesReady) {
-      setError('Extension services not ready');
-      return;
-    }
-
     try {
       setIsLoading(true)
       setError(null)
       
       const constants = extensionBridge.getConstants();
-      
-      setStatus(constants.STATUS_CHECKING_API)
+      setStatus('Analyzing most recent session...')
       setStatusType('loading')
       
       // Check API health using extension service
@@ -63,15 +61,11 @@ function App() {
         throw new Error(`API not available: ${healthCheck.error}`)
       }
       
-      setStatus(constants.STATUS_FETCHING_HISTORY)
-      
       // Get preprocessed Chrome history from extension
       const history = await extensionBridge.getProcessedHistory()
       if (!history || history.length === 0) {
         throw new Error(constants.ERROR_NO_HISTORY)
       }
-      
-      setStatus(constants.STATUS_PROCESSING_SESSIONS)
       
       // Process history into sessions using extension service
       const sessions = await extensionBridge.processHistoryIntoSessions(history)
@@ -80,20 +74,30 @@ function App() {
         throw new Error(constants.ERROR_NO_SESSIONS)
       }
       
+      // Sort sessions by newest first (reverse chronological order)
+      const sortedSessions = sessions.sort((a: any, b: any) => 
+        new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+      )
+      
       // Store available sessions and initialize analysis states
-      setAvailableSessions(sessions)
+      setAvailableSessions(sortedSessions)
       const initialStates: { [sessionId: string]: 'pending' } = {}
-      sessions.forEach((session: any) => {
+      sortedSessions.forEach((session: any) => {
         initialStates[session.session_id] = 'pending'
       })
       setSessionAnalysisStates(initialStates)
       
-      // Set first session as active (but don't analyze yet)
-      if (sessions.length > 0) {
-        setActiveSessionId(sessions[0].session_id)
+      // Set first session (most recent) as active and auto-analyze it
+      if (sortedSessions.length > 0) {
+        setCurrentSessionIndex(0)
+        setActiveSessionId(sortedSessions[0].session_id)
+        
+        // Auto-analyze the first session
+        setStatus('Analyzing most recent session...')
+        await analyzeSession(sortedSessions[0].session_id)
       }
       
-      setStatus('Sessions loaded. Click on a session tab to analyze it.')
+      setStatus('Most recent session analyzed. Use navigation to explore other sessions.')
       setStatusType('success')
       
     } catch (error) {
@@ -169,9 +173,32 @@ function App() {
   const handleSessionChange = async (sessionId: string) => {
     setActiveSessionId(sessionId)
     
+    // Update current session index
+    const newIndex = availableSessions.findIndex(s => s.session_id === sessionId)
+    if (newIndex !== -1) {
+      setCurrentSessionIndex(newIndex)
+    }
+    
     // Analyze session if not already completed
     if (sessionAnalysisStates[sessionId] === 'pending') {
       await analyzeSession(sessionId)
+    }
+  }
+
+  // Navigation functions for Previous/Next buttons
+  const goToPreviousSession = async () => {
+    if (currentSessionIndex > 0) {
+      const newIndex = currentSessionIndex - 1
+      const newSessionId = availableSessions[newIndex].session_id
+      await handleSessionChange(newSessionId)
+    }
+  }
+
+  const goToNextSession = async () => {
+    if (currentSessionIndex < availableSessions.length - 1) {
+      const newIndex = currentSessionIndex + 1
+      const newSessionId = availableSessions[newIndex].session_id
+      await handleSessionChange(newSessionId)
     }
   }
 
@@ -189,7 +216,15 @@ function App() {
 
   return (
     <div className="dashboard-container">
-      <Header onRefresh={loadDashboard} onSettings={openSettings} />
+      <Header 
+        onSettings={openSettings}
+        onPreviousSession={goToPreviousSession}
+        onNextSession={goToNextSession}
+        currentSessionIndex={currentSessionIndex}
+        totalSessions={availableSessions.length}
+        canGoPrevious={currentSessionIndex > 0}
+        canGoNext={currentSessionIndex < availableSessions.length - 1}
+      />
       <StatusBar status={status} statusType={statusType} />
       <main className="dashboard-main">
         {isLoading && <LoadingSpinner />}
@@ -197,9 +232,6 @@ function App() {
         <Dashboard 
           currentSessionResults={currentSessionResults}
           activeSessionId={activeSessionId}
-          onSessionChange={handleSessionChange}
-          availableSessions={availableSessions}
-          sessionAnalysisStates={sessionAnalysisStates}
         />
       </main>
     </div>

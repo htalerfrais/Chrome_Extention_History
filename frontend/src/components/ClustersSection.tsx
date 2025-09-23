@@ -26,22 +26,16 @@ interface ClustersSectionProps {
 }
 
 export default function ClustersSection({ sessionData }: ClustersSectionProps) {
+  // If there is no data yet (e.g., first session is still analyzing), render nothing
   if (!sessionData) {
-    return (
-      <div className="clusters-section">
-        <p>No session selected.</p>
-      </div>
-    );
+    return null;
   }
 
   const clusters = sessionData.clusters || [];
 
+  // While analyzing or if no clusters are available yet, render nothing
   if (clusters.length === 0) {
-    return (
-      <div className="clusters-section">
-        <p>No clusters found in this session.</p>
-      </div>
-    );
+    return null;
   }
 
   return (

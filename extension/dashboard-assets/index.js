@@ -12086,22 +12086,52 @@ function requireClient() {
   return client.exports;
 }
 var clientExports = requireClient();
-function Header({ onRefresh, onSettings }) {
+function Header({
+  onSettings,
+  onPreviousSession,
+  onNextSession,
+  currentSessionIndex,
+  totalSessions,
+  canGoPrevious,
+  canGoNext
+}) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "dashboard-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "header-content", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "logo-section", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/icons/Engrave2.png", alt: "Engrave it", className: "logo" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "Engrave it Dashboard" })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "header-actions", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { className: "btn btn-primary", onClick: onRefresh, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", children: "🔄" }),
-        "Refresh Analysis"
+    totalSessions > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-navigation", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn-nav",
+          onClick: onPreviousSession,
+          disabled: !canGoPrevious,
+          title: "Previous Session",
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", children: "←" })
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "session-counter", children: [
+        "Session ",
+        currentSessionIndex + 1,
+        " of ",
+        totalSessions
       ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { className: "btn btn-secondary", onClick: onSettings, children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", children: "⚙️" }),
-        "Settings"
-      ] })
-    ] })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "btn btn-nav",
+          onClick: onNextSession,
+          disabled: !canGoNext,
+          title: "Next Session",
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", children: "→" })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "header-actions", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { className: "btn btn-secondary", onClick: onSettings, children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", children: "⚙️" }),
+      "Settings"
+    ] }) })
   ] }) });
 }
 function StatusBar({ status, statusType }) {
@@ -12111,7 +12141,10 @@ function StatusBar({ status, statusType }) {
   ] }) });
 }
 function LoadingSpinner() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", {});
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "loading-container", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "loading-spinner" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "status-text", children: "Analyzing session..." })
+  ] });
 }
 function ErrorDisplay({ message, onRetry }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "error-container", children: [
@@ -12120,72 +12153,6 @@ function ErrorDisplay({ message, onRetry }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: message }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-primary", onClick: onRetry, children: "Try Again" })
   ] });
-}
-function SessionTabs({
-  currentSessionResults,
-  activeSessionId,
-  onSessionChange,
-  availableSessions,
-  sessionAnalysisStates
-}) {
-  const sortedSessions = availableSessions.map((session) => ({
-    sessionId: session.session_id,
-    sessionData: session,
-    startTime: new Date(session.start_time)
-  })).sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
-  if (sortedSessions.length === 0) {
-    return null;
-  }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sessions-tabs", children: sortedSessions.map((session, index) => {
-    var _a, _b;
-    const sessionNumber = index + 1;
-    const startTime = new Date(session.sessionData.start_time);
-    const endTime = new Date(session.sessionData.end_time);
-    const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60));
-    const itemCount = ((_a = session.sessionData.items) == null ? void 0 : _a.length) || 0;
-    const analysisState = sessionAnalysisStates[session.sessionId] || "pending";
-    const sessionResult = currentSessionResults[session.sessionId];
-    const clusterCount = ((_b = sessionResult == null ? void 0 : sessionResult.clusters) == null ? void 0 : _b.length) || 0;
-    let statusText = "";
-    let statusClass = "";
-    switch (analysisState) {
-      case "pending":
-        statusText = `${itemCount} items • Click to analyze`;
-        statusClass = "pending";
-        break;
-      case "loading":
-        statusText = "Analyzing...";
-        statusClass = "loading";
-        break;
-      case "completed":
-        statusText = `${duration}min • ${clusterCount} topics`;
-        statusClass = "completed";
-        break;
-      case "error":
-        statusText = "Analysis failed • Click to retry";
-        statusClass = "error";
-        break;
-    }
-    return /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "button",
-      {
-        className: `session-tab ${session.sessionId === activeSessionId ? "active" : ""} ${statusClass}`,
-        onClick: () => onSessionChange(session.sessionId),
-        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-content", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-title", children: [
-            "Session ",
-            sessionNumber
-          ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-meta", children: [
-            startTime.toLocaleDateString(),
-            " • ",
-            statusText
-          ] })
-        ] })
-      },
-      session.sessionId
-    );
-  }) });
 }
 function SessionInfo({ sessionData }) {
   var _a;
@@ -12271,11 +12238,11 @@ function ClusterCard({ cluster, maxItemsDisplay = 5 }) {
 }
 function ClustersSection({ sessionData }) {
   if (!sessionData) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-section", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "No session selected." }) });
+    return null;
   }
   const clusters = sessionData.clusters || [];
   if (clusters.length === 0) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-section", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "No clusters found in this session." }) });
+    return null;
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-section", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
@@ -12287,25 +12254,10 @@ function ClustersSection({ sessionData }) {
 }
 function Dashboard({
   currentSessionResults,
-  activeSessionId,
-  onSessionChange,
-  availableSessions,
-  sessionAnalysisStates
+  activeSessionId
 }) {
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dashboard-content", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      SessionTabs,
-      {
-        currentSessionResults,
-        activeSessionId,
-        onSessionChange,
-        availableSessions,
-        sessionAnalysisStates
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData })
-  ] });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData }) });
 }
 class ExtensionBridge {
   /**
@@ -12455,17 +12407,17 @@ function App() {
   const [statusType, setStatusType] = reactExports.useState("loading");
   const [currentSessionResults, setCurrentSessionResults] = reactExports.useState({});
   const [activeSessionId, setActiveSessionId] = reactExports.useState(null);
-  const [servicesReady, setServicesReady] = reactExports.useState(false);
   const [availableSessions, setAvailableSessions] = reactExports.useState([]);
   const [sessionAnalysisStates, setSessionAnalysisStates] = reactExports.useState({});
+  const [currentSessionIndex, setCurrentSessionIndex] = reactExports.useState(0);
   reactExports.useEffect(() => {
     const initializeServices = async () => {
       try {
         await extensionBridge.waitForExtensionServices();
-        setServicesReady(true);
-        setStatus("Extension services ready");
-        setStatusType("success");
+        setStatus("Analyzing most recent session...");
+        setStatusType("loading");
         console.log("Extension services are ready");
+        await loadDashboard();
       } catch (error2) {
         console.error("Failed to initialize extension services:", error2);
         setError("Failed to load extension services");
@@ -12476,41 +12428,41 @@ function App() {
     initializeServices();
   }, []);
   const loadDashboard = async () => {
-    if (!servicesReady) {
-      setError("Extension services not ready");
-      return;
-    }
     try {
       setIsLoading(true);
       setError(null);
       const constants = extensionBridge.getConstants();
-      setStatus(constants.STATUS_CHECKING_API);
+      setStatus("Analyzing most recent session...");
       setStatusType("loading");
       const healthCheck = await extensionBridge.checkApiHealth();
       if (!healthCheck.success) {
         throw new Error(`API not available: ${healthCheck.error}`);
       }
-      setStatus(constants.STATUS_FETCHING_HISTORY);
       const history = await extensionBridge.getProcessedHistory();
       if (!history || history.length === 0) {
         throw new Error(constants.ERROR_NO_HISTORY);
       }
-      setStatus(constants.STATUS_PROCESSING_SESSIONS);
       const sessions = await extensionBridge.processHistoryIntoSessions(history);
       console.log("Sessions:", sessions);
       if (sessions.length === 0) {
         throw new Error(constants.ERROR_NO_SESSIONS);
       }
-      setAvailableSessions(sessions);
+      const sortedSessions = sessions.sort(
+        (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+      );
+      setAvailableSessions(sortedSessions);
       const initialStates = {};
-      sessions.forEach((session) => {
+      sortedSessions.forEach((session) => {
         initialStates[session.session_id] = "pending";
       });
       setSessionAnalysisStates(initialStates);
-      if (sessions.length > 0) {
-        setActiveSessionId(sessions[0].session_id);
+      if (sortedSessions.length > 0) {
+        setCurrentSessionIndex(0);
+        setActiveSessionId(sortedSessions[0].session_id);
+        setStatus("Analyzing most recent session...");
+        await analyzeSession(sortedSessions[0].session_id);
       }
-      setStatus("Sessions loaded. Click on a session tab to analyze it.");
+      setStatus("Most recent session analyzed. Use navigation to explore other sessions.");
       setStatusType("success");
     } catch (error2) {
       console.error("Dashboard loading failed:", error2);
@@ -12559,8 +12511,26 @@ function App() {
   };
   const handleSessionChange = async (sessionId) => {
     setActiveSessionId(sessionId);
+    const newIndex = availableSessions.findIndex((s) => s.session_id === sessionId);
+    if (newIndex !== -1) {
+      setCurrentSessionIndex(newIndex);
+    }
     if (sessionAnalysisStates[sessionId] === "pending") {
       await analyzeSession(sessionId);
+    }
+  };
+  const goToPreviousSession = async () => {
+    if (currentSessionIndex > 0) {
+      const newIndex = currentSessionIndex - 1;
+      const newSessionId = availableSessions[newIndex].session_id;
+      await handleSessionChange(newSessionId);
+    }
+  };
+  const goToNextSession = async () => {
+    if (currentSessionIndex < availableSessions.length - 1) {
+      const newIndex = currentSessionIndex + 1;
+      const newSessionId = availableSessions[newIndex].session_id;
+      await handleSessionChange(newSessionId);
     }
   };
   const openSettings = () => {
@@ -12578,7 +12548,18 @@ Session Gap: ${sessionGap} minutes
 To switch environments, modify extension/api/config.js`);
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dashboard-container", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(Header, { onRefresh: loadDashboard, onSettings: openSettings }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      Header,
+      {
+        onSettings: openSettings,
+        onPreviousSession: goToPreviousSession,
+        onNextSession: goToNextSession,
+        currentSessionIndex,
+        totalSessions: availableSessions.length,
+        canGoPrevious: currentSessionIndex > 0,
+        canGoNext: currentSessionIndex < availableSessions.length - 1
+      }
+    ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBar, { status, statusType }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "dashboard-main", children: [
       isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx(LoadingSpinner, {}),
@@ -12587,10 +12568,7 @@ To switch environments, modify extension/api/config.js`);
         Dashboard,
         {
           currentSessionResults,
-          activeSessionId,
-          onSessionChange: handleSessionChange,
-          availableSessions,
-          sessionAnalysisStates
+          activeSessionId
         }
       )
     ] })
