@@ -8,13 +8,13 @@ class Config {
             // Development (local Docker)
             development: {
                 baseUrl: 'http://localhost:8000',
-                cluster: '/cluster',
+                'cluster-session': '/cluster-session',
                 health: '/health'
             },
             // Production (to be updated when deployed)
             production: {
                 baseUrl: 'https://your-production-api.com',
-                cluster: '/cluster',
+                'cluster-session': '/cluster-session',
                 health: '/health'
             }
         };

@@ -1,3 +1,22 @@
+var __defProp = Object.defineProperty;
+var __defProps = Object.defineProperties;
+var __getOwnPropDescs = Object.getOwnPropertyDescriptors;
+var __getOwnPropSymbols = Object.getOwnPropertySymbols;
+var __hasOwnProp = Object.prototype.hasOwnProperty;
+var __propIsEnum = Object.prototype.propertyIsEnumerable;
+var __defNormalProp = (obj, key, value) => key in obj ? __defProp(obj, key, { enumerable: true, configurable: true, writable: true, value }) : obj[key] = value;
+var __spreadValues = (a, b) => {
+  for (var prop in b || (b = {}))
+    if (__hasOwnProp.call(b, prop))
+      __defNormalProp(a, prop, b[prop]);
+  if (__getOwnPropSymbols)
+    for (var prop of __getOwnPropSymbols(b)) {
+      if (__propIsEnum.call(b, prop))
+        __defNormalProp(a, prop, b[prop]);
+    }
+  return a;
+};
+var __spreadProps = (a, b) => __defProps(a, __getOwnPropDescs(b));
 (function polyfill() {
   const relList = document.createElement("link").relList;
   if (relList && relList.supports && relList.supports("modulepreload")) return;
@@ -12102,26 +12121,55 @@ function ErrorDisplay({ message, onRetry }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-primary", onClick: onRetry, children: "Try Again" })
   ] });
 }
-function SessionTabs({ currentSessionResults, activeSessionId, onSessionChange }) {
-  const sortedSessions = Object.keys(currentSessionResults).map((sessionId) => ({
-    sessionId,
-    sessionData: currentSessionResults[sessionId],
-    startTime: new Date(currentSessionResults[sessionId].session_start_time)
+function SessionTabs({
+  currentSessionResults,
+  activeSessionId,
+  onSessionChange,
+  availableSessions,
+  sessionAnalysisStates
+}) {
+  const sortedSessions = availableSessions.map((session) => ({
+    sessionId: session.session_id,
+    sessionData: session,
+    startTime: new Date(session.start_time)
   })).sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
   if (sortedSessions.length === 0) {
     return null;
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sessions-tabs", children: sortedSessions.map((session, index) => {
-    var _a;
+    var _a, _b;
     const sessionNumber = index + 1;
-    const startTime = new Date(session.sessionData.session_start_time);
-    const endTime = new Date(session.sessionData.session_end_time);
+    const startTime = new Date(session.sessionData.start_time);
+    const endTime = new Date(session.sessionData.end_time);
     const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60));
-    const clusterCount = ((_a = session.sessionData.clusters) == null ? void 0 : _a.length) || 0;
+    const itemCount = ((_a = session.sessionData.items) == null ? void 0 : _a.length) || 0;
+    const analysisState = sessionAnalysisStates[session.sessionId] || "pending";
+    const sessionResult = currentSessionResults[session.sessionId];
+    const clusterCount = ((_b = sessionResult == null ? void 0 : sessionResult.clusters) == null ? void 0 : _b.length) || 0;
+    let statusText = "";
+    let statusClass = "";
+    switch (analysisState) {
+      case "pending":
+        statusText = `${itemCount} items • Click to analyze`;
+        statusClass = "pending";
+        break;
+      case "loading":
+        statusText = "Analyzing...";
+        statusClass = "loading";
+        break;
+      case "completed":
+        statusText = `${duration}min • ${clusterCount} topics`;
+        statusClass = "completed";
+        break;
+      case "error":
+        statusText = "Analysis failed • Click to retry";
+        statusClass = "error";
+        break;
+    }
     return /* @__PURE__ */ jsxRuntimeExports.jsx(
       "button",
       {
-        className: `session-tab ${session.sessionId === activeSessionId ? "active" : ""}`,
+        className: `session-tab ${session.sessionId === activeSessionId ? "active" : ""} ${statusClass}`,
         onClick: () => onSessionChange(session.sessionId),
         children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-content", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-title", children: [
@@ -12131,10 +12179,7 @@ function SessionTabs({ currentSessionResults, activeSessionId, onSessionChange }
           /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-meta", children: [
             startTime.toLocaleDateString(),
             " • ",
-            duration,
-            "min • ",
-            clusterCount,
-            " topics"
+            statusText
           ] })
         ] })
       },
@@ -12240,7 +12285,13 @@ function ClustersSection({ sessionData }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
   ] });
 }
-function Dashboard({ currentSessionResults, activeSessionId, onSessionChange }) {
+function Dashboard({
+  currentSessionResults,
+  activeSessionId,
+  onSessionChange,
+  availableSessions,
+  sessionAnalysisStates
+}) {
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dashboard-content", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -12248,7 +12299,9 @@ function Dashboard({ currentSessionResults, activeSessionId, onSessionChange }) 
       {
         currentSessionResults,
         activeSessionId,
-        onSessionChange
+        onSessionChange,
+        availableSessions,
+        sessionAnalysisStates
       }
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData })
@@ -12294,19 +12347,19 @@ class ExtensionBridge {
     }
   }
   /**
-   * Send sessions to backend for clustering using extension's ApiClient
+   * Send single session to backend for clustering using extension's ApiClient
    * This uses the existing api_client.js logic
    */
-  async clusterSessions(sessions) {
+  async clusterSession(session) {
     if (!window.ApiClient) {
       throw new Error("ApiClient not available. Extension services not loaded.");
     }
     try {
-      const result = await window.ApiClient.clusterSessions(sessions);
-      console.log("Clustering result:", result);
+      const result = await window.ApiClient.clusterSession(session);
+      console.log("Single session clustering result:", result);
       return result;
     } catch (error) {
-      console.error("Error clustering sessions:", error);
+      console.error("Error clustering single session:", error);
       throw error;
     }
   }
@@ -12403,6 +12456,8 @@ function App() {
   const [currentSessionResults, setCurrentSessionResults] = reactExports.useState({});
   const [activeSessionId, setActiveSessionId] = reactExports.useState(null);
   const [servicesReady, setServicesReady] = reactExports.useState(false);
+  const [availableSessions, setAvailableSessions] = reactExports.useState([]);
+  const [sessionAnalysisStates, setSessionAnalysisStates] = reactExports.useState({});
   reactExports.useEffect(() => {
     const initializeServices = async () => {
       try {
@@ -12446,17 +12501,16 @@ function App() {
       if (sessions.length === 0) {
         throw new Error(constants.ERROR_NO_SESSIONS);
       }
-      setStatus(constants.STATUS_ANALYZING_PATTERNS);
-      const clusterResult = await extensionBridge.clusterSessions(sessions);
-      if (!clusterResult.success) {
-        throw new Error(`${constants.ERROR_CLUSTERING_FAILED}: ${clusterResult.error}`);
+      setAvailableSessions(sessions);
+      const initialStates = {};
+      sessions.forEach((session) => {
+        initialStates[session.session_id] = "pending";
+      });
+      setSessionAnalysisStates(initialStates);
+      if (sessions.length > 0) {
+        setActiveSessionId(sessions[0].session_id);
       }
-      setCurrentSessionResults(clusterResult.data);
-      const sessionIds = Object.keys(clusterResult.data);
-      if (sessionIds.length > 0) {
-        setActiveSessionId(sessionIds[0]);
-      }
-      setStatus(constants.STATUS_ANALYSIS_COMPLETE);
+      setStatus("Sessions loaded. Click on a session tab to analyze it.");
       setStatusType("success");
     } catch (error2) {
       console.error("Dashboard loading failed:", error2);
@@ -12465,6 +12519,48 @@ function App() {
       setStatusType("error");
     } finally {
       setIsLoading(false);
+    }
+  };
+  const analyzeSession = async (sessionId) => {
+    const session = availableSessions.find((s) => s.session_id === sessionId);
+    if (!session) {
+      console.error(`Session ${sessionId} not found`);
+      return;
+    }
+    if (sessionAnalysisStates[sessionId] === "completed") {
+      return;
+    }
+    try {
+      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
+        [sessionId]: "loading"
+      }));
+      setStatus(`Analyzing session ${sessionId}...`);
+      setStatusType("loading");
+      const clusterResult = await extensionBridge.clusterSession(session);
+      if (!clusterResult.success) {
+        throw new Error(`Clustering failed: ${clusterResult.error}`);
+      }
+      setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
+        [sessionId]: clusterResult.data
+      }));
+      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
+        [sessionId]: "completed"
+      }));
+      setStatus(`Session ${sessionId} analyzed successfully`);
+      setStatusType("success");
+    } catch (error2) {
+      console.error(`Session analysis failed for ${sessionId}:`, error2);
+      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
+        [sessionId]: "error"
+      }));
+      setStatus(`Session ${sessionId} analysis failed`);
+      setStatusType("error");
+    }
+  };
+  const handleSessionChange = async (sessionId) => {
+    setActiveSessionId(sessionId);
+    if (sessionAnalysisStates[sessionId] === "pending") {
+      await analyzeSession(sessionId);
     }
   };
   const openSettings = () => {
@@ -12492,7 +12588,9 @@ To switch environments, modify extension/api/config.js`);
         {
           currentSessionResults,
           activeSessionId,
-          onSessionChange: setActiveSessionId
+          onSessionChange: handleSessionChange,
+          availableSessions,
+          sessionAnalysisStates
         }
       )
     ] })

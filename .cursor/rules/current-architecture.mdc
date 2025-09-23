@@ -81,12 +81,14 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
   - Compact 320px width design
 
 #### **React Dashboard** (`frontend/src/`)
-- **Responsibility**: Modern UI with comprehensive analysis and visualization
+- **Responsibility**: Modern UI with lazy loading and on-demand session analysis
 - **Key Functions**:
-  - **App Component**: Main state management and ExtensionBridge integration
+  - **App Component**: Main state management with lazy loading architecture
+  - **Session State Management**: Tracks analysis states (pending/loading/completed/error) per session
   - **Header Component**: Logo, title, and action buttons with click handlers
   - **StatusBar Component**: Real-time status updates with loading/success/error states
   - **Dashboard Component**: Main content area for session and cluster display
+  - **SessionTabs Component**: Interactive session navigation with analysis state indicators
   - **LoadingSpinner & ErrorDisplay**: User feedback components
   - **ExtensionBridge Service**: Clean interface to extension services
 
@@ -95,7 +97,7 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 - **Key Functions**:
   - Access Chrome storage and APIs
   - Use existing SessionManager for data processing
-  - Use existing ApiClient for backend communication
+  - `clusterSession()` method for single session backend communication
   - Provide type-safe interface for React components
   - Handle service initialization and error recovery
 
@@ -113,6 +115,7 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 #### **API Client** (`extension/api/`)
 - **API Client** (`api_client.js`):
   - Handles HTTP communication with backend
+  - `clusterSession()` method for single session processing
   - Implements retry logic and error handling
   - Manages request timeouts and failures
 - **Configuration** (`config.js`):
@@ -126,17 +129,18 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 - **Responsibility**: RESTful API endpoints and request handling
 - **Key Functions**:
   - Health check endpoints (`/`, `/health`)
-  - Clustering endpoint (`/cluster`)
+  - Single session clustering endpoint (`/cluster-session`)
   - LLM text generation endpoint (`/llm/generate`)
   - CORS configuration for Chrome extension
   - Error handling and logging
 
 #### **Clustering Service** (`clustering_service.py`)
-- **Responsibility**: LLM-driven thematic clustering and session analysis
+- **Responsibility**: LLM-driven thematic clustering for single session analysis
 - **Key Functions**:
+  - **Single session processing**: `cluster_session()` method processes one session at a time
   - **LLM-powered cluster identification**: Uses AI to propose thematic clusters per session
   - **Intelligent item assignment**: Batched LLM calls to assign items to identified clusters
-  - **Session-based processing**: Processes each session independently for personalized clustering
+  - **On-demand analysis**: Enables lazy loading and faster initial response times
   - **Robust error handling**: Fallback mechanisms for LLM failures
   - **JSON extraction**: Parses LLM responses with error recovery
   - **Batch optimization**: Groups items for efficient LLM API usage
@@ -202,6 +206,7 @@ App (State Management + ExtensionBridge)
 
 ### **State Management**
 - **React Hooks**: useState, useEffect for local component state
+- **Lazy Loading State**: `availableSessions`, `sessionAnalysisStates` for on-demand processing
 - **Props Flow**: Top-down data flow with callback props for user actions
 - **ExtensionBridge**: Service layer for Chrome extension integration
 - **Type Safety**: TypeScript interfaces for all props and state
@@ -236,13 +241,19 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 
 ## Data Flow
 
+### **Initial Load (Fast)**
 1. **Data Collection**: Chrome history → Background worker → Local storage
 2. **React Initialization**: Dashboard loads → ExtensionBridge waits for services
-3. **User Action**: Click Refresh → React calls ExtensionBridge methods
-4. **Service Layer**: ExtensionBridge → SessionManager → ApiClient → Backend
-5. **LLM Processing**: Backend receives sessions → LLM cluster identification → Batched item assignment
-6. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
-7. **React Update**: Backend returns clustered results → React state updates → UI re-renders
+3. **User Action**: Click Refresh → React loads session list only
+4. **Service Layer**: ExtensionBridge → SessionManager → Local processing
+5. **UI Update**: Session tabs display with "Click to analyze" status
+
+### **On-Demand Analysis (Per Session)**
+1. **User Action**: Click session tab → Triggers `analyzeSession(sessionId)`
+2. **Service Layer**: ExtensionBridge → ApiClient → Backend `/cluster-session`
+3. **LLM Processing**: Backend receives single session → LLM cluster identification → Batched item assignment
+4. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
+5. **React Update**: Backend returns single session result → React state updates → UI re-renders
 
 ## Key Design Patterns
 
@@ -250,6 +261,7 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **Service Worker Pattern**: Background processing for continuous data collection
 - **API Gateway Pattern**: Centralized backend service for complex processing
 - **Provider Abstraction Pattern**: Unified interface for multiple LLM providers
+- **Lazy Loading Pattern**: On-demand session analysis for improved performance
 - **Session-based Processing**: Groups related browsing activities by time
 - **LLM-driven Clustering**: AI-powered thematic analysis and intelligent categorization
 - **Component Composition**: React components with clear responsibilities
@@ -257,6 +269,7 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **Batch Processing Pattern**: Efficient LLM API usage through item batching
 - **Fallback Strategy Pattern**: Robust error handling with graceful degradation
 - **Separation of Concerns**: Extension handles data/APIs, React handles UI/UX
+- **Single Responsibility Principle**: Each session analyzed independently
 
 ## Technology Stack
 
@@ -318,5 +331,5 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ---
 
 **Last Updated**: September 23, 2025
-**Version**: 0.5.0
-**Status**: React Frontend Integration Complete 🚀
+**Version**: 0.6.0
+**Status**: Lazy Loading Architecture Complete ⚡

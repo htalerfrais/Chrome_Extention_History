@@ -1,9 +1,10 @@
-# Chrome Extension History - V0.5
+# Chrome Extension History - V0.6
 
-A Chrome extension that organizes your browsing history into thematic clusters using AI-powered analysis, with a modern React dashboard.
+A Chrome extension that organizes your browsing history into thematic clusters using AI-powered analysis, with a modern React dashboard featuring lazy loading for optimal performance.
 
 ## 🎯 Features
 
+- **⚡ Lazy Loading**: On-demand session analysis for lightning-fast initial load
 - **AI-Powered Clustering**: LLM-driven thematic analysis of browsing sessions
 - **React Dashboard**: Modern UI with real-time state management
 - **Session Organization**: Time-based grouping of browsing history
@@ -30,7 +31,8 @@ A Chrome extension that organizes your browsing history into thematic clusters u
 ### 3. Use Dashboard
 1. Click extension icon
 2. Click "📊 Dashboard" 
-3. Click "Refresh Analysis" to see AI clusters
+3. Click "Refresh Analysis" to load sessions
+4. Click on any session tab to analyze it on-demand
 
 ## 🏗️ Architecture
 
@@ -38,9 +40,10 @@ A Chrome extension that organizes your browsing history into thematic clusters u
 Chrome Extension + React Frontend → FastAPI Backend → LLM Providers
 ```
 
-- **Frontend**: React + TypeScript with ExtensionBridge pattern
-- **Backend**: Python FastAPI with LLM clustering service
-- **Data Flow**: Chrome APIs → Session grouping → AI clustering → React UI
+- **Frontend**: React + TypeScript with lazy loading and ExtensionBridge pattern
+- **Backend**: Python FastAPI with single-session clustering service
+- **Data Flow**: Chrome APIs → Session grouping → On-demand AI clustering → React UI
+- **Performance**: Sessions load instantly, analysis happens only when requested
 
 ## 🔧 Configuration
 
@@ -58,4 +61,4 @@ environment:
 
 ---
 
-**Version 0.5** - React Frontend Implementation 🚀
+**Version 0.6** - Lazy Loading Architecture ⚡
