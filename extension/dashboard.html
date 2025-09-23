@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Engrave it - Dashboard</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles/dashboard.css">
+</head>
+<body>
+    <div class="dashboard-container">
+        <!-- Header -->
+        <header class="dashboard-header">
+            <div class="header-content">
+                <div class="logo-section">
+                    <img src="icons/Engrave2.png" alt="Engrave it" class="logo">
+                    <h1>Engrave it Dashboard</h1>
+                </div>
+                <div class="header-actions">
+                    <button id="refresh-btn" class="btn btn-primary">
+                        <span class="icon">🔄</span>
+                        Refresh Analysis
+                    </button>
+                    <button id="settings-btn" class="btn btn-secondary">
+                        <span class="icon">⚙️</span>
+                        Settings
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Status Bar -->
+        <div class="status-bar" id="status-bar">
+            <div class="status-content">
+                <span class="status-text" id="status-text">Loading...</span>
+                <div class="status-indicator" id="status-indicator"></div>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <main class="dashboard-main">
+            <!-- Loading State -->
+            <div class="loading-container" id="loading-container">
+                <div class="loading-spinner"></div>
+                <p>Analyzing your browsing patterns...</p>
+            </div>
+
+            <!-- Error State -->
+            <div class="error-container" id="error-container" style="display: none;">
+                <div class="error-icon">❌</div>
+                <h3>Analysis Failed</h3>
+                <p id="error-message">Unable to analyze your browsing history.</p>
+                <button id="retry-btn" class="btn btn-primary">Try Again</button>
+            </div>
+
+            <!-- Dashboard Content -->
+            <div class="dashboard-content" id="dashboard-content" style="display: none;">
+
+                <!-- Sessions Tabs -->
+                <div class="sessions-tabs" id="sessions-tabs">
+                    <!-- Session tabs will be populated here -->
+                </div>
+
+                <!-- Clusters Section -->
+                <section class="clusters-section">
+                    <div class="clusters-header">
+                        <h2 id="clusters-title">Your Browsing Topics</h2>
+                        <div class="session-info" id="session-info">
+                            <!-- Session info will be populated here -->
+                        </div>
+                    </div>
+                    <div class="clusters-container" id="clusters-container">
+                        <!-- Clusters will be populated here -->
+                    </div>
+                </section>
+
+            </div>
+        </main>
+    </div>
+
+    <!-- Scripts -->
+    <script src="scripts/constants.js"></script>
+    <script src="api/config.js"></script>
+    <script src="api/api_client.js"></script>
+    <script src="utils/preprocess_history.js"></script>
+    <script src="utils/session_management.js"></script>
+    <script src="scripts/dashboard.js"></script>
+</body>
+</html>
