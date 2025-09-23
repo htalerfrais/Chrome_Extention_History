@@ -12102,9 +12102,157 @@ function ErrorDisplay({ message, onRetry }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-primary", onClick: onRetry, children: "Try Again" })
   ] });
 }
+function SessionTabs({ currentSessionResults, activeSessionId, onSessionChange }) {
+  const sortedSessions = Object.keys(currentSessionResults).map((sessionId) => ({
+    sessionId,
+    sessionData: currentSessionResults[sessionId],
+    startTime: new Date(currentSessionResults[sessionId].session_start_time)
+  })).sort((a, b) => a.startTime.getTime() - b.startTime.getTime());
+  if (sortedSessions.length === 0) {
+    return null;
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "sessions-tabs", children: sortedSessions.map((session, index) => {
+    var _a;
+    const sessionNumber = index + 1;
+    const startTime = new Date(session.sessionData.session_start_time);
+    const endTime = new Date(session.sessionData.session_end_time);
+    const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60));
+    const clusterCount = ((_a = session.sessionData.clusters) == null ? void 0 : _a.length) || 0;
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "button",
+      {
+        className: `session-tab ${session.sessionId === activeSessionId ? "active" : ""}`,
+        onClick: () => onSessionChange(session.sessionId),
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-content", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-title", children: [
+            "Session ",
+            sessionNumber
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-tab-meta", children: [
+            startTime.toLocaleDateString(),
+            " • ",
+            duration,
+            "min • ",
+            clusterCount,
+            " topics"
+          ] })
+        ] })
+      },
+      session.sessionId
+    );
+  }) });
+}
+function SessionInfo({ sessionData }) {
+  var _a;
+  if (!sessionData) {
+    return null;
+  }
+  const startTime = new Date(sessionData.session_start_time);
+  const endTime = new Date(sessionData.session_end_time);
+  const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60));
+  const clusterCount = ((_a = sessionData.clusters) == null ? void 0 : _a.length) || 0;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-info", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-info-item", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Duration:" }),
+      " ",
+      duration,
+      " minutes"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-info-item", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Time:" }),
+      " ",
+      startTime.toLocaleString(),
+      " - ",
+      endTime.toLocaleString()
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-info-item", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Topics:" }),
+      " ",
+      clusterCount
+    ] })
+  ] });
+}
+function ClusterItem({ item }) {
+  const getDomain = (url) => {
+    try {
+      return new URL(url).hostname;
+    } catch (e) {
+      return url;
+    }
+  };
+  const getFaviconUrl = (url) => {
+    const domain2 = getDomain(url);
+    return `https://www.google.com/s2/favicons?domain=${domain2}`;
+  };
+  const formatVisitTime = (visitTime2) => {
+    return new Date(visitTime2).toLocaleDateString();
+  };
+  const domain = getDomain(item.url);
+  const faviconUrl = getFaviconUrl(item.url);
+  const visitTime = formatVisitTime(item.visit_time);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cluster-item", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
+      {
+        src: faviconUrl,
+        alt: "",
+        className: "item-favicon",
+        onError: (e) => {
+          e.target.style.display = "none";
+        }
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "item-content", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-title", title: item.title, children: item.title }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-url", title: domain, children: domain })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-time", children: visitTime })
+  ] });
+}
+function ClusterCard({ cluster, maxItemsDisplay = 5 }) {
+  const displayedItems = cluster.items.slice(0, maxItemsDisplay);
+  const remainingCount = cluster.items.length - maxItemsDisplay;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cluster-card", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-theme", children: cluster.theme }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cluster-items", children: [
+      displayedItems.map((item, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index}`)),
+      remainingCount > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "item-more", children: [
+        "+",
+        remainingCount,
+        " more items"
+      ] })
+    ] })
+  ] });
+}
+function ClustersSection({ sessionData }) {
+  if (!sessionData) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-section", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "No session selected." }) });
+  }
+  const clusters = sessionData.clusters || [];
+  if (clusters.length === 0) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-section", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "No clusters found in this session." }) });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-section", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Browsing Topics" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
+  ] });
+}
 function Dashboard({ currentSessionResults, activeSessionId, onSessionChange }) {
-  console.log("Dashboard props:", { currentSessionResults, activeSessionId, onSessionChange });
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Dashboard content will be implemented here" }) });
+  const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dashboard-content", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      SessionTabs,
+      {
+        currentSessionResults,
+        activeSessionId,
+        onSessionChange
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData })
+  ] });
 }
 class ExtensionBridge {
   /**
