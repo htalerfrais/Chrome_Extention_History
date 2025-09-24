@@ -71,12 +71,18 @@ class ClusteringService:
                 "cluster_id": "cluster_2",
                 "theme": "Research",
                 "summary": "Documentation, tutorials, and learning resources"
+            },
+            {
+                "cluster_id": "cluster_generic",
+                "theme": "General Browsing",
+                "summary": "General browsing activity that doesn't fit into specific thematic clusters"
             }
         ]
 
         prompt = (
             "You are an assistant that organizes web browsing sessions into thematic clusters.\n"
-            "Given the simplified list of session items, identify between 3 and 8 clusters.\n"
+            "Given the simplified list of session items, identify between 1 and 10 THEMATIC clusters.\n"
+            "IMPORTANT: You must ALWAYS include a 'cluster_generic' cluster for items that don't fit specific themes.\n"
             "Return ONLY a compact JSON array. Each element must have keys: \"cluster_id\", \"theme\", \"summary\".\n"
             "Do not include any other text.\n\n"
             f"Example format:\n{json.dumps(example, ensure_ascii=False)}\n\n"
@@ -91,13 +97,29 @@ class ClusteringService:
             if isinstance(data, list):
                 # Basic schema cleanup
                 cleaned: List[Dict[str, Any]] = []
+                has_generic = False
+                
                 for idx, c in enumerate(data):
                     if not isinstance(c, dict):
                         continue
                     cid = str(c.get("cluster_id") or f"cluster_{idx+1}")
                     theme = str(c.get("theme") or "Miscellaneous")
                     summary = str(c.get("summary") or "")
+                    
+                    # Track if generic cluster is present
+                    if cid == "cluster_generic":
+                        has_generic = True
+                    
                     cleaned.append({"cluster_id": cid, "theme": theme, "summary": summary})
+                
+                # ALWAYS ensure generic cluster exists
+                if not has_generic:
+                    cleaned.append({
+                        "cluster_id": "cluster_generic",
+                        "theme": "General Browsing",
+                        "summary": "General browsing activity that doesn't fit into specific thematic clusters"
+                    })
+                
                 if cleaned:
                     return cleaned
         except Exception as e:
@@ -106,8 +128,8 @@ class ClusteringService:
         # Fallback: single generic cluster
         return [{
             "cluster_id": "cluster_generic",
-            "theme": "General",
-            "summary": "General browsing activity"
+            "theme": "General Browsing",
+            "summary": "General browsing activity that doesn't fit into specific thematic clusters"
         }]
 
     async def assign_items_to_clusters(self, session: HistorySession, clusters_meta: List[Dict[str, Any]]) -> Dict[str, List[ClusterItem]]:
@@ -151,10 +173,13 @@ class ClusteringService:
 
         prompt = (
             "You are assigning browsing items to predefined clusters.\n"
+            "IMPORTANT: Use 'cluster_generic' for items that don't clearly fit any specific thematic cluster.\n"
+            "Only assign items to thematic clusters if they clearly belong to that theme.\n"
+            "When in doubt, use 'cluster_generic'.\n\n"
             "Return ONLY a JSON array of cluster_id strings, one for each item in order.\n\n"
             f"Clusters:\n{clusters_json}\n\n"
             f"Items to assign (in order):\n{json.dumps(simplified_batch, ensure_ascii=False)}\n\n"
-            "Return format example: [\"cluster_1\", \"cluster_2\", \"cluster_1\"]\n"
+            "Return format example: [\"cluster_1\", \"cluster_generic\", \"cluster_2\"]\n"
         )
 
         try:
