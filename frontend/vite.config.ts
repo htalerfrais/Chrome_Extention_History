@@ -4,6 +4,7 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  base: './', // Force relative paths for Chrome extension
   build: {
     outDir: '../extension/dashboard-assets',
     rollupOptions: {

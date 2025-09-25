@@ -25,7 +25,7 @@ export default function Header({
       <div className="header-content">
         <div className="logo-section">
           <img src="/icons/Engrave2.png" alt="Engrave it" className="logo" />
-          <h1>Engrave it Dashboard</h1>
+          <h1>Engrave it !!!</h1>
         </div>
         
         {/* Session Navigation */}
