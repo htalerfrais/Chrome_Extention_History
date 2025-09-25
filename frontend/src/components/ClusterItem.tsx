@@ -1,6 +1,8 @@
 // ClusterItem component - displays individual history items
 // Shows favicon, title, URL, and visit time for each browsing history item
 
+import { useState } from 'react';
+
 interface HistoryItem {
   url: string;
   title: string;
@@ -12,37 +14,109 @@ interface ClusterItemProps {
 }
 
 export default function ClusterItem({ item }: ClusterItemProps) {
+  const [currentFaviconIndex, setCurrentFaviconIndex] = useState(0);
+  const [showFallback, setShowFallback] = useState(false);
+
   const getDomain = (url: string): string => {
     try {
-      return new URL(url).hostname;
+      // Handle special cases - files and local pages
+      if (url === 'about:blank' || 
+          url.startsWith('chrome-extension://') || 
+          url.startsWith('moz-extension://') ||
+          url.startsWith('file://') ||
+          url.includes('.pdf') ||
+          url.includes('.png') ||
+          url.includes('.jpg') ||
+          url.includes('.jpeg') ||
+          url.includes('.doc') ||
+          url.includes('.docx')) {
+        return 'local-file';
+      }
+      
+      const urlObj = new URL(url);
+      return urlObj.hostname;
     } catch {
-      return url;
+      // If URL parsing fails, try to extract domain manually
+      if (url.includes('://')) {
+        const parts = url.split('://')[1];
+        return parts.split('/')[0];
+      }
+      return 'unknown';
     }
   };
 
-  const getFaviconUrl = (url: string): string => {
+
+  const getAlternativeFaviconUrls = (url: string): string[] => {
     const domain = getDomain(url);
-    return `https://www.google.com/s2/favicons?domain=${domain}`;
+    
+    // Skip favicon URLs for special cases (local files, extensions, etc.)
+    if (domain === 'local-file' || domain === 'unknown' || domain === '') {
+      return [];
+    }
+    
+    return [
+      `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
+      `https://favicon.io/favicon/${domain}`,
+      `https://icons.duckduckgo.com/ip3/${domain}.ico`,
+      `https://${domain}/favicon.ico`,
+      `https://${domain}/apple-touch-icon.png`,
+      `https://${domain}/apple-touch-icon-precomposed.png`
+    ];
   };
 
   const formatVisitTime = (visitTime: string): string => {
     return new Date(visitTime).toLocaleDateString();
   };
 
+  const handleFaviconError = () => {
+    console.log(`Favicon failed for ${item.title}, trying next source...`);
+    const alternativeUrls = getAlternativeFaviconUrls(item.url);
+    if (currentFaviconIndex < alternativeUrls.length - 1) {
+      setCurrentFaviconIndex(currentFaviconIndex + 1);
+    } else {
+      console.log(`All favicon sources failed for ${item.title}, showing initials: ${getInitials(item.title)}`);
+      setShowFallback(true);
+    }
+  };
+
+  const getInitials = (title: string): string => {
+    // Handle special cases for local files
+    if (title === 'about:blank') return 'AB';
+    if (title.includes('.pdf')) return 'PDF';
+    if (title.includes('.png') || title.includes('.jpg') || title.includes('.jpeg')) return 'IMG';
+    if (title.includes('.doc') || title.includes('.docx')) return 'DOC';
+    if (title.includes('.xls') || title.includes('.xlsx')) return 'XLS';
+    
+    return title
+      .split(' ')
+      .slice(0, 2)
+      .map(word => word.charAt(0).toUpperCase())
+      .join('')
+      .substring(0, 2);
+  };
+
   const domain = getDomain(item.url);
-  const faviconUrl = getFaviconUrl(item.url);
+  const alternativeUrls = getAlternativeFaviconUrls(item.url);
+  const currentFaviconUrl = alternativeUrls[currentFaviconIndex];
   const visitTime = formatVisitTime(item.visit_time);
+
+  // For special cases (local files, about:blank, etc.), show fallback immediately
+  const shouldShowFallback = showFallback || alternativeUrls.length === 0;
 
   return (
     <div className="cluster-item">
-      <img
-        src={faviconUrl}
-        alt=""
-        className="item-favicon"
-        onError={(e) => {
-          (e.target as HTMLImageElement).style.display = 'none';
-        }}
-      />
+      {!shouldShowFallback ? (
+        <img
+          src={currentFaviconUrl}
+          alt=""
+          className="item-favicon"
+          onError={handleFaviconError}
+        />
+      ) : (
+        <div className="item-favicon-fallback">
+          {getInitials(item.title)}
+        </div>
+      )}
       <div className="item-content">
         <div className="item-title" title={item.title}>
           {item.title}
