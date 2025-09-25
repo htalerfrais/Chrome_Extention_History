@@ -68,6 +68,13 @@ export default function ClusterItem({ item }: ClusterItemProps) {
     return new Date(visitTime).toLocaleDateString();
   };
 
+  const handleOpenUrl = (event: React.MouseEvent) => {
+    event.stopPropagation();
+    if (item.url) {
+      chrome.tabs.create({ url: item.url });
+    }
+  };
+
   const handleFaviconError = () => {
     console.log(`Favicon failed for ${item.title}, trying next source...`);
     const alternativeUrls = getAlternativeFaviconUrls(item.url);
@@ -128,6 +135,13 @@ export default function ClusterItem({ item }: ClusterItemProps) {
       <div className="item-time">
         {visitTime}
       </div>
+      <button 
+        className="item-open-btn"
+        onClick={handleOpenUrl}
+        title="Ouvrir dans un nouvel onglet"
+      >
+        ↗
+      </button>
     </div>
   );
 }
