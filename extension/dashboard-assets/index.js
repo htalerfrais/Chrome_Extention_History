@@ -12098,7 +12098,7 @@ function Header({
   return /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "dashboard-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "header-content", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "logo-section", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/icons/Engrave2.png", alt: "Engrave it", className: "logo" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "Engrave it Dashboard" })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "Engrave it !!!" })
     ] }),
     totalSessions > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-navigation", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -12185,40 +12185,93 @@ function SessionInfo({ sessionData }) {
   ] });
 }
 function ClusterItem({ item }) {
+  const [currentFaviconIndex, setCurrentFaviconIndex] = reactExports.useState(0);
+  const [showFallback, setShowFallback] = reactExports.useState(false);
   const getDomain = (url) => {
     try {
-      return new URL(url).hostname;
+      if (url === "about:blank" || url.startsWith("chrome-extension://") || url.startsWith("moz-extension://") || url.startsWith("file://") || url.includes(".pdf") || url.includes(".png") || url.includes(".jpg") || url.includes(".jpeg") || url.includes(".doc") || url.includes(".docx")) {
+        return "local-file";
+      }
+      const urlObj = new URL(url);
+      return urlObj.hostname;
     } catch (e) {
-      return url;
+      if (url.includes("://")) {
+        const parts = url.split("://")[1];
+        return parts.split("/")[0];
+      }
+      return "unknown";
     }
   };
-  const getFaviconUrl = (url) => {
+  const getAlternativeFaviconUrls = (url) => {
     const domain2 = getDomain(url);
-    return `https://www.google.com/s2/favicons?domain=${domain2}`;
+    if (domain2 === "local-file" || domain2 === "unknown" || domain2 === "") {
+      return [];
+    }
+    return [
+      `https://www.google.com/s2/favicons?domain=${domain2}&sz=32`,
+      `https://favicon.io/favicon/${domain2}`,
+      `https://icons.duckduckgo.com/ip3/${domain2}.ico`,
+      `https://${domain2}/favicon.ico`,
+      `https://${domain2}/apple-touch-icon.png`,
+      `https://${domain2}/apple-touch-icon-precomposed.png`
+    ];
   };
   const formatVisitTime = (visitTime2) => {
     return new Date(visitTime2).toLocaleDateString();
   };
+  const handleOpenUrl = (event) => {
+    event.stopPropagation();
+    if (item.url) {
+      chrome.tabs.create({ url: item.url });
+    }
+  };
+  const handleFaviconError = () => {
+    console.log(`Favicon failed for ${item.title}, trying next source...`);
+    const alternativeUrls2 = getAlternativeFaviconUrls(item.url);
+    if (currentFaviconIndex < alternativeUrls2.length - 1) {
+      setCurrentFaviconIndex(currentFaviconIndex + 1);
+    } else {
+      console.log(`All favicon sources failed for ${item.title}, showing initials: ${getInitials(item.title)}`);
+      setShowFallback(true);
+    }
+  };
+  const getInitials = (title) => {
+    if (title === "about:blank") return "AB";
+    if (title.includes(".pdf")) return "PDF";
+    if (title.includes(".png") || title.includes(".jpg") || title.includes(".jpeg")) return "IMG";
+    if (title.includes(".doc") || title.includes(".docx")) return "DOC";
+    if (title.includes(".xls") || title.includes(".xlsx")) return "XLS";
+    return title.split(" ").slice(0, 2).map((word) => word.charAt(0).toUpperCase()).join("").substring(0, 2);
+  };
   const domain = getDomain(item.url);
-  const faviconUrl = getFaviconUrl(item.url);
+  const alternativeUrls = getAlternativeFaviconUrls(item.url);
+  const currentFaviconUrl = alternativeUrls[currentFaviconIndex];
   const visitTime = formatVisitTime(item.visit_time);
+  const shouldShowFallback = showFallback || alternativeUrls.length === 0;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cluster-item", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
+    !shouldShowFallback ? /* @__PURE__ */ jsxRuntimeExports.jsx(
       "img",
       {
-        src: faviconUrl,
+        src: currentFaviconUrl,
         alt: "",
         className: "item-favicon",
-        onError: (e) => {
-          e.target.style.display = "none";
-        }
+        onError: handleFaviconError
       }
-    ),
+    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-favicon-fallback", children: getInitials(item.title) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "item-content", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-title", title: item.title, children: item.title }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-url", title: domain, children: domain })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-time", children: visitTime })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-time", children: visitTime }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "button",
+      {
+        className: "item-open-btn",
+        onClick: handleOpenUrl,
+        title: "Ouvrir dans un nouvel onglet",
+        children: "↗"
+      }
+    )
   ] });
 }
 function ClusterCard({ cluster }) {

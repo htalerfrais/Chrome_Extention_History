@@ -20,7 +20,7 @@ class GoogleProvider(LLMProviderInterface):
             logger.warning("Google API key not provided")
     
     def get_default_model(self) -> str:
-        return "gemini-1.5-flash"
+        return "gemini-flash-latest"
     
     def validate_request(self, request: LLMRequest) -> bool:
         return request.provider == "google"
