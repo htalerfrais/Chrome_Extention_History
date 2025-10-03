@@ -162,7 +162,7 @@ class ClusteringService:
         cluster_map: Dict[str, List[ClusterItem]] = {c["cluster_id"]: [] for c in clusters_meta}
         valid_ids = {c["cluster_id"] for c in clusters_meta}
 
-        BATCH_SIZE = 20  # Reduced to 5 due to Gemini 2.5-Pro inconsistent MAX_TOKENS behavior
+        BATCH_SIZE = 10  # Reduced to 5 due to Gemini 2.5-Pro inconsistent MAX_TOKENS behavior
         items = session.items
         for start in range(0, len(items), BATCH_SIZE):
             batch = items[start:start + BATCH_SIZE]

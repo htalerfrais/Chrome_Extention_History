@@ -1,7 +1,7 @@
 // MainLayout component - 70/30 layout for dashboard and chat
 // Provides responsive layout with main content area and chat sidebar
 
-import { ReactNode } from 'react';
+import type { ReactNode } from 'react';
 
 interface MainLayoutProps {
   children: ReactNode; // Main dashboard content

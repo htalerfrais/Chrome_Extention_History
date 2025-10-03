@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Overview
 
-This is a **Chrome Extension + React Frontend + Backend API** system that analyzes browsing history and organizes it into thematic sessions using AI-powered LLM services. The architecture follows a modern client-server pattern with React UI, extension services bridge, and remote AI analysis capabilities.
+This is a **Chrome Extension + React Frontend + Backend API** system that analyzes browsing history and organizes it into thematic sessions using AI-powered LLM services. The architecture follows a modern client-server pattern with React UI, extension services bridge, remote AI analysis capabilities, and **conversational chat interface** for interactive history exploration.
 
 ## High-Level Architecture
 
@@ -20,6 +20,7 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 │  - Real-time Updates       │  - History Lookup │  - State Mgmt   │
 │  - Local Storage           │  - Simple UI      │  - Component Tree│
 │                             │                   │  - ExtensionBridge│
+│                             │                   │  - Chat Interface│
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 │ ExtensionBridge Pattern
@@ -32,6 +33,7 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 │  - session_mgmt.js   │  - api_client.js  │  - preprocess.js   │
 │  - Time grouping     │  - HTTP comm      │  - URL filtering   │
 │  - API formatting    │  - Error handling │  - Feature extract │
+│                      │  - Chat messages   │                    │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 │ HTTP API Calls
@@ -43,8 +45,9 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 │  - REST Endpoints│  - Theme Detection   │  - AI Text Generation│
 │  - Health Checks │  - Pattern Analysis  │  - Multi-Provider   │
 │  - CORS Support  │  - Keyword Matching  │  - Provider Abstraction│
-│                  │  - Session Clustering│  - OpenAI/Anthropic │
+│  - Chat Endpoint │  - Session Clustering│  - OpenAI/Anthropic │
 │                  │                      │  - Google/Ollama    │
+│                  │                      │  - Chat Service     │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 │ Data Models & Validation
@@ -52,11 +55,12 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 ┌─────────────────────────────────────────────────────────────────┐
 │                    DATA LAYER (Pydantic Models)                  │
 ├─────────────────────────────────────────────────────────────────┤
-│  Session Models  │  LLM Models         │  Validation           │
-│  - HistoryItem   │  - LLMRequest       │  - Type Safety        │
-│  - HistorySession│  - LLMResponse      │  - Input Validation   │
-│  - ClusterResult │  - Provider Support │  - Error Handling    │
-│  - ClusteringResp│  - Multi-Provider   │  - Schema Validation  │
+│  Session Models  │  LLM Models         │  Chat Models          │
+│  - HistoryItem   │  - LLMRequest       │  - ChatMessage         │
+│  - HistorySession│  - LLMResponse      │  - ChatRequest         │
+│  - ClusterResult │  - Provider Support │  - ChatResponse        │
+│  - ClusteringResp│  - Multi-Provider   │  - MessageRole         │
+│                  │  - Validation       │  - ChatProvider        │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -81,23 +85,27 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
   - Compact 320px width design
 
 #### **React Dashboard** (`frontend/src/`)
-- **Responsibility**: Modern UI with lazy loading and on-demand session analysis
+- **Responsibility**: Modern UI with lazy loading, on-demand session analysis, and conversational chat interface
 - **Key Functions**:
-  - **App Component**: Main state management with lazy loading architecture
+  - **App Component**: Main state management with lazy loading architecture and 70/30 layout
   - **Session State Management**: Tracks analysis states (pending/loading/completed/error) per session
   - **Header Component**: Logo, title, and action buttons with click handlers
   - **StatusBar Component**: Real-time status updates with loading/success/error states
+  - **MainLayout Component**: 70/30 responsive layout (Dashboard 70%, Chat 30%)
   - **Dashboard Component**: Main content area for session and cluster display
   - **SessionTabs Component**: Interactive session navigation with analysis state indicators
+  - **ChatWindow Component**: Conversational interface with message history and input
+  - **ChatBubble Component**: Individual message display with user/assistant styling
   - **LoadingSpinner & ErrorDisplay**: User feedback components
-  - **ExtensionBridge Service**: Clean interface to extension services
+  - **ExtensionBridge Service**: Clean interface to extension services including chat
 
 #### **Extension Services Bridge** (`frontend/src/services/extensionBridge.ts`)
-- **Responsibility**: Connect React UI to existing extension services
+- **Responsibility**: Connect React UI to existing extension services including chat functionality
 - **Key Functions**:
   - Access Chrome storage and APIs
   - Use existing SessionManager for data processing
   - `clusterSession()` method for single session backend communication
+  - `sendChatMessage()` method for conversational chat communication
   - Provide type-safe interface for React components
   - Handle service initialization and error recovery
 
@@ -116,11 +124,12 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 - **API Client** (`api_client.js`):
   - Handles HTTP communication with backend
   - `clusterSession()` method for single session processing
+  - `sendChatMessage()` method for conversational chat
   - Implements retry logic and error handling
   - Manages request timeouts and failures
 - **Configuration** (`config.js`):
   - Environment management (dev/production)
-  - API endpoint configuration
+  - API endpoint configuration including `/chat` endpoint
   - Request settings and timeouts
 
 ### **Backend (Python FastAPI)**
@@ -131,6 +140,7 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
   - Health check endpoints (`/`, `/health`)
   - Single session clustering endpoint (`/cluster-session`)
   - LLM text generation endpoint (`/llm/generate`)
+  - Chat conversation endpoint (`/chat`)
   - CORS configuration for Chrome extension
   - Error handling and logging
 
@@ -152,6 +162,15 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
   - Provider management and routing
   - Request validation and error handling
   - Usage tracking and metadata extraction
+
+#### **Chat Service** (`chat_service.py`)
+- **Responsibility**: Conversational chat interface for interactive history exploration
+- **Key Functions**:
+  - **Stateless conversation management**: Client-side history storage
+  - **Prompt building**: System prompts with conversation context
+  - **LLM integration**: Uses existing LLMService for text generation
+  - **Conversation ID management**: Unique identifiers for chat sessions
+  - **Error handling**: Graceful fallbacks for LLM failures
 
 #### **LLM Providers** (`providers/`)
 - **Provider Interface** (`base_provider.py`):
@@ -185,31 +204,46 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
   - `LLMRequest`: Text generation request with provider settings
   - `LLMResponse`: Generated text with metadata and usage info
   - Provider-agnostic request/response handling
+- **Chat Models** (`chat_models.py`):
+  - `ChatMessage`: Individual chat message with role and timestamp
+  - `ChatRequest`: Chat request with message, history, and provider
+  - `ChatResponse`: Chat response with generated text and metadata
+  - `MessageRole`: User, Assistant, System role enumeration
+  - `ChatProvider`: LLM provider selection enumeration
 
 ## React Frontend Architecture
 
 ### **Component Tree**
 ```
-App (State Management + ExtensionBridge)
+App (State Management + ExtensionBridge + MainLayout)
 ├── Header (Logo + Action Buttons)
 ├── StatusBar (Loading/Success/Error States)
-├── LoadingSpinner (Conditional Rendering)
-├── ErrorDisplay (Error Handling + Retry)
-└── Dashboard (Main Content)
-    ├── SessionTabs (Session Navigation)
-    └── ClustersSection (Cluster Display)
-        ├── SessionInfo (Session Metadata)
-        └── ClusterGrid
-            └── ClusterCard[] (Individual Clusters)
-                └── ClusterItem[] (History Items)
+├── MainLayout (70/30 Layout)
+│   ├── Main Content (70%)
+│   │   ├── LoadingSpinner (Conditional Rendering)
+│   │   ├── ErrorDisplay (Error Handling + Retry)
+│   │   └── Dashboard (Session Analysis)
+│   │       ├── SessionTabs (Session Navigation)
+│   │       └── ClustersSection (Cluster Display)
+│   │           ├── SessionInfo (Session Metadata)
+│   │           └── ClusterGrid
+│   │               └── ClusterCard[] (Individual Clusters)
+│   │                   └── ClusterItem[] (History Items)
+│   └── Chat Sidebar (30%)
+│       └── ChatWindow (Conversational Interface)
+│           ├── ChatHeader (Title + Status)
+│           ├── ChatMessages (Scrollable Message List)
+│           │   └── ChatBubble[] (Individual Messages)
+│           └── ChatInput (Message Input + Send Button)
 ```
 
 ### **State Management**
 - **React Hooks**: useState, useEffect for local component state
 - **Lazy Loading State**: `availableSessions`, `sessionAnalysisStates` for on-demand processing
+- **Chat State**: `messages`, `conversationId`, `isLoading`, `error` for conversational interface
 - **Props Flow**: Top-down data flow with callback props for user actions
-- **ExtensionBridge**: Service layer for Chrome extension integration
-- **Type Safety**: TypeScript interfaces for all props and state
+- **ExtensionBridge**: Service layer for Chrome extension integration including chat
+- **Type Safety**: Centralized TypeScript interfaces in `types/` directory
 
 ### **Build Process**
 - **Development**: Vite dev server at `http://localhost:5173`
@@ -255,6 +289,13 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 4. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
 5. **React Update**: Backend returns single session result → React state updates → UI re-renders
 
+### **Chat Conversation Flow**
+1. **User Input**: Type message in ChatWindow → Triggers `handleSendMessage()`
+2. **Optimistic UI**: User message immediately displayed in chat
+3. **Service Layer**: ExtensionBridge → ApiClient → Backend `/chat`
+4. **Chat Processing**: Backend receives message + history → ChatService builds prompt → LLM generates response
+5. **Response Display**: Assistant message added to chat → Auto-scroll to latest message
+
 ## Key Design Patterns
 
 - **Extension Services Bridge Pattern**: Clean separation between React UI and Chrome extension services
@@ -264,12 +305,15 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **Lazy Loading Pattern**: On-demand session analysis for improved performance
 - **Session-based Processing**: Groups related browsing activities by time
 - **LLM-driven Clustering**: AI-powered thematic analysis and intelligent categorization
+- **Stateless Chat Pattern**: Client-managed conversation history for scalability
+- **Optimistic UI Pattern**: Immediate user feedback with rollback on errors
 - **Component Composition**: React components with clear responsibilities
 - **Props Down, Events Up**: Unidirectional data flow with callback props
 - **Batch Processing Pattern**: Efficient LLM API usage through item batching
 - **Fallback Strategy Pattern**: Robust error handling with graceful degradation
 - **Separation of Concerns**: Extension handles data/APIs, React handles UI/UX
 - **Single Responsibility Principle**: Each session analyzed independently
+- **Centralized Type Management**: DRY principle with shared TypeScript interfaces
 
 ## Technology Stack
 
@@ -301,7 +345,10 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **API Timeout**: 30 seconds for main requests
 - **Retry Logic**: 3 attempts with exponential backoff
 - **LLM Clustering**: AI-powered thematic analysis with Google Gemini (primary provider)
+- **Chat Provider**: Configurable LLM provider (OpenAI/Anthropic/Google/Ollama)
 - **Batch Size**: 20 items per LLM assignment call for efficiency
+- **Chat History**: Client-side conversation management (stateless backend)
+- **Layout**: 70/30 responsive split (Dashboard/Chat)
 - **LLM Providers**: Configurable via environment variables
 - **API Keys**: Secure environment-based configuration
 - **React Build**: Outputs to extension/dashboard-assets/ for Chrome extension compatibility
@@ -331,5 +378,5 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ---
 
 **Last Updated**: September 23, 2025
-**Version**: 0.6.0
-**Status**: Lazy Loading Architecture Complete ⚡
+**Version**: 0.7.0
+**Status**: Chat Interface Integration Complete 💬
