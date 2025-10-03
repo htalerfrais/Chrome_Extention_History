@@ -1,0 +1,7 @@
+---
+alwaysApply: true
+---
+
+- Always apply Dont Repeat Yourself best practices
+- Always code only what is necessary and keep the simpliest and most efficient coding style
+- When you are chosing a methodology to code something for a new feature / new component / new element of the app, compare it with the methodology that has been used to code similar items in the existing app. If this methodology was different, warn me and we'll decide which one to use.

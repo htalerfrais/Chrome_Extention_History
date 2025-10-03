@@ -92,6 +92,29 @@ class ExtensionBridge {
   }
 
   /**
+   * Send chat message using extension's ApiClient
+   * This uses the existing api_client.js logic
+   */
+  async sendChatMessage(message: string, conversationId?: string, history?: any[]): Promise<any> {
+    if (!window.ApiClient) {
+      throw new Error('ApiClient not available. Extension services not loaded.');
+    }
+
+    if (!message || message.trim().length === 0) {
+      throw new Error('Message cannot be empty');
+    }
+
+    try {
+      const result = await window.ApiClient.sendChatMessage(message, conversationId, history || []);
+      console.log('Chat message result:', result);
+      return result;
+    } catch (error) {
+      console.error('Error sending chat message:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get extension configuration
    */
   getConfig() {

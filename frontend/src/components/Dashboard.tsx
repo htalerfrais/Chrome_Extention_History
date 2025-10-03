@@ -2,26 +2,10 @@
 // Displays clusters for the current session
 
 import ClustersSection from './ClustersSection';
-
-interface HistoryItem {
-  url: string;
-  title: string;
-  visit_time: string;
-}
-
-interface Cluster {
-  theme: string;
-  items: HistoryItem[];
-}
-
-interface SessionData {
-  session_start_time: string;
-  session_end_time: string;
-  clusters: Cluster[];
-}
+import type { SessionResults } from '../types/session';
 
 interface DashboardProps {
-  currentSessionResults: Record<string, SessionData>;
+  currentSessionResults: SessionResults;
   activeSessionId: string | null;
 }
 

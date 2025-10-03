@@ -5,22 +5,21 @@ import StatusBar from './components/StatusBar'
 import LoadingSpinner from './components/LoadingSpinner'
 import ErrorDisplay from './components/ErrorDisplay'
 import Dashboard from './components/Dashboard'
+import MainLayout from './components/MainLayout'
+import ChatWindow from './components/ChatWindow'
 import { extensionBridge } from './services/extensionBridge'
+import type { SessionResults, SessionAnalysisStates, StatusType } from './types/session'
 
 function App() {
   // State management
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState('Waiting for extension services...')
-  const [statusType, setStatusType] = useState<'loading' | 'success' | 'error'>('loading')
-  const [currentSessionResults, setCurrentSessionResults] = useState<any>({})
+  const [statusType, setStatusType] = useState<StatusType>('loading')
+  const [currentSessionResults, setCurrentSessionResults] = useState<SessionResults>({})
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
-  // Services readiness is handled internally; we auto-run loadDashboard when ready
-  // Services readiness handled internally by extensionBridge
   const [availableSessions, setAvailableSessions] = useState<any[]>([])
-  const [sessionAnalysisStates, setSessionAnalysisStates] = useState<{
-    [sessionId: string]: 'pending' | 'loading' | 'completed' | 'error'
-  }>({})
+  const [sessionAnalysisStates, setSessionAnalysisStates] = useState<SessionAnalysisStates>({})
   const [currentSessionIndex, setCurrentSessionIndex] = useState(0)
 
   // Wait for extension services to be ready and auto-load sessions
@@ -246,14 +245,20 @@ function App() {
         canGoNext={currentSessionIndex < availableSessions.length - 1}
       />
       <StatusBar status={status} statusType={statusType} />
-      <main className="dashboard-main">
-        {(isLoading || activeIsLoading) && <LoadingSpinner />}
-        {error && <ErrorDisplay message={error} onRetry={loadDashboard} />}
-        <Dashboard 
-          currentSessionResults={currentSessionResults}
-          activeSessionId={activeSessionId}
-        />
-      </main>
+      
+      <MainLayout 
+        children={
+          <main className="dashboard-main">
+            {(isLoading || activeIsLoading) && <LoadingSpinner />}
+            {error && <ErrorDisplay message={error} onRetry={loadDashboard} />}
+            <Dashboard 
+              currentSessionResults={currentSessionResults}
+              activeSessionId={activeSessionId}
+            />
+          </main>
+        }
+        chatComponent={<ChatWindow />}
+      />
     </div>
   )
 }
