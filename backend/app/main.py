@@ -7,8 +7,10 @@ from datetime import datetime
 
 from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
+from .services.chat_service import ChatService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
 from .models.llm_models import LLMRequest, LLMResponse
+from .models.chat_models import ChatRequest, ChatResponse
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -32,6 +34,7 @@ app.add_middleware(
 # Initialize services
 clustering_service = ClusteringService()
 llm_service = LLMService()
+chat_service = ChatService(llm_service)
 
 @app.get("/")
 async def root():
@@ -50,7 +53,8 @@ async def health_check():
         "status": "healthy",
         "services": {
             "clustering": "operational",
-            "llm": "operational"
+            "llm": "operational",
+            "chat": "operational"
         },
         "timestamp": datetime.now().isoformat()
     }
@@ -111,6 +115,30 @@ async def generate_text(request: LLMRequest):
     except Exception as e:
         logger.error(f"Error generating text: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Text generation failed: {str(e)}")
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
+    """
+    Chat endpoint for conversational interaction
+    
+    Phase 1: Simple LLM chat with conversation context
+    Phase 2: Will integrate with history data and tool calling
+    """
+    try:
+        logger.info(f"Received chat message: {request.message[:50]}...")
+        
+        if not request.message.strip():
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
+        
+        # Process message through chat service
+        response = await chat_service.process_message(request)
+        
+        logger.info(f"Chat response generated for conversation {response.conversation_id}")
+        return response
+        
+    except Exception as e:
+        logger.error(f"Error processing chat: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
 
 if __name__ == "__main__":
