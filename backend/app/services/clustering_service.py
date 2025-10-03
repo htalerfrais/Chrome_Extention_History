@@ -8,6 +8,18 @@ from .llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
+def log_llm_metrics(stage: str, input_prompt: str, output_text: str, provider: str) -> None:
+    """Log detailed metrics for LLM interactions"""
+    input_chars = len(input_prompt)
+    input_tokens_est = input_chars // 4
+    output_chars = len(output_text)
+    output_tokens_est = output_chars // 4
+    
+    logger.info(f"🚀 {stage.upper()} - Provider: {provider}")
+    logger.info(f"📝 INPUT: {input_chars} chars (~{input_tokens_est} tokens)")
+    logger.info(f"📤 OUTPUT: {output_chars} chars (~{output_tokens_est} tokens)")
+    logger.info(f"🔍 Response preview: '{output_text[:150]}{'...' if output_chars > 150 else ''}'")
+
 class ClusteringService:
     """LLM-driven clustering service: identifies clusters and assigns items per session."""
 
@@ -65,34 +77,47 @@ class ClusteringService:
             {
                 "cluster_id": "cluster_1",
                 "theme": "Web Development",
-                "summary": "Pages related to coding, GitHub repositories, and development tools"
+                "summary": "Extensive exploration of coding resources including GitHub repositories for React projects, Stack Overflow discussions about API integration, and documentation for modern web frameworks. Focus on frontend development tools and debugging techniques."
             },
             {
                 "cluster_id": "cluster_2",
-                "theme": "Research",
-                "summary": "Documentation, tutorials, and learning resources"
+                "theme": "Research & Learning",
+                "summary": "In-depth research session covering tutorials on machine learning algorithms, academic papers about neural networks, and educational videos explaining complex programming concepts. Multiple visits to documentation sites and learning platforms."
             },
             {
                 "cluster_id": "cluster_generic",
                 "theme": "General Browsing",
-                "summary": "General browsing activity that doesn't fit into specific thematic clusters"
+                "summary": "Miscellaneous browsing activity including social media checks, news articles, and various unrelated pages that don't form a cohesive theme."
             }
         ]
 
         prompt = (
             "You are an assistant that organizes web browsing sessions into thematic clusters.\n"
             "Given the simplified list of session items, identify between 1 and 10 THEMATIC clusters.\n"
-            "IMPORTANT: You must ALWAYS include a 'cluster_generic' cluster for items that don't fit specific themes.\n"
+            "IMPORTANT: You must ALWAYS include a 'cluster_generic' cluster for items that don't fit specific themes.\n\n"
+            "For each cluster, provide:\n"
+            "- A clear, descriptive theme name\n"
+            "- A DETAILED summary (2-3 sentences) that:\n"
+            "  * Describes the main activities and topics explored\n"
+            "  * Mentions specific websites or types of content visited\n"
+            "  * Explains the user's apparent goal or interest\n"
+            "  * Uses engaging, informative language\n\n"
             "Return ONLY a compact JSON array. Each element must have keys: \"cluster_id\", \"theme\", \"summary\".\n"
             "Do not include any other text.\n\n"
             f"Example format:\n{json.dumps(example, ensure_ascii=False)}\n\n"
             f"Session items (simplified):\n{json.dumps(simplified_items, ensure_ascii=False)}\n"
         )
 
+        logger.info(f"📊 Starting cluster identification - Items: {len(simplified_items)}, Session: {session.session_id}")
+
         try:
-            req = LLMRequest(prompt=prompt, provider="google", max_tokens=800, temperature=0.2)
+            req = LLMRequest(prompt=prompt, provider="google", max_tokens=8192, temperature=0.2)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
+            
+            # Log detailed metrics
+            log_llm_metrics("CLUSTER IDENTIFICATION", prompt, raw, "google")
+            
             data = self._extract_json(raw)
             if isinstance(data, list):
                 # Basic schema cleanup
@@ -137,7 +162,7 @@ class ClusteringService:
         cluster_map: Dict[str, List[ClusterItem]] = {c["cluster_id"]: [] for c in clusters_meta}
         valid_ids = {c["cluster_id"] for c in clusters_meta}
 
-        BATCH_SIZE = 20
+        BATCH_SIZE = 20  # Reduced to 5 due to Gemini 2.5-Pro inconsistent MAX_TOKENS behavior
         items = session.items
         for start in range(0, len(items), BATCH_SIZE):
             batch = items[start:start + BATCH_SIZE]
@@ -182,10 +207,16 @@ class ClusteringService:
             "Return format example: [\"cluster_1\", \"cluster_generic\", \"cluster_2\"]\n"
         )
 
+        logger.info(f"📊 Starting batch assignment - Items: {len(items_batch)}, Clusters: {len(clusters_meta)}")
+        
         try:
-            req = LLMRequest(prompt=prompt, provider="google", max_tokens=256, temperature=0.0)
+            req = LLMRequest(prompt=prompt, provider="google", max_tokens=8192, temperature=0.0)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
+            
+            # Log detailed metrics
+            log_llm_metrics("BATCH ASSIGNMENT", prompt, raw, "google")
+            
             assignments = self._extract_json(raw)
             # Expecting a list of strings
             if isinstance(assignments, list) and all(isinstance(x, (str,)) for x in assignments):

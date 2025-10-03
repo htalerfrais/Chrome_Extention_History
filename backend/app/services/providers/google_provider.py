@@ -20,7 +20,7 @@ class GoogleProvider(LLMProviderInterface):
             logger.warning("Google API key not provided")
     
     def get_default_model(self) -> str:
-        return "gemini-flash-latest"
+        return "gemini-2.5-pro"
     
     def validate_request(self, request: LLMRequest) -> bool:
         return request.provider == "google"
@@ -62,15 +62,62 @@ class GoogleProvider(LLMProviderInterface):
                 response.raise_for_status()
                 data = response.json()
                 
+                # Debug: Log the full API response to see what Gemini returns
+                logger.debug(f"Google API full response: {data}")
+                
+                # Log model and usage info if available
+                if "model" in data:
+                    logger.info(f"🤖 Using model: {data['model']}")
+                if "usageMetadata" in data:
+                    usage = data["usageMetadata"]
+                    logger.info(f"📊 Token usage - Prompt: {usage.get('promptTokenCount', 'N/A')}, Response: {usage.get('candidatesTokenCount', 'N/A')}")
+                
                 # Extract generated text from Gemini response
+                generated_text = ""  # Initialize default value
+                
                 if "candidates" in data and len(data["candidates"]) > 0:
                     candidate = data["candidates"][0]
-                    if "content" in candidate and "parts" in candidate["content"]:
-                        generated_text = candidate["content"]["parts"][0]["text"]
+                    logger.debug(f"Google candidate structure: {candidate}")
+                    
+                    # Check if there's text in the candidate
+                    if "content" in candidate:
+                        content = candidate["content"]
+                        logger.debug(f"Content structure: {content}")
+                        
+                        # Check for blocked content or other issues
+                        finish_reason = candidate.get("finishReason", "UNKNOWN")
+                        logger.info(f"Candidate finish reason: {finish_reason}")
+                        
+                        # Check if content was blocked or filtered
+                        if finish_reason in ["SAFETY", "RECITATION", "OTHER"]:
+                            logger.warning(f"Gemini blocked content. Reason: {finish_reason}")
+                            generated_text = ""
+                        elif finish_reason == "MAX_TOKENS":
+                            logger.warning(f"Gemini response truncated due to token limit. Reason: {finish_reason}")
+                            # Still try to extract text even if truncated
+                        elif finish_reason != "STOP":
+                            logger.warning(f"Gemini finished unexpectedly. Reason: {finish_reason}")
+                            generated_text = ""
+                        
+                        # Look for parts array for all non-blocked cases
+                        if "parts" in content and isinstance(content["parts"], list) and len(content["parts"]) > 0:
+                            if "text" in content["parts"][0]:
+                                extracted_text = content["parts"][0]["text"]
+                                generated_text = extracted_text
+                                logger.debug(f"Extracted text from Gemini: '{extracted_text}'")
+                                if finish_reason == "MAX_TOKENS":
+                                    logger.info(f"Using truncated response with {len(extracted_text)} characters")
+                            else:
+                                generated_text = ""
+                                logger.warning(f"No text field in Gemini parts[0]: {content['parts'][0]}")
+                        elif generated_text == "":
+                            logger.warning(f"No valid parts array in Gemini content: {content}")
                     else:
                         generated_text = ""
+                        logger.warning(f"No content field in Gemini candidate: {candidate}")
                 else:
                     generated_text = ""
+                    logger.warning(f"No candidates found in Gemini response: {data}")
                 
                 # Extract usage information if available
                 usage = None
