@@ -13,7 +13,7 @@ from .models.llm_models import LLMRequest, LLMResponse
 from .models.chat_models import ChatRequest, ChatResponse
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.DEBUG)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(

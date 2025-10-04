@@ -49,8 +49,15 @@ class LLMService:
         provider = self.providers[request.provider]
         
         try:
+            # Log complete LLMRequest payload
+            logger.info(f"🚀 LLMRequest payload: {request.model_dump()}")
+            
             logger.info(f"Generating text with {request.provider} provider")
             response = await provider.generate_text(request)
+            
+            # Log complete LLMResponse payload
+            logger.info(f"✅ LLMResponse payload: {response.model_dump()}")
+            
             logger.info(f"Successfully generated text with {request.provider}")
             return response
         except Exception as e:

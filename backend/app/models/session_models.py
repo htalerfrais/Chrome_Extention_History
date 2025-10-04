@@ -49,12 +49,6 @@ class ClusterResult(BaseModel):
     summary: str
     items: List[ClusterItem]
 
-class ClusteringRequest(BaseModel):
-    """Request model for clustering endpoint"""
-    sessions: List[HistorySession]
-    max_clusters: Optional[int] = Field(default=10, ge=1, le=50)
-    min_cluster_size: Optional[int] = Field(default=2, ge=1)
-
 class SessionClusteringResponse(BaseModel):
     """Response model for session-based clustering"""
     session_id: str

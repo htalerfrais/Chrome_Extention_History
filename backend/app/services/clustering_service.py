@@ -8,17 +8,6 @@ from .llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
-def log_llm_metrics(stage: str, input_prompt: str, output_text: str, provider: str) -> None:
-    """Log detailed metrics for LLM interactions"""
-    input_chars = len(input_prompt)
-    input_tokens_est = input_chars // 4
-    output_chars = len(output_text)
-    output_tokens_est = output_chars // 4
-    
-    logger.info(f"🚀 {stage.upper()} - Provider: {provider}")
-    logger.info(f"📝 INPUT: {input_chars} chars (~{input_tokens_est} tokens)")
-    logger.info(f"📤 OUTPUT: {output_chars} chars (~{output_tokens_est} tokens)")
-    logger.info(f"🔍 Response preview: '{output_text[:150]}{'...' if output_chars > 150 else ''}'")
 
 class ClusteringService:
     """LLM-driven clustering service: identifies clusters and assigns items per session."""
@@ -31,7 +20,7 @@ class ClusteringService:
         For a single session: identify clusters with summaries using the LLM, then
         assign each item to one of those clusters. Returns a SessionClusteringResponse.
         """
-        logger.info(f"Starting LLM clustering for session {session.session_id} with {len(session.items)} items")
+        logger.info(f"📊 Processing session {session.session_id} with {len(session.items)} items")
 
         # Step 1: Ask LLM to propose clusters for this session
         clusters_meta = await self.identify_clusters_for_session(session)
@@ -66,7 +55,10 @@ class ClusteringService:
             clusters=cluster_results
         )
 
-        logger.info(f"Session {session.session_id}: generated {len(cluster_results)} clusters")
+        # Log ClusterResult models
+        for cluster_result in cluster_results:
+            logger.info(f"🎯 ClusterResult: {cluster_result.model_dump()}")
+
         return response
 
     async def identify_clusters_for_session(self, session: HistorySession) -> List[Dict[str, Any]]:
@@ -108,15 +100,10 @@ class ClusteringService:
             f"Session items (simplified):\n{json.dumps(simplified_items, ensure_ascii=False)}\n"
         )
 
-        logger.info(f"📊 Starting cluster identification - Items: {len(simplified_items)}, Session: {session.session_id}")
-
         try:
             req = LLMRequest(prompt=prompt, provider="google", max_tokens=8192, temperature=0.2)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
-            
-            # Log detailed metrics
-            log_llm_metrics("CLUSTER IDENTIFICATION", prompt, raw, "google")
             
             data = self._extract_json(raw)
             if isinstance(data, list):
@@ -166,6 +153,7 @@ class ClusteringService:
         items = session.items
         for start in range(0, len(items), BATCH_SIZE):
             batch = items[start:start + BATCH_SIZE]
+            logger.info(f"📦 Processing batch with {len(batch)} items")
             assigned_ids = await self._assign_batch_to_clusters(batch, clusters_meta)
 
             # Safety: ensure alignment
@@ -207,15 +195,10 @@ class ClusteringService:
             "Return format example: [\"cluster_1\", \"cluster_generic\", \"cluster_2\"]\n"
         )
 
-        logger.info(f"📊 Starting batch assignment - Items: {len(items_batch)}, Clusters: {len(clusters_meta)}")
-        
         try:
             req = LLMRequest(prompt=prompt, provider="google", max_tokens=8192, temperature=0.0)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
-            
-            # Log detailed metrics
-            log_llm_metrics("BATCH ASSIGNMENT", prompt, raw, "google")
             
             assignments = self._extract_json(raw)
             # Expecting a list of strings
@@ -227,6 +210,9 @@ class ClusteringService:
         # Fallback: assign everything to the first cluster (if any)
         first_cluster = clusters_meta[0]["cluster_id"] if clusters_meta else "cluster_generic"
         return [first_cluster] * len(items_batch)
+
+
+
 
     def _prepare_session_items_for_llm(self, session: HistorySession) -> List[Dict[str, Any]]:
         """Return simplified items for prompts: only title, url_hostname, url_pathname_clean, url_search_query."""

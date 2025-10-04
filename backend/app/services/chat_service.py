@@ -21,7 +21,6 @@ class ChatService:
     
     def __init__(self, llm_service: LLMService):
         self.llm_service = llm_service
-        logger.info("ChatService initialized (stateless mode)")
     
     def _generate_conversation_id(self) -> str:
         """Generate a unique conversation ID"""
@@ -58,7 +57,6 @@ class ChatService:
         else:
             prompt = f"{system_prompt}\n\nUser: {user_message}\nAssistant:"
         
-        logger.debug(f"Built prompt with {len(recent_history)} history messages")
         return prompt
     
     async def process_message(self, request: ChatRequest) -> ChatResponse:
@@ -69,6 +67,9 @@ class ChatService:
         Phase 2: Will add tool calling and history data integration
         """
         try:
+            # Log complete ChatRequest payload
+            logger.info(f"💬 ChatRequest payload: {request.model_dump()}")
+            
             # Generate or reuse conversation ID
             conversation_id = request.conversation_id or self._generate_conversation_id()
             
@@ -86,8 +87,6 @@ class ChatService:
                 temperature=0.7  # Balanced creativity
             )
             
-            logger.info(f"Processing chat message for conversation {conversation_id}")
-            
             # Call existing LLM service
             llm_response = await self.llm_service.generate_text(llm_request)
             
@@ -100,7 +99,9 @@ class ChatService:
                 model=llm_response.model
             )
             
-            logger.info(f"Successfully processed chat message for conversation {conversation_id}")
+            # Log complete ChatResponse payload
+            logger.info(f"💬 ChatResponse payload: {response.model_dump()}")
+            
             return response
             
         except Exception as e:
