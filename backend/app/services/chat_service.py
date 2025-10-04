@@ -83,7 +83,7 @@ class ChatService:
             llm_request = LLMRequest(
                 prompt=prompt,
                 provider=request.provider,
-                max_tokens=500,  # Reasonable limit for chat responses
+                max_tokens=8000,  # Increased limit to account for Gemini's internal reasoning tokens
                 temperature=0.7  # Balanced creativity
             )
             
