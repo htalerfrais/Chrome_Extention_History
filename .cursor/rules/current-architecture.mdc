@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Overview
 
-This is a **Chrome Extension + React Frontend + Backend API** system that analyzes browsing history and organizes it into thematic sessions using AI-powered LLM services. The architecture follows a modern client-server pattern with React UI, extension services bridge, remote AI analysis capabilities, and **conversational chat interface** for interactive history exploration.
+This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Database** system that analyzes browsing history and organizes it into thematic sessions using AI-powered LLM services. The architecture follows a modern client-server pattern with React UI, extension services bridge, remote AI analysis capabilities, **conversational chat interface** for interactive history exploration, and **persistent database storage** with semantic search capabilities.
 
 ## High-Level Architecture
 
@@ -61,6 +61,18 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 │  - ClusterResult │  - Provider Support │  - ChatResponse        │
 │  - ClusteringResp│  - Multi-Provider   │  - MessageRole         │
 │                  │  - Validation       │  - ChatProvider        │
+└─────────────────────────────────────────────────────────────────┘
+                                │
+                                │ Database Operations
+                                ▼
+┌─────────────────────────────────────────────────────────────────┐
+│                    DATABASE LAYER (PostgreSQL + pgvector)       │
+├─────────────────────────────────────────────────────────────────┤
+│  PostgreSQL 15    │  pgvector Extension │  Vector Search       │
+│  - Users Table    │  - Vector Columns   │  - Semantic Search   │
+│  - Sessions Table │  - Embeddings       │  - Similarity Search │
+│  - Clusters Table │  - Indexes          │  - Performance       │
+│  - History Items  │  - 1536 Dimensions  │  - Cosine Similarity │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -290,8 +302,9 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 1. **User Action**: Click session tab → Triggers `analyzeSession(sessionId)`
 2. **Service Layer**: ExtensionBridge → ApiClient → Backend `/cluster-session`
 3. **LLM Processing**: Backend receives single session → LLM cluster identification → Batched item assignment
-4. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
-5. **React Update**: Backend returns single session result → React state updates → UI re-renders
+4. **Database Storage**: Results stored in PostgreSQL with embeddings for semantic search
+5. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
+6. **React Update**: Backend returns single session result → React state updates → UI re-renders
 
 ### **Chat Conversation Flow**
 1. **User Input**: Type message in ChatWindow → Triggers `handleSendMessage()`
@@ -336,6 +349,11 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **Docker**: Containerized deployment
 - **Uvicorn**: ASGI server
 
+### Database
+- **PostgreSQL 15**: Robust relational database
+- **pgvector**: Vector similarity search extension
+- **SQLAlchemy**: Python ORM for database operations
+
 ### LLM Integration
 - **OpenAI API**: GPT models for text generation
 - **Anthropic API**: Claude models for advanced reasoning
@@ -356,6 +374,8 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **LLM Providers**: Configurable via environment variables
 - **API Keys**: Secure environment-based configuration
 - **React Build**: Outputs to extension/dashboard-assets/ for Chrome extension compatibility
+- **Database**: PostgreSQL with pgvector for semantic search
+- **Vector Dimensions**: 1536 (OpenAI embedding model standard)
 
 ## Environment Variables
 
@@ -363,13 +383,17 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - `ANTHROPIC_API_KEY`: Anthropic API access key
 - `GOOGLE_API_KEY`: Google Generative AI API key
 - `OLLAMA_BASE_URL`: Custom Ollama server URL (default: localhost:11434)
+- `POSTGRES_USER`: PostgreSQL username (default: postgres)
+- `POSTGRES_PASSWORD`: PostgreSQL password (default: postgres)
+- `DATABASE_URL`: PostgreSQL connection string
 
 ## Deployment
 
 - **Extension**: Chrome Web Store (future) / Developer mode (current)
 - **Backend**: Docker container on localhost:8000 (dev) / Cloud (production)
+- **Database**: PostgreSQL container with persistent volumes
 - **React Frontend**: Built into extension/dashboard-assets/ via Vite
-- **Development**: Docker Compose for backend + Vite dev server for React
+- **Development**: Docker Compose for backend + database + Vite dev server for React
 - **LLM Services**: External API dependencies (OpenAI, Anthropic, Google)
 
 ## Development Workflow
@@ -381,6 +405,6 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 
 ---
 
-**Last Updated**: October 4, 2025
+**Last Updated**: January 2025
 **Version**: 0.7.0
-**Status**: Chat Interface Integration Complete 💬
+**Status**: Database Infrastructure Complete 🗄️
