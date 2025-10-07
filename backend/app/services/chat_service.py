@@ -3,6 +3,7 @@ from datetime import datetime
 import uuid
 import logging
 
+from ..config import settings
 from ..models.chat_models import ChatRequest, ChatResponse, ChatMessage
 from ..models.llm_models import LLMRequest
 from .llm_service import LLMService
@@ -44,7 +45,7 @@ class ChatService:
         context_lines = []
         
         # Add recent conversation history (last 10 messages to avoid token limits)
-        recent_history = history[-10:] if history else []
+        recent_history = history[-settings.chat_history_limit:] if history else []
         
         for msg in recent_history:
             role_prefix = "User" if msg.role == "user" else "Assistant"
@@ -83,8 +84,8 @@ class ChatService:
             llm_request = LLMRequest(
                 prompt=prompt,
                 provider=request.provider,
-                max_tokens=8000,  # Increased limit to account for Gemini's internal reasoning tokens
-                temperature=0.7  # Balanced creativity
+                max_tokens=settings.chat_max_tokens,
+                temperature=settings.chat_temperature
             )
             
             # Call existing LLM service

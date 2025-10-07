@@ -2,6 +2,7 @@ import logging
 from typing import List, Dict, Any
 import json
 
+from ..config import settings
 from ..models.session_models import HistorySession, ClusterResult, ClusterItem, SessionClusteringResponse
 from ..models.llm_models import LLMRequest
 from .llm_service import LLMService
@@ -14,8 +15,8 @@ class ClusteringService:
 
     def __init__(self):
         self.llm_service = LLMService()
-        self.batch_size = 20;
-        self.max_tokens = 8192*(self.batch_size//10);
+        self.batch_size = settings.clustering_batch_size
+        self.max_tokens = settings.clustering_max_tokens
 
     async def cluster_session(self, session: HistorySession) -> SessionClusteringResponse:
         """
@@ -103,7 +104,7 @@ class ClusteringService:
         )
 
         try:
-            req = LLMRequest(prompt=prompt, provider="google", max_tokens=self.max_tokens, temperature=0.2)
+            req = LLMRequest(prompt=prompt, provider=settings.default_provider, max_tokens=self.max_tokens, temperature=settings.clustering_temperature)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
             
@@ -198,7 +199,7 @@ class ClusteringService:
         )
 
         try:
-            req = LLMRequest(prompt=prompt, provider="google", max_tokens=self.max_tokens, temperature=0.0)
+            req = LLMRequest(prompt=prompt, provider=settings.default_provider, max_tokens=self.max_tokens, temperature=0.0)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
             

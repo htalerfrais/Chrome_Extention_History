@@ -2,6 +2,7 @@ import httpx
 from typing import Optional
 import logging
 
+from ..config import settings
 from .base_provider import LLMProviderInterface
 from ...models.llm_models import LLMRequest, LLMResponse
 
@@ -13,7 +14,7 @@ class OllamaProvider(LLMProviderInterface):
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         super().__init__(api_key, base_url)
         # Ollama doesn't require API key, but we keep the interface consistent
-        self.base_url = base_url or "http://localhost:11434"
+        self.base_url = base_url or settings.ollama_base_url
     
     def get_default_model(self) -> str:
         return "llama2"
@@ -43,7 +44,7 @@ class OllamaProvider(LLMProviderInterface):
                 response = await client.post(
                     f"{self.base_url}/api/generate",
                     json=payload,
-                    timeout=60.0  # Ollama can be slower
+                    timeout=settings.ollama_timeout
                 )
                 response.raise_for_status()
                 data = response.json()

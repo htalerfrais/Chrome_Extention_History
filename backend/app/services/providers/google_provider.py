@@ -3,6 +3,7 @@ import httpx
 from typing import Optional
 import logging
 
+from ..config import settings
 from .base_provider import LLMProviderInterface
 from ...models.llm_models import LLMRequest, LLMResponse
 
@@ -13,14 +14,14 @@ class GoogleProvider(LLMProviderInterface):
     
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         super().__init__(api_key, base_url)
-        self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
-        self.base_url = base_url or "https://generativelanguage.googleapis.com/v1beta"
+        self.api_key = api_key or settings.google_api_key
+        self.base_url = base_url or settings.google_base_url
         
         if not self.api_key:
             logger.warning("Google API key not provided")
     
     def get_default_model(self) -> str:
-        return "gemini-2.5-pro"
+        return settings.default_model
     
     def validate_request(self, request: LLMRequest) -> bool:
         return request.provider == "google"
@@ -57,7 +58,7 @@ class GoogleProvider(LLMProviderInterface):
                     f"{self.base_url}/models/{model}:generateContent?key={self.api_key}",
                     json=payload,
                     headers=headers,
-                    timeout=30.0
+                    timeout=settings.api_timeout
                 )
                 response.raise_for_status()
                 data = response.json()

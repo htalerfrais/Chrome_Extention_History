@@ -3,6 +3,7 @@ import httpx
 from typing import Optional
 import logging
 
+from ..config import settings
 from .base_provider import LLMProviderInterface
 from ...models.llm_models import LLMRequest, LLMResponse
 
@@ -13,8 +14,8 @@ class OpenAIProvider(LLMProviderInterface):
     
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         super().__init__(api_key, base_url)
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.base_url = base_url or "https://api.openai.com/v1"
+        self.api_key = api_key or settings.openai_api_key
+        self.base_url = base_url or settings.openai_base_url
         
         if not self.api_key:
             logger.warning("OpenAI API key not provided")
@@ -56,7 +57,7 @@ class OpenAIProvider(LLMProviderInterface):
                     f"{self.base_url}/chat/completions",
                     json=payload,
                     headers=headers,
-                    timeout=30.0
+                    timeout=settings.api_timeout
                 )
                 response.raise_for_status()
                 data = response.json()

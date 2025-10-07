@@ -5,6 +5,7 @@ from typing import List, Dict, Any
 import logging
 from datetime import datetime
 
+from .config import settings
 from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
 from .services.chat_service import ChatService
@@ -13,22 +14,23 @@ from .models.llm_models import LLMRequest, LLMResponse
 from .models.chat_models import ChatRequest, ChatResponse
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Chrome Extension History Clustering API",
+    title=settings.app_name,
     description="API for clustering browsing history into thematic sessions",
-    version="0.2.0"
+    version=settings.app_version,
+    debug=settings.debug
 )
 
 # Configure CORS for Chrome extension
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["chrome-extension://*", "http://localhost:*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
 )
 
 # Initialize services
@@ -40,8 +42,8 @@ chat_service = ChatService(llm_service)
 async def root():
     """Health check endpoint"""
     return {
-        "message": "Chrome Extension History Clustering API",
-        "version": "0.2.0",
+        "message": settings.app_name,
+        "version": settings.app_version,
         "status": "running",
         "timestamp": datetime.now().isoformat()
     }
@@ -114,4 +116,4 @@ async def chat(request: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=settings.host, port=settings.port)

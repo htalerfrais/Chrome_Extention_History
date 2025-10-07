@@ -18,7 +18,7 @@ class ChatProvider(str, Enum):
     GOOGLE = "google"
     OLLAMA = "ollama"
 
-# === Core Chat Models (Phase 1) ===
+# === Core Chat Models ===
 
 class ChatMessage(BaseModel):
     """Individual chat message"""
