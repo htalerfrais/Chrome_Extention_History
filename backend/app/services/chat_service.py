@@ -3,7 +3,7 @@ from datetime import datetime
 import uuid
 import logging
 
-from ..config import settings
+from app.config import settings
 from ..models.chat_models import ChatRequest, ChatResponse, ChatMessage
 from ..models.llm_models import LLMRequest
 from .llm_service import LLMService

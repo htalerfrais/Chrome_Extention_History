@@ -2,7 +2,7 @@ import logging
 from typing import List, Dict, Any
 import json
 
-from ..config import settings
+from app.config import settings
 from ..models.session_models import HistorySession, ClusterResult, ClusterItem, SessionClusteringResponse
 from ..models.llm_models import LLMRequest
 from .llm_service import LLMService

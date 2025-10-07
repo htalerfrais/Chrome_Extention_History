@@ -2,9 +2,9 @@ import httpx
 from typing import Optional
 import logging
 
-from ..config import settings
+from app.config import settings
 from .base_provider import LLMProviderInterface
-from ...models.llm_models import LLMRequest, LLMResponse
+from app.models.llm_models import LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 

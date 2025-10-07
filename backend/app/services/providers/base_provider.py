@@ -2,7 +2,7 @@ from abc import ABC, abstractmethod
 from typing import Dict, Any, Optional
 import logging
 
-from ...models.llm_models import LLMRequest, LLMResponse
+from app.models.llm_models import LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 
