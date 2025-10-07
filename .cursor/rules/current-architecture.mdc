@@ -148,8 +148,10 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
 - **Responsibility**: LLM-driven thematic clustering for single session analysis
 - **Key Functions**:
   - **Single session processing**: `cluster_session()` method processes one session at a time
-  - **LLM-powered cluster identification**: Uses AI to propose thematic clusters per session
-  - **Intelligent item assignment**: Batched LLM calls to assign items to identified clusters
+  - **LLM-powered cluster identification**: Uses AI to propose 1-10 thematic clusters per session
+  - **Detailed summaries**: Generates 2-3 sentence summaries describing activities, websites, and user goals
+  - **Generic cluster enforcement**: Always includes a generic cluster for miscellaneous items
+  - **Intelligent item assignment**: Batched LLM calls (10 items per batch) to assign items to identified clusters
   - **On-demand analysis**: Enables lazy loading and faster initial response times
   - **Robust error handling**: Fallback mechanisms for LLM failures
   - **JSON extraction**: Parses LLM responses with error recovery
@@ -178,17 +180,18 @@ This is a **Chrome Extension + React Frontend + Backend API** system that analyz
   - Standardized interface for text generation
   - Request validation and model management
 - **OpenAI Provider** (`openai_provider.py`):
-  - GPT models integration (GPT-3.5, GPT-4)
+  - GPT models integration (default: GPT-4.1 Mini)
   - OpenAI API communication
   - Token usage tracking
 - **Anthropic Provider** (`anthropic_provider.py`):
-  - Claude models integration (Claude-3 Sonnet)
+  - Claude models integration (default: Claude-3 Sonnet)
   - Anthropic API communication
   - Usage metadata extraction
 - **Google Provider** (`google_provider.py`):
-  - Gemini models integration (Gemini-1.5 Flash/Pro)
+  - Gemini models integration (default: Gemini-2.5 Pro)
   - Google Generative AI API
   - Response parsing and metadata
+  - Token consumption logging
 - **Ollama Provider** (`ollama_provider.py`):
   - Local LLM models (Llama2, etc.)
   - Local API communication
@@ -258,20 +261,21 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ### **Phase 1: Cluster Identification**
 1. **Session Analysis**: Each session is processed independently
 2. **LLM Prompting**: Simplified item data (title, hostname, path, search query) sent to LLM
-3. **Cluster Proposal**: LLM returns 3-8 thematic clusters with IDs, themes, and summaries
-4. **Schema Validation**: Response parsed and cleaned with fallback to generic cluster
+3. **Cluster Proposal**: LLM returns 1-10 thematic clusters with IDs, themes, and detailed summaries
+4. **Schema Validation**: Response parsed and cleaned with automatic generic cluster addition if missing
 
 ### **Phase 2: Item Assignment**
-1. **Batch Processing**: Items grouped into batches of 20 for efficiency
+1. **Batch Processing**: Items grouped into batches of 10 for efficiency (reduced due to Gemini token management)
 2. **LLM Assignment**: Each batch assigned to identified clusters via LLM
 3. **Error Recovery**: Fallback mechanisms ensure all items are assigned
 4. **Result Assembly**: ClusterResult objects created with assigned items
 
 ### **Key Features**
-- **Provider Flexibility**: Uses Google Gemini by default, configurable to other providers
+- **Provider Flexibility**: Uses Google Gemini 2.5 Pro by default, configurable to other providers
 - **Robust Parsing**: JSON extraction with error recovery from malformed LLM responses
-- **Performance Optimization**: Batched processing reduces API calls and costs
+- **Performance Optimization**: Batched processing (10 items per batch) reduces API calls and costs
 - **Graceful Degradation**: Fallback clusters ensure system reliability
+- **Generic Cluster Guarantee**: Always includes a generic cluster for items that don't fit specific themes
 
 ## Data Flow
 
@@ -318,7 +322,7 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ## Technology Stack
 
 ### Frontend
-- **React 18**: Modern UI library with hooks and functional components
+- **React 19**: Modern UI library with hooks and functional components
 - **TypeScript**: Type safety and better developer experience
 - **Vite**: Fast build tool and development server
 - **Chrome Extension API**: History, Storage, Tabs permissions
@@ -344,9 +348,9 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **History Limit**: 5000 items maximum
 - **API Timeout**: 30 seconds for main requests
 - **Retry Logic**: 3 attempts with exponential backoff
-- **LLM Clustering**: AI-powered thematic analysis with Google Gemini (primary provider)
+- **LLM Clustering**: AI-powered thematic analysis with Google Gemini 2.5 Pro (primary provider)
 - **Chat Provider**: Configurable LLM provider (OpenAI/Anthropic/Google/Ollama)
-- **Batch Size**: 20 items per LLM assignment call for efficiency
+- **Batch Size**: 10 items per LLM assignment call (reduced due to Gemini token management)
 - **Chat History**: Client-side conversation management (stateless backend)
 - **Layout**: 70/30 responsive split (Dashboard/Chat)
 - **LLM Providers**: Configurable via environment variables
@@ -377,6 +381,6 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 
 ---
 
-**Last Updated**: September 23, 2025
+**Last Updated**: October 4, 2025
 **Version**: 0.7.0
 **Status**: Chat Interface Integration Complete 💬

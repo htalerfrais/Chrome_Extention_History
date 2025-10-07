@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 from typing import List, Optional
 from datetime import datetime
 from enum import Enum
@@ -22,22 +22,22 @@ class ChatProvider(str, Enum):
 
 class ChatMessage(BaseModel):
     """Individual chat message"""
+    model_config = ConfigDict(use_enum_values=True)
+    
     role: MessageRole = Field(...)
     content: str = Field(...)
     timestamp: datetime = Field(default_factory=datetime.now)
-    
-    class Config:
-        use_enum_values = True
 
+
+# frontend is sending the history to the backend as alist of ChatMessage objects
 class ChatRequest(BaseModel):
     """Request model for chat endpoint"""
+    model_config = ConfigDict(use_enum_values=True)
+    
     message: str = Field(..., min_length=1, max_length=2000)
-    conversation_id: Optional[str] = Field(None)
+    conversation_id: Optional[str] = Field(None) # created if not existing yet
     history: Optional[List[ChatMessage]] = Field(default=[])
     provider: ChatProvider = Field(default=ChatProvider.GOOGLE)
-    
-    class Config:
-        use_enum_values = True
 
 class ChatResponse(BaseModel):
     """Response model for chat endpoint"""

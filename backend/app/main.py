@@ -86,35 +86,6 @@ async def cluster_session(session: HistorySession):
         logger.error(f"Error clustering session {getattr(session, 'session_id', 'unknown')}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
 
-@app.post("/llm/generate", response_model=LLMResponse)
-async def generate_text(request: LLMRequest):
-    """
-    Generate text using specified LLM provider
-    
-    Args:
-        request: LLM generation request with prompt and provider settings
-        
-    Returns:
-        LLMResponse with generated text and metadata
-    """
-    try:
-        logger.info(f"Received LLM request for provider: {request.provider}")
-        
-        if not request.prompt.strip():
-            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
-        
-        # Generate text using LLM service
-        response = await llm_service.generate_text(request)
-        
-        logger.info(f"Successfully generated text with {request.provider}")
-        return response
-        
-    except ValueError as e:
-        logger.error(f"Invalid LLM request: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
-    except Exception as e:
-        logger.error(f"Error generating text: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Text generation failed: {str(e)}")
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):

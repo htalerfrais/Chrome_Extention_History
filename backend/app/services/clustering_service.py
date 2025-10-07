@@ -14,6 +14,8 @@ class ClusteringService:
 
     def __init__(self):
         self.llm_service = LLMService()
+        self.batch_size = 20;
+        self.max_tokens = 8192*(self.batch_size//10);
 
     async def cluster_session(self, session: HistorySession) -> SessionClusteringResponse:
         """
@@ -101,7 +103,7 @@ class ClusteringService:
         )
 
         try:
-            req = LLMRequest(prompt=prompt, provider="google", max_tokens=8192, temperature=0.2)
+            req = LLMRequest(prompt=prompt, provider="google", max_tokens=self.max_tokens, temperature=0.2)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
             
@@ -149,7 +151,7 @@ class ClusteringService:
         cluster_map: Dict[str, List[ClusterItem]] = {c["cluster_id"]: [] for c in clusters_meta}
         valid_ids = {c["cluster_id"] for c in clusters_meta}
 
-        BATCH_SIZE = 10  # Reduced to 5 due to Gemini 2.5-Pro inconsistent MAX_TOKENS behavior
+        BATCH_SIZE = self.batch_size  # be careful with this value, Gemini 2.5-Pro inconsistent MAX_TOKENS behavior because of internal reasoning tokens
         items = session.items
         for start in range(0, len(items), BATCH_SIZE):
             batch = items[start:start + BATCH_SIZE]
@@ -196,7 +198,7 @@ class ClusteringService:
         )
 
         try:
-            req = LLMRequest(prompt=prompt, provider="google", max_tokens=8192, temperature=0.0)
+            req = LLMRequest(prompt=prompt, provider="google", max_tokens=self.max_tokens, temperature=0.0)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
             
