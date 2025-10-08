@@ -31,17 +31,10 @@ class User(Base):
     """
     __tablename__ = "users"
     
-    # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
-    
-    # User data
     email = Column(String, unique=True, nullable=False, index=True)
     username = Column(String, nullable=True)
-    
-    # Timestamps
     created_at = Column(DateTime, default=func.now(), nullable=False)
-    
-    # Relationships
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
@@ -58,23 +51,12 @@ class Session(Base):
     """
     __tablename__ = "sessions"
     
-    # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
-    
-    # Foreign key
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
-    
-    # Session data
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
-    
-    # Vector embedding for semantic search (1536 dimensions = OpenAI/Google standard)
     embedding = Column(Vector(1536), nullable=True)
-    
-    # Timestamps
     created_at = Column(DateTime, default=func.now(), nullable=False)
-    
-    # Relationships
     user = relationship("User", back_populates="sessions")
     clusters = relationship("Cluster", back_populates="session", cascade="all, delete-orphan")
     
@@ -92,23 +74,12 @@ class Cluster(Base):
     """
     __tablename__ = "clusters"
     
-    # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
-    
-    # Foreign key
     session_id = Column(Integer, ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False, index=True)
-    
-    # Cluster data
-    name = Column(String, nullable=False)  # Theme/label (e.g., "Web Development")
-    description = Column(Text, nullable=True)  # Summary (2-3 sentences)
-    
-    # Vector embedding for semantic search
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
     embedding = Column(Vector(1536), nullable=True)
-    
-    # Timestamps
     created_at = Column(DateTime, default=func.now(), nullable=False)
-    
-    # Relationships
     session = relationship("Session", back_populates="clusters")
     history_items = relationship("HistoryItem", back_populates="cluster", cascade="all, delete-orphan")
     
@@ -125,29 +96,15 @@ class HistoryItem(Base):
     """
     __tablename__ = "history_items"
     
-    # Primary key
     id = Column(Integer, primary_key=True, autoincrement=True)
-    
-    # Foreign key
     cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="CASCADE"), nullable=False, index=True)
-    
-    # History item data
     url = Column(String, nullable=False)
     title = Column(String, nullable=True)
-    domain = Column(String, nullable=True)  # Extracted hostname
+    domain = Column(String, nullable=True)
     visit_time = Column(DateTime, nullable=False)
-    
-    # Raw semantics - stores enriched data as JSON
-    # Example: {"url_pathname": "/docs", "search_query": "python tutorials", "keywords": ["python", "tutorial"]}
     raw_semantics = Column(JSON, nullable=True)
-    
-    # Vector embedding for semantic search
     embedding = Column(Vector(1536), nullable=True)
-    
-    # Timestamps
     created_at = Column(DateTime, default=func.now(), nullable=False)
-    
-    # Relationships
     cluster = relationship("Cluster", back_populates="history_items")
     
     def __repr__(self):
