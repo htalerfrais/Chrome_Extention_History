@@ -65,6 +65,9 @@ class Settings(BaseSettings):
     api_timeout: float = 30.0
     ollama_timeout: float = 60.0
     
+    # Database
+    database_url: Optional[str] = None
+    
     class Config:
         # Docker Compose passes environment variables directly
         # Local development: set environment variables or use .env
