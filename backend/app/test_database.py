@@ -18,7 +18,6 @@ sys.path.insert(0, str(Path(__file__).parent))
 
 from app.database import check_db_connection
 from app.services.database_service import DatabaseService
-from app.models.database_models import User, Session, Cluster
 from datetime import datetime, timedelta
 import logging
 
@@ -54,13 +53,13 @@ def test_user_operations():
     
     # Test idempotency (should return same user)
     user2 = db_service.get_or_create_user(test_email, "Test User")
-    assert user2.id == user.id, "❌ Should return same user"
+    assert user2["id"] == user["id"], "❌ Should return same user"
     logger.info(f"✅ Get or create is idempotent\n")
     
     return user
 
 
-def test_session_operations(user: User):
+def test_session_operations(user):
     """Test session CRUD operations"""
     logger.info("=" * 60)
     logger.info("TEST 3: Session Operations")
@@ -71,7 +70,7 @@ def test_session_operations(user: User):
     end_time = start_time + timedelta(hours=2)
     
     session = db_service.create_session(
-        user_id=user.id,
+        user_id=user["id"],
         start_time=start_time,
         end_time=end_time
     )
@@ -81,7 +80,7 @@ def test_session_operations(user: User):
     return session
 
 
-def test_cluster_operations(session: Session):
+def test_cluster_operations(session):
     """Test cluster CRUD operations"""
     logger.info("=" * 60)
     logger.info("TEST 4: Cluster Operations")
@@ -89,7 +88,7 @@ def test_cluster_operations(session: Session):
     
     # Test create cluster
     cluster = db_service.create_cluster(
-        session_id=session.id,
+        session_id=session["id"],
         name="Web Development",
         description="Research on React and FastAPI development"
     )
@@ -99,7 +98,7 @@ def test_cluster_operations(session: Session):
     return cluster
 
 
-def test_history_item_operations(cluster: Cluster):
+def test_history_item_operations(cluster):
     """Test history item CRUD operations"""
     logger.info("=" * 60)
     logger.info("TEST 5: History Item Operations")
@@ -107,7 +106,7 @@ def test_history_item_operations(cluster: Cluster):
     
     # Test create history item
     item = db_service.create_history_item(
-        cluster_id=cluster.id,
+        cluster_id=cluster["id"],
         url="https://fastapi.tiangolo.com/",
         title="FastAPI Documentation",
         domain="fastapi.tiangolo.com",

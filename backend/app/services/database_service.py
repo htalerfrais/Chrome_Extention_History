@@ -2,11 +2,13 @@
 Database Service - Simple CRUD operations
 
 This service handles basic database operations for all models.
+Returns dictionaries to avoid SQLAlchemy session dependencies.
 """
 
-from typing import Optional, Callable, Any
+from typing import Optional, Callable, Any, Dict
 from datetime import datetime
 import logging
+from contextlib import contextmanager
 
 from app.database import SessionLocal
 from app.models.database_models import User, Session, Cluster, HistoryItem
@@ -17,27 +19,53 @@ logger = logging.getLogger(__name__)
 class DatabaseService:
     """Service for database CRUD operations"""
     
-    def _execute(self, operation: Callable, error_msg: str = "Operation failed") -> Any:
-        """
-        Generic database operation wrapper
-        Handles session lifecycle, commits, rollbacks, and error logging
-        """
+    @contextmanager
+    def _get_session(self):
+        """Context manager for database sessions"""
         db = SessionLocal()
         try:
-            result = operation(db)
-            if result is not None:
-                db.commit()
-            return result
+            yield db
+            db.commit()
         except Exception as e:
             db.rollback()
-            logger.error(f"❌ {error_msg}: {e}")
-            return None
+            raise e
         finally:
             db.close()
     
+    def _execute(self, operation: Callable, error_msg: str = "Operation failed") -> Optional[Dict]:
+        """
+        Generic database operation wrapper
+        Handles session lifecycle, commits, rollbacks, and error logging
+        Returns dictionary to avoid SQLAlchemy session dependencies
+        """
+        try:
+            with self._get_session() as db:
+                result = operation(db)
+                if result is not None:
+                    # Convert SQLAlchemy object to dict
+                    return self._to_dict(result)
+                return None
+        except Exception as e:
+            logger.error(f"❌ {error_msg}: {e}")
+            return None
+    
+    def _to_dict(self, obj) -> Dict:
+        """Convert SQLAlchemy object to dictionary"""
+        if obj is None:
+            return None
+        
+        result = {}
+        for column in obj.__table__.columns:
+            value = getattr(obj, column.name)
+            # Convert datetime to ISO string for JSON serialization
+            if isinstance(value, datetime):
+                value = value.isoformat()
+            result[column.name] = value
+        return result
+    
     # User operations
     
-    def get_or_create_user(self, email: str, username: Optional[str] = None) -> Optional[User]:
+    def get_or_create_user(self, email: str, username: Optional[str] = None) -> Optional[Dict]:
         """Get existing user or create new one"""
         def operation(db):
             user = db.query(User).filter(User.email == email).first()
@@ -61,7 +89,7 @@ class DatabaseService:
         start_time: datetime,
         end_time: datetime,
         embedding: Optional[list] = None
-    ) -> Optional[Session]:
+    ) -> Optional[Dict]:
         """Create a new browsing session"""
         def operation(db):
             session = Session(
@@ -86,7 +114,7 @@ class DatabaseService:
         name: str,
         description: Optional[str] = None,
         embedding: Optional[list] = None
-    ) -> Optional[Cluster]:
+    ) -> Optional[Dict]:
         """Create a new cluster within a session"""
         def operation(db):
             cluster = Cluster(
@@ -114,7 +142,7 @@ class DatabaseService:
         visit_time: Optional[datetime] = None,
         raw_semantics: Optional[dict] = None,
         embedding: Optional[list] = None
-    ) -> Optional[HistoryItem]:
+    ) -> Optional[Dict]:
         """Create a new history item within a cluster"""
         def operation(db):
             item = HistoryItem(
