@@ -46,21 +46,23 @@ This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Databas
 │  - Health Checks │  - Pattern Analysis  │  - Multi-Provider   │
 │  - CORS Support  │  - Keyword Matching  │  - Provider Abstraction│
 │  - Chat Endpoint │  - Session Clustering│  - OpenAI/Anthropic │
-│                  │                      │  - Google/Ollama    │
+│  - Database Integration│              │  - Google/Ollama    │
 │                  │                      │  - Chat Service     │
+│                  │                      │  - Database Service │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 │ Data Models & Validation
                                 ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    DATA LAYER (Pydantic Models)                  │
+│                    DATA LAYER (Pydantic + SQLAlchemy Models)    │
 ├─────────────────────────────────────────────────────────────────┤
-│  Session Models  │  LLM Models         │  Chat Models          │
-│  - HistoryItem   │  - LLMRequest       │  - ChatMessage         │
-│  - HistorySession│  - LLMResponse      │  - ChatRequest         │
-│  - ClusterResult │  - Provider Support │  - ChatResponse        │
-│  - ClusteringResp│  - Multi-Provider   │  - MessageRole         │
-│                  │  - Validation       │  - ChatProvider        │
+│  Pydantic Models │  SQLAlchemy Models  │  Database Service     │
+│  - HistoryItem   │  - User             │  - CRUD Operations    │
+│  - HistorySession│  - Session          │  - Context Manager    │
+│  - ClusterResult │  - Cluster          │  - Transaction Mgmt   │
+│  - ClusteringResp│  - HistoryItem      │  - Dictionary Returns │
+│  - LLM Models    │  - Relationships    │  - Error Handling     │
+│  - Chat Models   │  - Vector Support   │  - Session Decoupling │
 └─────────────────────────────────────────────────────────────────┘
                                 │
                                 │ Database Operations
@@ -73,6 +75,7 @@ This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Databas
 │  - Sessions Table │  - Embeddings       │  - Similarity Search │
 │  - Clusters Table │  - Indexes          │  - Performance       │
 │  - History Items  │  - 1536 Dimensions  │  - Cosine Similarity │
+│  - SQLAlchemy ORM │  - Context Manager  │  - CRUD Operations   │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -154,6 +157,7 @@ This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Databas
   - LLM text generation endpoint (`/llm/generate`)
   - Chat conversation endpoint (`/chat`)
   - CORS configuration for Chrome extension
+  - Database integration with DatabaseService
   - Error handling and logging
 
 #### **Clustering Service** (`clustering_service.py`)
@@ -210,21 +214,39 @@ This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Databas
   - Offline text generation capability
 
 #### **Data Models** (`models/`)
-- **Session Models** (`session_models.py`):
-  - `HistoryItem`: Individual browsing entry
-  - `HistorySession`: Time-grouped browsing session
-  - `ClusterResult`: Thematic grouping result
-  - `SessionClusteringResponse`: API response format
-- **LLM Models** (`llm_models.py`):
-  - `LLMRequest`: Text generation request with provider settings
-  - `LLMResponse`: Generated text with metadata and usage info
-  - Provider-agnostic request/response handling
-- **Chat Models** (`chat_models.py`):
-  - `ChatMessage`: Individual chat message with role and timestamp
-  - `ChatRequest`: Chat request with message, history, and provider
-  - `ChatResponse`: Chat response with generated text and metadata
-  - `MessageRole`: User, Assistant, System role enumeration
-  - `ChatProvider`: LLM provider selection enumeration
+- **Pydantic Models** (API validation and serialization):
+  - **Session Models** (`session_models.py`):
+    - `HistoryItem`: Individual browsing entry
+    - `HistorySession`: Time-grouped browsing session
+    - `ClusterResult`: Thematic grouping result
+    - `SessionClusteringResponse`: API response format
+  - **LLM Models** (`llm_models.py`):
+    - `LLMRequest`: Text generation request with provider settings
+    - `LLMResponse`: Generated text with metadata and usage info
+    - Provider-agnostic request/response handling
+  - **Chat Models** (`chat_models.py`):
+    - `ChatMessage`: Individual chat message with role and timestamp
+    - `ChatRequest`: Chat request with message, history, and provider
+    - `ChatResponse`: Chat response with generated text and metadata
+    - `MessageRole`: User, Assistant, System role enumeration
+    - `ChatProvider`: LLM provider selection enumeration
+- **SQLAlchemy Models** (`database_models.py`):
+  - `User`: User model with email, username, and relationships
+  - `Session`: Browsing session with timestamps and vector embeddings
+  - `Cluster`: Thematic cluster with name, description, and embeddings
+  - `HistoryItem`: Individual history item with URL, title, and metadata
+  - Relationships: User → Sessions → Clusters → HistoryItems
+  - Vector support: 1536-dimensional embeddings for semantic search
+
+#### **Database Service** (`database_service.py`)
+- **Responsibility**: Database operations and session management
+- **Key Functions**:
+  - **Context Manager**: `_get_session()` for automatic session lifecycle
+  - **CRUD Operations**: Create, read, update, delete for all models
+  - **Transaction Management**: Automatic commit/rollback with error handling
+  - **Dictionary Returns**: Converts SQLAlchemy objects to dicts for decoupling
+  - **Error Handling**: Robust error logging and graceful failure recovery
+  - **Session Decoupling**: Avoids SQLAlchemy session dependencies in returned data
 
 ## React Frontend Architecture
 
@@ -302,7 +324,7 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 1. **User Action**: Click session tab → Triggers `analyzeSession(sessionId)`
 2. **Service Layer**: ExtensionBridge → ApiClient → Backend `/cluster-session`
 3. **LLM Processing**: Backend receives single session → LLM cluster identification → Batched item assignment
-4. **Database Storage**: Results stored in PostgreSQL with embeddings for semantic search
+4. **Database Storage**: DatabaseService saves results to PostgreSQL with embeddings for semantic search
 5. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
 6. **React Update**: Backend returns single session result → React state updates → UI re-renders
 
@@ -331,6 +353,10 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **Separation of Concerns**: Extension handles data/APIs, React handles UI/UX
 - **Single Responsibility Principle**: Each session analyzed independently
 - **Centralized Type Management**: DRY principle with shared TypeScript interfaces
+- **Repository Pattern**: DatabaseService provides centralized database operations with clean interface
+- **Context Manager Pattern**: `_get_session()` for automatic session lifecycle management
+- **Dictionary Conversion Pattern**: SQLAlchemy objects converted to dicts for session decoupling
+- **Transaction Pattern**: Automatic commit/rollback with error handling
 
 ## Technology Stack
 
@@ -345,6 +371,7 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ### Backend
 - **FastAPI**: Modern Python web framework
 - **Pydantic**: Data validation and serialization
+- **SQLAlchemy**: Python ORM for database operations
 - **httpx**: Async HTTP client for LLM API calls
 - **Docker**: Containerized deployment
 - **Uvicorn**: ASGI server
@@ -352,7 +379,9 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ### Database
 - **PostgreSQL 15**: Robust relational database
 - **pgvector**: Vector similarity search extension
-- **SQLAlchemy**: Python ORM for database operations
+- **SQLAlchemy ORM**: Database models and relationships
+- **Context Manager**: Session lifecycle management
+- **Dictionary Conversion**: Session decoupling for data transfer
 
 ### LLM Integration
 - **OpenAI API**: GPT models for text generation
@@ -406,5 +435,5 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ---
 
 **Last Updated**: January 2025
-**Version**: 0.7.0
-**Status**: Database Infrastructure Complete 🗄️
+**Version**: 0.8.0
+**Status**: Database Integration Complete 🗄️
