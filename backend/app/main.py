@@ -9,7 +9,6 @@ from .config import settings
 from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
 from .services.chat_service import ChatService
-from .services.database_service import DatabaseService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
 from .models.llm_models import LLMRequest, LLMResponse
 from .models.chat_models import ChatRequest, ChatResponse
@@ -38,7 +37,7 @@ app.add_middleware(
 clustering_service = ClusteringService()
 llm_service = LLMService()
 chat_service = ChatService(llm_service)
-db_service = DatabaseService()
+# pas de database repository dans l'entrypoint API, on passe toujours par les service métier de business logic dans le API
 
 @app.get("/")
 async def root():

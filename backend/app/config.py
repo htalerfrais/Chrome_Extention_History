@@ -43,7 +43,7 @@ class Settings(BaseSettings):
     
     # LLM Configuration
     default_provider: str = "google"
-    default_model: str = "gemini-2.5-pro"
+    default_model: str = "gemini-2.0-flash"
     
     # Clustering Service
     clustering_batch_size: int = 20

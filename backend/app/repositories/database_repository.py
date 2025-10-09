@@ -1,7 +1,7 @@
 """
-Database Service - Simple CRUD operations
+Database Repository - Simple CRUD operations
 
-This service handles basic database operations for all models.
+This repository handles basic database operations for all models.
 Returns dictionaries to avoid SQLAlchemy session dependencies.
 """
 
@@ -16,8 +16,8 @@ from app.models.database_models import User, Session, Cluster, HistoryItem
 logger = logging.getLogger(__name__)
 
 
-class DatabaseService:
-    """Service for database CRUD operations"""
+class DatabaseRepository:
+    """Repository for database CRUD operations"""
     
     @contextmanager
     def _get_session(self):
