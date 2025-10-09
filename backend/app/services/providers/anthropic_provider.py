@@ -4,7 +4,7 @@ from typing import Optional
 import logging
 
 from .base_provider import LLMProviderInterface
-from ...models.llm_models import LLMRequest, LLMResponse
+from app.models.llm_models import LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 

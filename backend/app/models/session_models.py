@@ -24,11 +24,14 @@ class HistorySession(BaseModel):
     items: List[HistoryItem]
     duration_minutes: Optional[int] = None
     
-    def __post_init__(self):
+    def model_post_init(self, __context):
         if self.duration_minutes is None:
             delta = self.end_time - self.start_time
             self.duration_minutes = int(delta.total_seconds() / 60)
 
+
+
+# ClusterItem and ClusterResult models === create ===> SessionClusteringResponse
 class ClusterItem(BaseModel):
     """A history item within a cluster"""
     id: str
@@ -48,12 +51,6 @@ class ClusterResult(BaseModel):
     theme: str
     summary: str
     items: List[ClusterItem]
-
-class ClusteringRequest(BaseModel):
-    """Request model for clustering endpoint"""
-    sessions: List[HistorySession]
-    max_clusters: Optional[int] = Field(default=10, ge=1, le=50)
-    min_cluster_size: Optional[int] = Field(default=2, ge=1)
 
 class SessionClusteringResponse(BaseModel):
     """Response model for session-based clustering"""

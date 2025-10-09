@@ -3,8 +3,9 @@ import httpx
 from typing import Optional
 import logging
 
+from app.config import settings
 from .base_provider import LLMProviderInterface
-from ...models.llm_models import LLMRequest, LLMResponse
+from app.models.llm_models import LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 
@@ -13,14 +14,14 @@ class OpenAIProvider(LLMProviderInterface):
     
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         super().__init__(api_key, base_url)
-        self.api_key = api_key or os.getenv("OPENAI_API_KEY")
-        self.base_url = base_url or "https://api.openai.com/v1"
+        self.api_key = api_key or settings.openai_api_key
+        self.base_url = base_url or settings.openai_base_url
         
         if not self.api_key:
             logger.warning("OpenAI API key not provided")
     
     def get_default_model(self) -> str:
-        return "gpt-3.5-turbo"
+        return "gpt-4.1-mini"  # Updated to current recommended model
     
     def validate_request(self, request: LLMRequest) -> bool:
         return request.provider == "openai"
@@ -48,15 +49,20 @@ class OpenAIProvider(LLMProviderInterface):
         }
         
         try:
+            logger.info(f"Sending request to OpenAI with model: {model}")
+            logger.debug(f"OpenAI payload: {payload}")
+            
             async with httpx.AsyncClient() as client:
                 response = await client.post(
                     f"{self.base_url}/chat/completions",
                     json=payload,
                     headers=headers,
-                    timeout=30.0
+                    timeout=settings.api_timeout
                 )
                 response.raise_for_status()
                 data = response.json()
+                
+                logger.debug(f"OpenAI response received: {data}")
                 
                 generated_text = data["choices"][0]["message"]["content"]
                 usage = data.get("usage")
@@ -70,7 +76,13 @@ class OpenAIProvider(LLMProviderInterface):
                 )
                 
         except httpx.HTTPError as e:
-            logger.error(f"OpenAI API error: {e}")
+            logger.error(f"OpenAI API HTTP error: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_data = e.response.json()
+                    logger.error(f"OpenAI API error details: {error_data}")
+                except:
+                    logger.error(f"OpenAI API raw response: {e.response.text}")
             raise Exception(f"OpenAI API request failed: {str(e)}")
         except Exception as e:
             logger.error(f"Unexpected error in OpenAI provider: {e}")

@@ -1,4 +1,23 @@
 services:
+  postgres:
+    image: pgvector/pgvector:pg15
+    environment:
+      POSTGRES_DB: chrome_history
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql
+    ports:
+      - "5432:5432"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d chrome_history"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   backend:
     build:
       context: ./backend
@@ -7,13 +26,28 @@ services:
       - "8000:8000"
     environment:
       - PYTHONPATH=/app
-      - LOG_LEVEL=info
+      - DOCKER_CONTAINER=true # says that env variables are all set here in docker environment and dont have to be reaad in .env file root
+      - DEBUG=${DEBUG:-false}
+      - LOG_LEVEL=${LOG_LEVEL:-INFO}
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - DEFAULT_PROVIDER=${DEFAULT_PROVIDER:-google}
+      - DEFAULT_MODEL=${DEFAULT_MODEL:-gemini-2.5-pro}
+      - CLUSTERING_BATCH_SIZE=${CLUSTERING_BATCH_SIZE:-20}
+      - CLUSTERING_MAX_TOKENS=${CLUSTERING_MAX_TOKENS:-16384}
+      - CLUSTERING_TEMPERATURE=${CLUSTERING_TEMPERATURE:-0.2}
+      - CHAT_MAX_TOKENS=${CHAT_MAX_TOKENS:-8000}
+      - CHAT_TEMPERATURE=${CHAT_TEMPERATURE:-0.7}
+      - CHAT_HISTORY_LIMIT=${CHAT_HISTORY_LIMIT:-10}
+      # Database configuration
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/chrome_history
     volumes:
       # Mount source code for development (comment out for production)
       - ./backend/app:/app/app
+    depends_on:
+      postgres:
+        condition: service_healthy
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
@@ -21,6 +55,9 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
+
+volumes:
+  postgres_data:
 
 networks:
   default:

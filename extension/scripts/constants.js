@@ -15,7 +15,7 @@ const API_TIMEOUT_MS = 5000; // For health checks
 const API_REQUEST_TIMEOUT_MS = 30000; // For main requests
 
 // UI constants
-const POPUP_WIDTH = 320;
+const POPUP_WIDTH = 500;
 const MAX_CLUSTER_ITEMS_DISPLAY = 5;
 
 // Clustering constants

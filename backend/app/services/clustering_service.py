@@ -2,24 +2,28 @@ import logging
 from typing import List, Dict, Any
 import json
 
+from app.config import settings
 from ..models.session_models import HistorySession, ClusterResult, ClusterItem, SessionClusteringResponse
 from ..models.llm_models import LLMRequest
 from .llm_service import LLMService
 
 logger = logging.getLogger(__name__)
 
+
 class ClusteringService:
     """LLM-driven clustering service: identifies clusters and assigns items per session."""
 
     def __init__(self):
         self.llm_service = LLMService()
+        self.batch_size = settings.clustering_batch_size
+        self.max_tokens = settings.clustering_max_tokens
 
     async def cluster_session(self, session: HistorySession) -> SessionClusteringResponse:
         """
         For a single session: identify clusters with summaries using the LLM, then
         assign each item to one of those clusters. Returns a SessionClusteringResponse.
         """
-        logger.info(f"Starting LLM clustering for session {session.session_id} with {len(session.items)} items")
+        logger.info(f"📊 Processing session {session.session_id} with {len(session.items)} items")
 
         # Step 1: Ask LLM to propose clusters for this session
         clusters_meta = await self.identify_clusters_for_session(session)
@@ -54,7 +58,10 @@ class ClusteringService:
             clusters=cluster_results
         )
 
-        logger.info(f"Session {session.session_id}: generated {len(cluster_results)} clusters")
+        # Log ClusterResult models
+        for cluster_result in cluster_results:
+            logger.info(f"🎯 ClusterResult: {cluster_result.model_dump()}")
+
         return response
 
     async def identify_clusters_for_session(self, session: HistorySession) -> List[Dict[str, Any]]:
@@ -65,24 +72,31 @@ class ClusteringService:
             {
                 "cluster_id": "cluster_1",
                 "theme": "Web Development",
-                "summary": "Pages related to coding, GitHub repositories, and development tools"
+                "summary": "Extensive exploration of coding resources including GitHub repositories for React projects, Stack Overflow discussions about API integration, and documentation for modern web frameworks. Focus on frontend development tools and debugging techniques."
             },
             {
                 "cluster_id": "cluster_2",
-                "theme": "Research",
-                "summary": "Documentation, tutorials, and learning resources"
+                "theme": "Research & Learning",
+                "summary": "In-depth research session covering tutorials on machine learning algorithms, academic papers about neural networks, and educational videos explaining complex programming concepts. Multiple visits to documentation sites and learning platforms."
             },
             {
                 "cluster_id": "cluster_generic",
                 "theme": "General Browsing",
-                "summary": "General browsing activity that doesn't fit into specific thematic clusters"
+                "summary": "Miscellaneous browsing activity including social media checks, news articles, and various unrelated pages that don't form a cohesive theme."
             }
         ]
 
         prompt = (
             "You are an assistant that organizes web browsing sessions into thematic clusters.\n"
             "Given the simplified list of session items, identify between 1 and 10 THEMATIC clusters.\n"
-            "IMPORTANT: You must ALWAYS include a 'cluster_generic' cluster for items that don't fit specific themes.\n"
+            "IMPORTANT: You must ALWAYS include a 'cluster_generic' cluster for items that don't fit specific themes.\n\n"
+            "For each cluster, provide:\n"
+            "- A clear, descriptive theme name\n"
+            "- A DETAILED summary (2-3 sentences) that:\n"
+            "  * Describes the main activities and topics explored\n"
+            "  * Mentions specific websites or types of content visited\n"
+            "  * Explains the user's apparent goal or interest\n"
+            "  * Uses engaging, informative language\n\n"
             "Return ONLY a compact JSON array. Each element must have keys: \"cluster_id\", \"theme\", \"summary\".\n"
             "Do not include any other text.\n\n"
             f"Example format:\n{json.dumps(example, ensure_ascii=False)}\n\n"
@@ -90,9 +104,10 @@ class ClusteringService:
         )
 
         try:
-            req = LLMRequest(prompt=prompt, provider="google", max_tokens=800, temperature=0.2)
+            req = LLMRequest(prompt=prompt, provider=settings.default_provider, max_tokens=self.max_tokens, temperature=settings.clustering_temperature)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
+            
             data = self._extract_json(raw)
             if isinstance(data, list):
                 # Basic schema cleanup
@@ -137,10 +152,11 @@ class ClusteringService:
         cluster_map: Dict[str, List[ClusterItem]] = {c["cluster_id"]: [] for c in clusters_meta}
         valid_ids = {c["cluster_id"] for c in clusters_meta}
 
-        BATCH_SIZE = 20
+        BATCH_SIZE = self.batch_size  # be careful with this value, Gemini 2.5-Pro inconsistent MAX_TOKENS behavior because of internal reasoning tokens
         items = session.items
         for start in range(0, len(items), BATCH_SIZE):
             batch = items[start:start + BATCH_SIZE]
+            logger.info(f"📦 Processing batch with {len(batch)} items")
             assigned_ids = await self._assign_batch_to_clusters(batch, clusters_meta)
 
             # Safety: ensure alignment
@@ -183,9 +199,10 @@ class ClusteringService:
         )
 
         try:
-            req = LLMRequest(prompt=prompt, provider="google", max_tokens=256, temperature=0.0)
+            req = LLMRequest(prompt=prompt, provider=settings.default_provider, max_tokens=self.max_tokens, temperature=0.0)
             resp = await self.llm_service.generate_text(req)
             raw = resp.generated_text.strip()
+            
             assignments = self._extract_json(raw)
             # Expecting a list of strings
             if isinstance(assignments, list) and all(isinstance(x, (str,)) for x in assignments):
@@ -196,6 +213,9 @@ class ClusteringService:
         # Fallback: assign everything to the first cluster (if any)
         first_cluster = clusters_meta[0]["cluster_id"] if clusters_meta else "cluster_generic"
         return [first_cluster] * len(items_batch)
+
+
+
 
     def _prepare_session_items_for_llm(self, session: HistorySession) -> List[Dict[str, Any]]:
         """Return simplified items for prompts: only title, url_hostname, url_pathname_clean, url_search_query."""

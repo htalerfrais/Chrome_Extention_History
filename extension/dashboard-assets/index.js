@@ -12302,6 +12302,26 @@ function Dashboard({
   const isAnalyzing = !currentSessionData;
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing }) });
 }
+function MainLayout({ children, chatComponent }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "main-layout", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "main-content", children }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-sidebar", children: chatComponent })
+  ] });
+}
+function ChatBubble({ message }) {
+  const isUser = message.role === "user";
+  const formatTime = (timestamp) => {
+    const date = new Date(timestamp);
+    return date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `chat-bubble ${isUser ? "chat-bubble-user" : "chat-bubble-assistant"}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-bubble-content", children: message.content }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-bubble-timestamp", children: formatTime(message.timestamp) })
+  ] });
+}
 class ExtensionBridge {
   /**
    * Get preprocessed history items from Chrome storage
@@ -12375,6 +12395,26 @@ class ExtensionBridge {
     }
   }
   /**
+   * Send chat message using extension's ApiClient
+   * This uses the existing api_client.js logic
+   */
+  async sendChatMessage(message, conversationId, history) {
+    if (!window.ApiClient) {
+      throw new Error("ApiClient not available. Extension services not loaded.");
+    }
+    if (!message || message.trim().length === 0) {
+      throw new Error("Message cannot be empty");
+    }
+    try {
+      const result = await window.ApiClient.sendChatMessage(message, conversationId, history || []);
+      console.log("Chat message result:", result);
+      return result;
+    } catch (error) {
+      console.error("Error sending chat message:", error);
+      throw error;
+    }
+  }
+  /**
    * Get extension configuration
    */
   getConfig() {
@@ -12442,6 +12482,105 @@ class ExtensionBridge {
 const extensionBridge = new ExtensionBridge();
 if (typeof window !== "undefined") {
   window.extensionBridge = extensionBridge;
+}
+function ChatWindow() {
+  const [messages, setMessages] = reactExports.useState([]);
+  const [inputValue, setInputValue] = reactExports.useState("");
+  const [isLoading, setIsLoading] = reactExports.useState(false);
+  const [error, setError] = reactExports.useState(null);
+  const [conversationId, setConversationId] = reactExports.useState(null);
+  const messagesEndRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    var _a;
+    (_a = messagesEndRef.current) == null ? void 0 : _a.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+  const handleSendMessage = async () => {
+    const trimmedMessage = inputValue.trim();
+    if (!trimmedMessage || isLoading) {
+      return;
+    }
+    const userMessage = {
+      role: "user",
+      content: trimmedMessage,
+      timestamp: /* @__PURE__ */ new Date()
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setInputValue("");
+    setIsLoading(true);
+    setError(null);
+    try {
+      const result = await extensionBridge.sendChatMessage(
+        trimmedMessage,
+        conversationId || void 0,
+        messages
+      );
+      if (result.success && result.data) {
+        const assistantMessage = {
+          role: "assistant",
+          content: result.data.response,
+          timestamp: new Date(result.data.timestamp)
+        };
+        setMessages((prev) => [...prev, assistantMessage]);
+        setConversationId(result.data.conversation_id);
+      } else {
+        throw new Error(result.error || "Failed to send message");
+      }
+    } catch (err) {
+      console.error("Error sending message:", err);
+      setError(err instanceof Error ? err.message : "Failed to send message");
+      setMessages((prev) => prev.slice(0, -1));
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  const handleInputChange = (e) => {
+    setInputValue(e.target.value);
+  };
+  const handleKeyPress = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-window", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-header", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Chat Assistant" }),
+      conversationId && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "conversation-badge", children: "Active conversation" })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-messages", children: [
+      messages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-empty", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Start a conversation with your browsing history assistant!" }) }) : messages.map((message, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBubble, { message }, `${message.role}-${index}-${message.timestamp.getTime()}`)),
+      isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-loading", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-loading-dots", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." })
+      ] }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: messagesEndRef })
+    ] }),
+    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-error", children: error }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-input-container", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "input",
+        {
+          type: "text",
+          className: "chat-input",
+          placeholder: "Type your message...",
+          value: inputValue,
+          onChange: handleInputChange,
+          onKeyPress: handleKeyPress,
+          disabled: isLoading
+        }
+      ),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          className: "chat-send-button",
+          onClick: handleSendMessage,
+          disabled: isLoading || !inputValue.trim(),
+          children: isLoading ? "Sending..." : "Send"
+        }
+      )
+    ] })
+  ] });
 }
 function App() {
   const [isLoading, setIsLoading] = reactExports.useState(false);
@@ -12618,17 +12757,23 @@ To switch environments, modify extension/api/config.js`);
       }
     ),
     /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBar, { status, statusType }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "dashboard-main", children: [
-      (isLoading || activeIsLoading) && /* @__PURE__ */ jsxRuntimeExports.jsx(LoadingSpinner, {}),
-      error && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: loadDashboard }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        Dashboard,
-        {
-          currentSessionResults,
-          activeSessionId
-        }
-      )
-    ] })
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      MainLayout,
+      {
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "dashboard-main", children: [
+          (isLoading || activeIsLoading) && /* @__PURE__ */ jsxRuntimeExports.jsx(LoadingSpinner, {}),
+          error && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: loadDashboard }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx(
+            Dashboard,
+            {
+              currentSessionResults,
+              activeSessionId
+            }
+          )
+        ] }),
+        chatComponent: /* @__PURE__ */ jsxRuntimeExports.jsx(ChatWindow, {})
+      }
+    )
   ] });
 }
 clientExports.createRoot(document.getElementById("root")).render(

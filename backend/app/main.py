@@ -5,40 +5,46 @@ from typing import List, Dict, Any
 import logging
 from datetime import datetime
 
+from .config import settings
 from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
+from .services.chat_service import ChatService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
 from .models.llm_models import LLMRequest, LLMResponse
+from .models.chat_models import ChatRequest, ChatResponse
 
 # Configure logging
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
-    title="Chrome Extension History Clustering API",
+    title=settings.app_name,
     description="API for clustering browsing history into thematic sessions",
-    version="0.2.0"
+    version=settings.app_version,
+    debug=settings.debug
 )
 
 # Configure CORS for Chrome extension
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["chrome-extension://*", "http://localhost:*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_origins=settings.cors_origins,
+    allow_credentials=settings.cors_allow_credentials,
+    allow_methods=settings.cors_allow_methods,
+    allow_headers=settings.cors_allow_headers,
 )
 
 # Initialize services
 clustering_service = ClusteringService()
 llm_service = LLMService()
+chat_service = ChatService(llm_service)
+# pas de database repository dans l'entrypoint API, on passe toujours par les service métier de business logic dans le API
 
 @app.get("/")
 async def root():
     """Health check endpoint"""
     return {
-        "message": "Chrome Extension History Clustering API",
-        "version": "0.2.0",
+        "message": settings.app_name,
+        "version": settings.app_version,
         "status": "running",
         "timestamp": datetime.now().isoformat()
     }
@@ -50,7 +56,8 @@ async def health_check():
         "status": "healthy",
         "services": {
             "clustering": "operational",
-            "llm": "operational"
+            "llm": "operational",
+            "chat": "operational"
         },
         "timestamp": datetime.now().isoformat()
     }
@@ -82,37 +89,32 @@ async def cluster_session(session: HistorySession):
         logger.error(f"Error clustering session {getattr(session, 'session_id', 'unknown')}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
 
-@app.post("/llm/generate", response_model=LLMResponse)
-async def generate_text(request: LLMRequest):
+
+@app.post("/chat", response_model=ChatResponse)
+async def chat(request: ChatRequest):
     """
-    Generate text using specified LLM provider
+    Chat endpoint for conversational interaction
     
-    Args:
-        request: LLM generation request with prompt and provider settings
-        
-    Returns:
-        LLMResponse with generated text and metadata
+    Phase 1: Simple LLM chat with conversation context
+    Phase 2: Will integrate with history data and tool calling
     """
     try:
-        logger.info(f"Received LLM request for provider: {request.provider}")
+        logger.info(f"Received chat message: {request.message[:50]}...")
         
-        if not request.prompt.strip():
-            raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+        if not request.message.strip():
+            raise HTTPException(status_code=400, detail="Message cannot be empty")
         
-        # Generate text using LLM service
-        response = await llm_service.generate_text(request)
+        # Process message through chat service
+        response = await chat_service.process_message(request)
         
-        logger.info(f"Successfully generated text with {request.provider}")
+        logger.info(f"Chat response generated for conversation {response.conversation_id}")
         return response
         
-    except ValueError as e:
-        logger.error(f"Invalid LLM request: {str(e)}")
-        raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        logger.error(f"Error generating text: {str(e)}")
-        raise HTTPException(status_code=500, detail=f"Text generation failed: {str(e)}")
+        logger.error(f"Error processing chat: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
 
 
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000)
+    uvicorn.run(app, host=settings.host, port=settings.port)

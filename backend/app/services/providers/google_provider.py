@@ -3,8 +3,9 @@ import httpx
 from typing import Optional
 import logging
 
+from app.config import settings
 from .base_provider import LLMProviderInterface
-from ...models.llm_models import LLMRequest, LLMResponse
+from app.models.llm_models import LLMRequest, LLMResponse
 
 logger = logging.getLogger(__name__)
 
@@ -13,14 +14,14 @@ class GoogleProvider(LLMProviderInterface):
     
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         super().__init__(api_key, base_url)
-        self.api_key = api_key or os.getenv("GOOGLE_API_KEY")
-        self.base_url = base_url or "https://generativelanguage.googleapis.com/v1beta"
+        self.api_key = api_key or settings.google_api_key
+        self.base_url = base_url or settings.google_base_url
         
         if not self.api_key:
             logger.warning("Google API key not provided")
     
     def get_default_model(self) -> str:
-        return "gemini-flash-latest"
+        return settings.default_model
     
     def validate_request(self, request: LLMRequest) -> bool:
         return request.provider == "google"
@@ -57,20 +58,42 @@ class GoogleProvider(LLMProviderInterface):
                     f"{self.base_url}/models/{model}:generateContent?key={self.api_key}",
                     json=payload,
                     headers=headers,
-                    timeout=30.0
+                    timeout=settings.api_timeout
                 )
                 response.raise_for_status()
                 data = response.json()
                 
+                # Log raw API response for debugging
+                logger.info(f"🔍 Google API response: {data}")
+                
+                # Log token consumption if available
+                if "usageMetadata" in data:
+                    usage = data["usageMetadata"]
+                    logger.info(f"📊 Token usage - Prompt: {usage.get('promptTokenCount', 'N/A')}, Response: {usage.get('candidatesTokenCount', 'N/A')}")
+                
                 # Extract generated text from Gemini response
+                generated_text = ""
+                
                 if "candidates" in data and len(data["candidates"]) > 0:
                     candidate = data["candidates"][0]
-                    if "content" in candidate and "parts" in candidate["content"]:
-                        generated_text = candidate["content"]["parts"][0]["text"]
-                    else:
-                        generated_text = ""
-                else:
-                    generated_text = ""
+                    
+                    if "content" in candidate:
+                        content = candidate["content"]
+                        finish_reason = candidate.get("finishReason", "UNKNOWN")
+                        
+                        # Check if content was blocked or filtered
+                        if finish_reason in ["SAFETY", "RECITATION", "OTHER"]:
+                            generated_text = ""
+                        elif finish_reason == "MAX_TOKENS":
+                            # Still try to extract text even if truncated
+                            pass
+                        elif finish_reason != "STOP":
+                            generated_text = ""
+                        
+                        # Look for parts array for all non-blocked cases
+                        if "parts" in content and isinstance(content["parts"], list) and len(content["parts"]) > 0:
+                            if "text" in content["parts"][0]:
+                                generated_text = content["parts"][0]["text"]
                 
                 # Extract usage information if available
                 usage = None

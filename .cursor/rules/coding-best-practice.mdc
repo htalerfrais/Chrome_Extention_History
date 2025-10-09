@@ -1,0 +1,30 @@
+---
+alwaysApply: true
+---
+1. **DRY Principle (Don’t Repeat Yourself)**  
+   - Always avoid code duplication.  
+   - If a piece of code looks similar to existing logic, reuse or refactor.  
+
+2. **Simplicity & Efficiency**  
+   - Write only the necessary code.  
+   - Prefer the simplest solution that works efficiently.  
+   - Avoid over-engineering, unnecessary abstractions, or unused helpers.  
+   - Do not write code that is not going to be used for sure.
+
+3. **Consistency with Existing Codebase**  
+   - Before implementing something new, compare your approach with how similar components/features are coded in the existing app.  
+   - If your method differs from the existing one:  
+     - **Do not apply it directly.**  
+     - **Warn me** and wait for my confirmation before proceeding.  
+
+4. **Communication**
+   - Do not hesitate to warn me whenever you find code that doesn't respect best practices, or is useless, while you are reading the codebase.
+
+
+5. **Architecture Principles to respect**
+   - SOLID principles : 
+      - Single responsibility principle (The single-responsibility principle (SRP) states that there should never be more than one reason for a class to change. In other words, every class should have only one responsibility), 
+      - Open–closed principle (The open–closed principle (OCP) states that software entities should be open for extension, but closed for modification.)
+      - Liskov substitution principle (The Liskov substitution principle (LSP) states that functions that use pointers or references to base classes must be able to use objects of derived classes without knowing it.See also design by contract.)
+      - Interface segregation principle (The interface segregation principle (ISP) states that "clients should not be forced to depend upon interfaces that they do not use.)
+      - Dependency inversion principle (The dependency inversion principle (DIP) states to depend upon abstractions, not concretes.)

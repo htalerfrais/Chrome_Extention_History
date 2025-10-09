@@ -77,6 +77,33 @@ class ApiClient {
         return result;
     }
     
+    // Send chat message
+    async sendChatMessage(message, conversationId = null, history = []) {
+        if (!message || message.trim().length === 0) {
+            return { success: false, error: 'Message cannot be empty' };
+        }
+        
+        console.log(`Sending chat message${conversationId ? ` for conversation ${conversationId}` : ''}`);
+        
+        const payload = {
+            message: message,
+            conversation_id: conversationId,
+            history: history,
+            provider: "google"
+        };
+        
+        const result = await this.makeRequest('chat', {
+            method: 'POST',
+            body: JSON.stringify(payload)
+        });
+        
+        if (result.success) {
+            console.log(`Received chat response for conversation ${result.data.conversation_id}`);
+        }
+        
+        return result;
+    }
+    
 }
 
 // Create and export API client instance
