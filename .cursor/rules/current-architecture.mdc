@@ -7,7 +7,7 @@ alwaysApply: true
 
 ## Overview
 
-This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Database** system that analyzes browsing history and organizes it into thematic sessions using AI-powered LLM services. The architecture follows a modern client-server pattern with React UI, extension services bridge, remote AI analysis capabilities, **conversational chat interface** for interactive history exploration, and **persistent database storage** with semantic search capabilities.
+This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Database** system that analyzes browsing history and organizes it into thematic sessions using AI-powered LLM services. The architecture follows a modern client-server pattern with React UI, extension services bridge, remote AI analysis capabilities, **conversational chat interface** for interactive history exploration, and **persistent database storage** with semantic search capabilities using pgvector extension.
 
 ## High-Level Architecture
 
@@ -154,11 +154,11 @@ This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Databas
 - **Key Functions**:
   - Health check endpoints (`/`, `/health`)
   - Single session clustering endpoint (`/cluster-session`)
-  - LLM text generation endpoint (`/llm/generate`)
   - Chat conversation endpoint (`/chat`)
   - CORS configuration for Chrome extension
-  - Database integration with DatabaseService
+  - Service initialization and dependency injection
   - Error handling and logging
+  - **Note**: No direct database repository in API layer - all database operations go through business logic services
 
 #### **Clustering Service** (`clustering_service.py`)
 - **Responsibility**: LLM-driven thematic clustering for single session analysis
@@ -190,6 +190,16 @@ This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Databas
   - **Conversation ID management**: Unique identifiers for chat sessions
   - **Error handling**: Graceful fallbacks for LLM failures
 
+#### **User Service** (`user_service.py`)
+- **Responsibility**: Business logic for user operations and orchestration
+- **Key Functions**:
+  - **User CRUD operations**: Create, read, update, delete users
+  - **User validation**: Email format and data validation
+  - **Repository integration**: Uses DatabaseRepository for data operations
+  - **Business logic**: User existence checks, get-or-create patterns
+  - **Pagination support**: List users with limit/offset
+  - **Note**: Currently contains method stubs - implementation pending
+
 #### **LLM Providers** (`providers/`)
 - **Provider Interface** (`base_provider.py`):
   - Abstract base class for all LLM providers
@@ -216,7 +226,7 @@ This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Databas
 #### **Data Models** (`models/`)
 - **Pydantic Models** (API validation and serialization):
   - **Session Models** (`session_models.py`):
-    - `HistoryItem`: Individual browsing entry
+    - `HistoryItem`: Individual browsing entry with URL features
     - `HistorySession`: Time-grouped browsing session
     - `ClusterResult`: Thematic grouping result
     - `SessionClusteringResponse`: API response format
@@ -237,30 +247,35 @@ This is a **Chrome Extension + React Frontend + Backend API + PostgreSQL Databas
   - `HistoryItem`: Individual history item with URL, title, and metadata
   - Relationships: User → Sessions → Clusters → HistoryItems
   - Vector support: 1536-dimensional embeddings for semantic search
+  - Automatic timestamps and cascade delete operations
 
-#### **Database Service** (`database_service.py`)
-- **Responsibility**: Database operations and session management
-- **Key Functions**:
+#### **Database Layer** (`database.py`, `repositories/`)
+- **Database Configuration** (`database.py`):
+  - **Engine**: Connection pool to PostgreSQL with pgvector support
+  - **SessionLocal**: Factory for creating database sessions
+  - **Health Check**: `check_db_connection()` for connection validation
+  - **Connection Pool**: Pre-ping enabled for reliability
+- **Repository Pattern** (`repositories/database_repository.py`):
   - **Context Manager**: `_get_session()` for automatic session lifecycle
   - **CRUD Operations**: Create, read, update, delete for all models
   - **Transaction Management**: Automatic commit/rollback with error handling
   - **Dictionary Returns**: Converts SQLAlchemy objects to dicts for decoupling
   - **Error Handling**: Robust error logging and graceful failure recovery
   - **Session Decoupling**: Avoids SQLAlchemy session dependencies in returned data
+  - **Generic Operations**: `_execute()` wrapper for consistent error handling
 
 ## React Frontend Architecture
 
 ### **Component Tree**
 ```
-App (State Management + ExtensionBridge + MainLayout)
-├── Header (Logo + Action Buttons)
+App (State Management + ExtensionBridge + Auto-initialization)
+├── Header (Logo + Navigation + Settings)
 ├── StatusBar (Loading/Success/Error States)
-├── MainLayout (70/30 Layout)
+├── MainLayout (70/30 Responsive Layout)
 │   ├── Main Content (70%)
 │   │   ├── LoadingSpinner (Conditional Rendering)
 │   │   ├── ErrorDisplay (Error Handling + Retry)
 │   │   └── Dashboard (Session Analysis)
-│   │       ├── SessionTabs (Session Navigation)
 │   │       └── ClustersSection (Cluster Display)
 │   │           ├── SessionInfo (Session Metadata)
 │   │           └── ClusterGrid
@@ -277,10 +292,13 @@ App (State Management + ExtensionBridge + MainLayout)
 ### **State Management**
 - **React Hooks**: useState, useEffect for local component state
 - **Lazy Loading State**: `availableSessions`, `sessionAnalysisStates` for on-demand processing
+- **Auto-initialization**: Automatic service loading and first session analysis on app start
+- **Session Navigation**: `currentSessionIndex`, `activeSessionId` for session management
 - **Chat State**: `messages`, `conversationId`, `isLoading`, `error` for conversational interface
 - **Props Flow**: Top-down data flow with callback props for user actions
 - **ExtensionBridge**: Service layer for Chrome extension integration including chat
 - **Type Safety**: Centralized TypeScript interfaces in `types/` directory
+- **Error Handling**: Comprehensive error states with retry mechanisms
 
 ### **Build Process**
 - **Development**: Vite dev server at `http://localhost:5173`
@@ -313,20 +331,20 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 
 ## Data Flow
 
-### **Initial Load (Fast)**
+### **Initial Load (Auto-initialization)**
 1. **Data Collection**: Chrome history → Background worker → Local storage
 2. **React Initialization**: Dashboard loads → ExtensionBridge waits for services
-3. **User Action**: Click Refresh → React loads session list only
+3. **Auto-load**: Services ready → Automatically load sessions and analyze most recent
 4. **Service Layer**: ExtensionBridge → SessionManager → Local processing
-5. **UI Update**: Session tabs display with "Click to analyze" status
+5. **UI Update**: Session tabs display with auto-analysis of first session
 
 ### **On-Demand Analysis (Per Session)**
 1. **User Action**: Click session tab → Triggers `analyzeSession(sessionId)`
 2. **Service Layer**: ExtensionBridge → ApiClient → Backend `/cluster-session`
 3. **LLM Processing**: Backend receives single session → LLM cluster identification → Batched item assignment
-4. **Database Storage**: DatabaseService saves results to PostgreSQL with embeddings for semantic search
-5. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
-6. **React Update**: Backend returns single session result → React state updates → UI re-renders
+4. **AI Enhancement**: LLM service generates thematic clusters and assigns items intelligently
+5. **React Update**: Backend returns single session result → React state updates → UI re-renders
+6. **Note**: Database storage integration pending - currently results are not persisted
 
 ### **Chat Conversation Flow**
 1. **User Input**: Type message in ChatWindow → Triggers `handleSendMessage()`
@@ -334,29 +352,42 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 3. **Service Layer**: ExtensionBridge → ApiClient → Backend `/chat`
 4. **Chat Processing**: Backend receives message + history → ChatService builds prompt → LLM generates response
 5. **Response Display**: Assistant message added to chat → Auto-scroll to latest message
+6. **Stateless Design**: Conversation history managed client-side for scalability
 
 ## Key Design Patterns
 
+### **Architecture Patterns**
 - **Extension Services Bridge Pattern**: Clean separation between React UI and Chrome extension services
-- **Service Worker Pattern**: Background processing for continuous data collection
-- **API Gateway Pattern**: Centralized backend service for complex processing
+- **Repository Pattern**: DatabaseRepository provides centralized database operations with clean interface
+- **Service Layer Pattern**: Business logic services orchestrate repository operations
 - **Provider Abstraction Pattern**: Unified interface for multiple LLM providers
-- **Lazy Loading Pattern**: On-demand session analysis for improved performance
+- **API Gateway Pattern**: Centralized backend service for complex processing
+
+### **Data Processing Patterns**
+- **Service Worker Pattern**: Background processing for continuous data collection
 - **Session-based Processing**: Groups related browsing activities by time
 - **LLM-driven Clustering**: AI-powered thematic analysis and intelligent categorization
-- **Stateless Chat Pattern**: Client-managed conversation history for scalability
+- **Batch Processing Pattern**: Efficient LLM API usage through item batching (20 items per batch)
+- **Fallback Strategy Pattern**: Robust error handling with graceful degradation
+
+### **Frontend Patterns**
+- **Lazy Loading Pattern**: On-demand session analysis for improved performance
+- **Auto-initialization Pattern**: Automatic service loading and first session analysis
 - **Optimistic UI Pattern**: Immediate user feedback with rollback on errors
 - **Component Composition**: React components with clear responsibilities
 - **Props Down, Events Up**: Unidirectional data flow with callback props
-- **Batch Processing Pattern**: Efficient LLM API usage through item batching
-- **Fallback Strategy Pattern**: Robust error handling with graceful degradation
-- **Separation of Concerns**: Extension handles data/APIs, React handles UI/UX
-- **Single Responsibility Principle**: Each session analyzed independently
-- **Centralized Type Management**: DRY principle with shared TypeScript interfaces
-- **Repository Pattern**: DatabaseService provides centralized database operations with clean interface
+
+### **Communication Patterns**
+- **Stateless Chat Pattern**: Client-managed conversation history for scalability
 - **Context Manager Pattern**: `_get_session()` for automatic session lifecycle management
 - **Dictionary Conversion Pattern**: SQLAlchemy objects converted to dicts for session decoupling
 - **Transaction Pattern**: Automatic commit/rollback with error handling
+
+### **Code Organization Patterns**
+- **Separation of Concerns**: Extension handles data/APIs, React handles UI/UX
+- **Single Responsibility Principle**: Each session analyzed independently
+- **Centralized Type Management**: DRY principle with shared TypeScript interfaces
+- **Model Separation**: Pydantic for API validation, SQLAlchemy for database mapping
 
 ## Technology Stack
 
@@ -372,9 +403,11 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 - **FastAPI**: Modern Python web framework
 - **Pydantic**: Data validation and serialization
 - **SQLAlchemy**: Python ORM for database operations
+- **pgvector**: PostgreSQL extension for vector similarity search
 - **httpx**: Async HTTP client for LLM API calls
 - **Docker**: Containerized deployment
 - **Uvicorn**: ASGI server
+- **Repository Pattern**: Clean database abstraction layer
 
 ### Database
 - **PostgreSQL 15**: Robust relational database
@@ -391,39 +424,61 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 
 ## Configuration
 
+### **Application Settings** (`config.py`)
 - **Session Gap**: 120 minutes between sessions
 - **History Limit**: 5000 items maximum
-- **API Timeout**: 30 seconds for main requests
+- **API Timeout**: 30 seconds for main requests, 60 seconds for Ollama
 - **Retry Logic**: 3 attempts with exponential backoff
-- **LLM Clustering**: AI-powered thematic analysis with Google Gemini 2.5 Pro (primary provider)
+- **LLM Clustering**: AI-powered thematic analysis with Google Gemini 2.0 Flash (primary provider)
 - **Chat Provider**: Configurable LLM provider (OpenAI/Anthropic/Google/Ollama)
-- **Batch Size**: 10 items per LLM assignment call (reduced due to Gemini token management)
+- **Batch Size**: 20 items per LLM assignment call (optimized for Gemini token management)
 - **Chat History**: Client-side conversation management (stateless backend)
 - **Layout**: 70/30 responsive split (Dashboard/Chat)
-- **LLM Providers**: Configurable via environment variables
-- **API Keys**: Secure environment-based configuration
-- **React Build**: Outputs to extension/dashboard-assets/ for Chrome extension compatibility
-- **Database**: PostgreSQL with pgvector for semantic search
 - **Vector Dimensions**: 1536 (OpenAI embedding model standard)
+
+### **Environment Configuration**
+- **Development**: Uses `.env` file when not in Docker container
+- **Production**: Environment variables passed directly via Docker Compose
+- **API Keys**: Secure environment-based configuration for all LLM providers
+- **Database URL**: PostgreSQL connection string with pgvector support
+- **CORS**: Configured for Chrome extension and localhost development
+
+### **Build Configuration**
+- **React Build**: Outputs to extension/dashboard-assets/ for Chrome extension compatibility
+- **Database**: PostgreSQL 15 with pgvector extension for semantic search
+- **Docker**: Containerized backend with persistent database volumes
 
 ## Environment Variables
 
+### **LLM Provider Keys**
 - `OPENAI_API_KEY`: OpenAI API access key
 - `ANTHROPIC_API_KEY`: Anthropic API access key
 - `GOOGLE_API_KEY`: Google Generative AI API key
-- `OLLAMA_BASE_URL`: Custom Ollama server URL (default: localhost:11434)
+
+### **Database Configuration**
+- `DATABASE_URL`: PostgreSQL connection string with pgvector support
 - `POSTGRES_USER`: PostgreSQL username (default: postgres)
 - `POSTGRES_PASSWORD`: PostgreSQL password (default: postgres)
-- `DATABASE_URL`: PostgreSQL connection string
+
+### **Service Configuration**
+- `OLLAMA_BASE_URL`: Custom Ollama server URL (default: localhost:11434)
+- `DOCKER_CONTAINER`: Flag to indicate Docker environment (affects .env loading)
 
 ## Deployment
 
-- **Extension**: Chrome Web Store (future) / Developer mode (current)
-- **Backend**: Docker container on localhost:8000 (dev) / Cloud (production)
+### **Development Environment**
+- **Extension**: Load unpacked from `extension/` folder in Chrome
+- **Backend**: Docker container on localhost:8000 via `.\scripts\dev_up.ps1`
 - **Database**: PostgreSQL container with persistent volumes
-- **React Frontend**: Built into extension/dashboard-assets/ via Vite
-- **Development**: Docker Compose for backend + database + Vite dev server for React
+- **React Frontend**: Vite dev server at `http://localhost:5173`
 - **LLM Services**: External API dependencies (OpenAI, Anthropic, Google)
+
+### **Production Environment**
+- **Extension**: Chrome Web Store (future) / Developer mode (current)
+- **Backend**: Docker container on cloud infrastructure
+- **Database**: PostgreSQL with pgvector extension
+- **React Frontend**: Built into extension/dashboard-assets/ via Vite
+- **Build Process**: `cd frontend && npm run build` (builds to extension/)
 
 ## Development Workflow
 
@@ -435,5 +490,14 @@ The clustering service now operates through a sophisticated two-phase LLM-driven
 ---
 
 **Last Updated**: January 2025
-**Version**: 0.8.0
-**Status**: Database Integration Complete 🗄️
+**Version**: 0.9.0
+**Status**: Database Layer Complete + Repository Pattern Implemented 🗄️
+
+### **Current Implementation Status**
+- ✅ **Database Layer**: PostgreSQL + pgvector + Repository pattern fully implemented
+- ✅ **Backend Services**: ClusteringService, ChatService, LLMService, UserService (stubs)
+- ✅ **Frontend**: React dashboard with auto-initialization and lazy loading
+- ✅ **Extension Bridge**: Complete service layer for Chrome extension integration
+- ⚠️ **Database Integration**: Repository pattern ready, but clustering results not yet persisted
+- ⚠️ **User Service**: Method stubs implemented, business logic pending
+- 🔄 **Next Phase**: Database persistence integration for clustering results
