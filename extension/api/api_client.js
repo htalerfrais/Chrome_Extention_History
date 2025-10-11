@@ -103,6 +103,15 @@ class ApiClient {
         
         return result;
     }
+
+    // Authenticate with Google
+    async authenticateWithGoogle(token) {
+        const result = await this.makeRequest('authenticate', {
+            method: 'POST',
+            body: JSON.stringify({ token })
+        });
+        return result;
+    }
     
 }
 

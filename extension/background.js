@@ -21,9 +21,19 @@ function collectHistory() {
         } 
     );
 }
-
 // Collecte initiale au lancement du service worker
 collectHistory();
+
+
+chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+    try {
+      const user = await authenticateWithGoogle(token);
+      console.log("Authenticated user:", user);
+    } catch (e) {
+      console.error("Google auth failed:", e);
+    }
+});
+
 
 // Mise à jour en temps réel avec un listner 
 chrome.history.onVisited.addListener((result) => {
