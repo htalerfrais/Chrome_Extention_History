@@ -29,11 +29,15 @@ collectHistory();
 
 
 chrome.identity.getAuthToken({ interactive: true }, async (token) => {
+    if (chrome.runtime.lastError || !token) {
+      console.error('Auth error:', chrome.runtime.lastError?.message || 'No token');
+      return; // don't call /authenticate with an invalid token
+    }
     try {
       const user = await authenticateWithGoogle(token);
       console.log("Authenticated user:", user);
     } catch (e) {
-      console.error("Google auth failed:", e);
+      console.error("Backend auth failed:", e);
     }
 });
 
