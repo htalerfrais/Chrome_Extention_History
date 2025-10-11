@@ -65,14 +65,14 @@ class DatabaseRepository:
     
     # User operations
     
-    def get_or_create_user(self, email: str, username: Optional[str] = None) -> Optional[Dict]:
+    def get_or_create_user(self, token: str) -> Optional[Dict]:
         """Get existing user or create new one"""
         def operation(db):
-            user = db.query(User).filter(User.email == email).first()
+            user = db.query(User).filter(User.token == token).first()
             if user:
                 return user
             
-            user = User(email=email, username=username)
+            user = User(token=token)
             db.add(user)
             db.flush()
             db.refresh(user)

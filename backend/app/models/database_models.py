@@ -23,23 +23,15 @@ Base = declarative_base()
 
 
 class User(Base):
-    """
-    User model - represents users of the Chrome extension
-    
-    Relationships:
-    - One user has many sessions
-    """
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String, unique=True, nullable=False, index=True)
-    username = Column(String, nullable=True)
     token = Column(String, unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<User(id={self.id}, email='{self.email}', username='{self.username}')>"
+        return f"<User(id={self.id}, token='{self.token}')>"
 
 
 class Session(Base):

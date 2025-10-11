@@ -9,6 +9,7 @@ from typing import Optional, Dict, List
 import logging
 
 from app.repositories.database_repository import DatabaseRepository
+from app.models.user_models import AuthenticateRequest, AuthenticateResponse
 
 logger = logging.getLogger(__name__)
 
@@ -22,10 +23,10 @@ class UserService:
     # User CRUD operations
     
 
-    def authenticate(self, token: str) -> Optional[Dict]:
+    def authenticate(self,  request: AuthenticateRequest) -> Optional[Dict]:
         """Authenticate user with Google"""
         # returns user_id, token, timestamp
-        return self.db_repository.get_or_create_user(token)
+        return self.db_repository.get_or_create_user(request.token)
 
 
 # ------------------- Next steps ------------------------------

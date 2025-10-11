@@ -9,9 +9,12 @@ from .config import settings
 from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
 from .services.chat_service import ChatService
+from .services.user_service import UserService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
 from .models.llm_models import LLMRequest, LLMResponse
+from .models.user_models import AuthenticateRequest, AuthenticateResponse
 from .models.chat_models import ChatRequest, ChatResponse
+from .repositories.database_repository import DatabaseRepository
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
@@ -37,6 +40,8 @@ app.add_middleware(
 clustering_service = ClusteringService()
 llm_service = LLMService()
 chat_service = ChatService(llm_service)
+db_repository = DatabaseRepository()
+user_service = UserService(db_repository)
 # pas de database repository dans l'entrypoint API, on passe toujours par les service métier de business logic dans le API
 
 @app.get("/")
@@ -113,6 +118,21 @@ async def chat(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error processing chat: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+
+@app.post("/authenticate", response_model=AuthenticateResponse)
+async def authenticate(request: AuthenticateRequest):
+    """
+    Authenticate with Google
+    """
+    try:
+        logger.info(f"Received authenticate request: {request}")
+        return user_service.authenticate(request)
+    except Exception as e:
+        logger.error(f"Error authenticating: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
+
+
 
 
 if __name__ == "__main__":

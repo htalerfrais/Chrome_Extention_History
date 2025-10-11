@@ -10,14 +10,16 @@ class Config {
                 baseUrl: 'http://localhost:8000',
                 'cluster-session': '/cluster-session',
                 'chat': '/chat',
-                health: '/health'
+                'authenticate': '/authenticate',
+                'health': '/health'
             },
             // Production (to be updated when deployed)
             production: {
                 baseUrl: 'https://your-production-api.com',
                 'cluster-session': '/cluster-session',
                 'chat': '/chat',
-                health: '/health'
+                'authenticate': '/authenticate',
+                'health': '/health'
             }
         };
         

@@ -112,7 +112,6 @@ class ApiClient {
         });
         return result;
     }
-    
 }
 
 // Create and export API client instance
