@@ -116,11 +116,23 @@ class ApiClient {
 }
 
 // Create and export API client instance
-const apiClient = new ApiClient(window.ExtensionConfig || require('./config.js'));
+const apiClient = new ApiClient(
+    (typeof window !== 'undefined' ? window.ExtensionConfig : 
+     typeof self !== 'undefined' ? self.ExtensionConfig : 
+     new Config())
+);
+
 
 // Make available globally
 if (typeof window !== 'undefined') {
     window.ApiClient = apiClient;
+}
+
+// For service workers (background scripts)
+if (typeof self !== 'undefined') {
+    self.ApiClient = apiClient;
+    // Expose authenticateWithGoogle function directly for convenience
+    self.authenticateWithGoogle = apiClient.authenticateWithGoogle.bind(apiClient);
 }
 
 // For Node.js/module environments

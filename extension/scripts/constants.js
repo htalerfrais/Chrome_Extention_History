@@ -50,8 +50,8 @@ const STATUS_ANALYZING_PATTERNS = 'Analyzing browsing patterns...';
 const STATUS_ANALYSIS_COMPLETE = 'Analysis complete';
 const STATUS_ANALYSIS_FAILED = 'Analysis failed';
 
-// Make available globally
-window.ExtensionConstants = {
+// Create constants object
+const ExtensionConstants = {
     SESSION_GAP_MINUTES,
     HISTORY_DAYS_BACK,
     DAY_MS,
@@ -84,3 +84,13 @@ window.ExtensionConstants = {
     STATUS_ANALYSIS_COMPLETE,
     STATUS_ANALYSIS_FAILED
 };
+
+// Make available globally
+if (typeof window !== 'undefined') {
+    window.ExtensionConstants = ExtensionConstants;
+}
+
+// For service workers (background scripts)
+if (typeof self !== 'undefined') {
+    self.ExtensionConstants = ExtensionConstants;
+}

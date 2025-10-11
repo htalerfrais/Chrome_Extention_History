@@ -1,5 +1,8 @@
 // background.js
 importScripts('utils/preprocess_history.js');
+importScripts('scripts/constants.js');
+importScripts('api/config.js');
+importScripts('api/api_client.js');
 
 const MAX_ITEMS = 5000;
 

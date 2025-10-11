@@ -9,8 +9,7 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- ===========================
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    username TEXT,
+    token TEXT UNIQUE NOT NULL,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -66,7 +65,7 @@ CREATE INDEX idx_history_items_embedding ON history_items USING ivfflat (embeddi
 -- SAMPLE DATA (for testing)
 -- ===========================
 -- Insert a default user for testing
-INSERT INTO users (email, username) VALUES ('test@example.com', 'Test User');
+INSERT INTO users (token) VALUES ('test_token_123');
 
 -- ===========================
 -- EXAMPLE QUERIES

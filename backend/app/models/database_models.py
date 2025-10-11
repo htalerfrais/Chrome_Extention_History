@@ -34,6 +34,7 @@ class User(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     email = Column(String, unique=True, nullable=False, index=True)
     username = Column(String, nullable=True)
+    token = Column(String, unique=True, nullable=False, index=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     

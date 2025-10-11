@@ -6,7 +6,8 @@
     "permissions": [
       "history",
       "storage",
-      "tabs"
+      "tabs",
+      "identity"
     ],
     "content_scripts": [],
     "background": {
