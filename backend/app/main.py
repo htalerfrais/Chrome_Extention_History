@@ -79,7 +79,7 @@ async def cluster_session(session: HistorySession):
         SessionClusteringResponse with clusters for the session
     """
     try:
-        logger.info(f"Received session {session.session_id} with {len(session.items)} items for clustering")
+        logger.info(f"Received session {session.session_identifier} with {len(session.items)} items for clustering")
         
         if not session.items:
             raise HTTPException(status_code=400, detail="Session has no items to cluster")
@@ -87,11 +87,11 @@ async def cluster_session(session: HistorySession):
         # Process single session through clustering service
         session_result = await clustering_service.cluster_session(session)
         
-        logger.info(f"Generated clustering result for session {session.session_id} with {len(session_result.clusters)} clusters")
+        logger.info(f"Generated clustering result for session {session.session_identifier} with {len(session_result.clusters)} clusters")
         return session_result
         
     except Exception as e:
-        logger.error(f"Error clustering session {getattr(session, 'session_id', 'unknown')}: {str(e)}")
+        logger.error(f"Error clustering session {getattr(session, 'session_identifier', 'unknown')}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
 
 

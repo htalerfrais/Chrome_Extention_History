@@ -11,8 +11,7 @@ function collectHistory() {
     chrome.history.search(
         { text: '', maxResults: MAX_ITEMS, startTime: 0 },
         function(results) {         // fonction de callback 
-            const withIds = generateUniqueIds(results);
-            const dated = datesFormating(withIds);
+            const dated = datesFormating(results);
             const withUrlFeatures = addUrlFeatures(dated);
             const filtered = filterHistoryURL(withUrlFeatures);
             chrome.storage.local.set({ historyItems: filtered }, () => {
@@ -47,7 +46,7 @@ chrome.history.onVisited.addListener((result) => {
     chrome.storage.local.get({ historyItems: [] }, (data) => {
         let historyItems = data.historyItems;
         // Traiter uniquement le nouvel item
-        const processedNew = filterHistoryURL(addUrlFeatures(datesFormating(generateUniqueIds([result]))));
+        const processedNew = filterHistoryURL(addUrlFeatures(datesFormating([result])));
         if (processedNew && processedNew.length > 0) {
             historyItems.push(processedNew[0]);
         }

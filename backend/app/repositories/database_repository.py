@@ -86,6 +86,7 @@ class DatabaseRepository:
     def create_session(
         self,
         user_id: int,
+        session_identifier: str,
         start_time: datetime,
         end_time: datetime,
         embedding: Optional[list] = None
@@ -94,6 +95,7 @@ class DatabaseRepository:
         def operation(db):
             session = Session(
                 user_id=user_id,
+                session_identifier=session_identifier,
                 start_time=start_time,
                 end_time=end_time,
                 embedding=embedding
@@ -101,7 +103,7 @@ class DatabaseRepository:
             db.add(session)
             db.flush()
             db.refresh(session)
-            logger.info(f"✅ Created session ID: {session.id}")
+            logger.info(f"✅ Created session ID: {session.id}, identifier: {session.session_identifier}")
             return session
         
         return self._execute(operation, "Failed to create session")

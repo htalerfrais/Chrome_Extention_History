@@ -1,20 +1,5 @@
 // preprocess_history.js
 
-// Generate unique IDs for history items
-function generateUniqueIds(items) {
-    if (!Array.isArray(items)) return [];
-    return items.map((item, index) => {
-        if (!item) return item;
-        // Generate a unique ID using timestamp + index + random component
-        const timestamp = item.lastVisitTime || Date.now();
-        const randomSuffix = Math.random().toString(36).substring(2, 8);
-        const uniqueId = `${timestamp}_${index}_${randomSuffix}`;
-        return Object.assign({}, item, {
-            id: uniqueId
-        });
-    });
-}
-
 // Enrich history items with convenient date fields derived from lastVisitTime (Unix ms)
 function datesFormating(items) {
     if (!Array.isArray(items)) return [];

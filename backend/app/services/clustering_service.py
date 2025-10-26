@@ -23,7 +23,7 @@ class ClusteringService:
         For a single session: identify clusters with summaries using the LLM, then
         assign each item to one of those clusters. Returns a SessionClusteringResponse.
         """
-        logger.info(f"📊 Processing session {session.session_id} with {len(session.items)} items")
+        logger.info(f"📊 Processing session {session.session_identifier} with {len(session.items)} items")
 
         # Step 1: Ask LLM to propose clusters for this session
         clusters_meta = await self.identify_clusters_for_session(session)
@@ -34,7 +34,7 @@ class ClusteringService:
         # Build ClusterResult objects
         cluster_results: List[ClusterResult] = []
         for meta in clusters_meta:
-            cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_id}_{len(cluster_results)}"
+            cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_identifier}_{len(cluster_results)}"
             theme: str = meta.get("theme") or "Miscellaneous"
             summary: str = meta.get("summary") or ""
 
@@ -52,7 +52,7 @@ class ClusteringService:
 
         # Create session response
         response = SessionClusteringResponse(
-            session_id=session.session_id,
+            session_identifier=session.session_identifier,
             session_start_time=session.start_time,
             session_end_time=session.end_time,
             clusters=cluster_results
@@ -138,7 +138,7 @@ class ClusteringService:
                 if cleaned:
                     return cleaned
         except Exception as e:
-            logger.error(f"LLM cluster identification failed for session {session.session_id}: {e}")
+            logger.error(f"LLM cluster identification failed for session {session.session_identifier}: {e}")
 
         # Fallback: single generic cluster
         return [{
@@ -169,11 +169,9 @@ class ClusteringService:
                     assigned_id = next(iter(valid_ids)) if valid_ids else "cluster_generic"
 
                 cluster_item = ClusterItem(
-                    id=item.id,
                     url=item.url,
                     title=item.title,
                     visit_time=item.visit_time,
-                    session_id=session.session_id,
                     url_hostname=item.url_hostname,
                     url_pathname_clean=item.url_pathname_clean,
                     url_search_query=item.url_search_query

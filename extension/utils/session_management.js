@@ -79,16 +79,13 @@ class SessionManager {
         console.log(`Formatting ${sessions.length} sessions for API`);
         
         return sessions.map(session => ({
-            session_id: session.sessionId,
+            session_identifier: session.sessionId,
             start_time: new Date(session.startTime).toISOString(),
             end_time: new Date(session.endTime).toISOString(),
             items: session.items.map(item => ({
-                id: item.id,
                 url: item.url,
                 title: item.title || 'Untitled',
                 visit_time: new Date(item.lastVisitTime || item.visitTime).toISOString(),
-                visit_count: item.visitCount || 1,
-                typed_count: item.typedCount || 0,
                 url_hostname: item.urlHostname || safeGetHostname(item.url),
                 url_pathname_clean: item.urlPathnameClean || '/',
                 url_search_query: item.urlSearchQuery || ''
