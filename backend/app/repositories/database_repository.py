@@ -83,6 +83,14 @@ class DatabaseRepository:
     
     # Session operations
     
+    def get_session_by_identifier(self, session_identifier: str) -> Optional[Dict]:
+        """Get a session by its unique identifier"""
+        def operation(db):
+            session = db.query(Session).filter(Session.session_identifier == session_identifier).first()
+            return session
+        
+        return self._execute(operation, "Failed to get session by identifier")
+    
     def create_session(
         self,
         user_id: int,
