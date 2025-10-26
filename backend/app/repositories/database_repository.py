@@ -5,7 +5,7 @@ This repository handles basic database operations for all models.
 Returns dictionaries to avoid SQLAlchemy session dependencies.
 """
 
-from typing import Optional, Callable, Any, Dict
+from typing import Optional, Callable, Any, Dict, List
 from datetime import datetime
 import logging
 from contextlib import contextmanager
@@ -32,17 +32,19 @@ class DatabaseRepository:
         finally:
             db.close()
     
-    def _execute(self, operation: Callable, error_msg: str = "Operation failed") -> Optional[Dict]:
+    def _execute(self, operation: Callable, error_msg: str = "Operation failed") -> Optional[Any]:
         """
         Generic database operation wrapper
         Handles session lifecycle, commits, rollbacks, and error logging
-        Returns dictionary to avoid SQLAlchemy session dependencies
+        Returns dictionary or list to avoid SQLAlchemy session dependencies
         """
         try:
             with self._get_session() as db:
                 result = operation(db)
                 if result is not None:
-                    # Convert SQLAlchemy object to dict
+                    # Convert SQLAlchemy object(s) to dict(s)
+                    if isinstance(result, list):
+                        return [self._to_dict(obj) for obj in result]
                     return self._to_dict(result)
                 return None
         except Exception as e:
@@ -140,6 +142,41 @@ class DatabaseRepository:
             return cluster
         
         return self._execute(operation, "Failed to create cluster")
+    
+    def get_clusters_by_session_id(self, session_id: int) -> List[Dict]:
+        """Get all clusters for a session"""
+        def operation(db):
+            clusters = db.query(Cluster).filter(Cluster.session_id == session_id).all()
+            return clusters
+        
+        result = self._execute(operation, "Failed to get clusters by session id")
+        if result is None:
+            return []
+        return result if isinstance(result, list) else []
+    
+    def get_history_items_by_cluster_id(self, cluster_id: int) -> List[Dict]:
+        """Get all history items for a cluster"""
+        def operation(db):
+            items = db.query(HistoryItem).filter(HistoryItem.cluster_id == cluster_id).all()
+            return items
+        
+        result = self._execute(operation, "Failed to get history items by cluster id")
+        if result is None:
+            return []
+        return result if isinstance(result, list) else []
+    
+    def get_session_with_relations(self, session_identifier: str) -> Optional[Dict]:
+        """Get session with all related clusters and items"""
+        def operation(db):
+            from sqlalchemy.orm import joinedload
+            
+            session = db.query(Session)\
+                .options(joinedload(Session.clusters))\
+                .filter(Session.session_identifier == session_identifier)\
+                .first()
+            return session
+        
+        return self._execute(operation, "Failed to get session with relations")
     
     # History item operations
     

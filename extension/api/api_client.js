@@ -63,15 +63,34 @@ class ApiClient {
             return { success: false, error: 'No valid session provided' };
         }
         
-        console.log(`Sending session ${session.session_id} with ${session.items.length} items for clustering`);
+        // Get user token from chrome.storage
+        let userToken;
+        try {
+            const stored = await chrome.storage.local.get('userToken');
+            userToken = stored.userToken;
+        } catch (e) {
+            console.error('Failed to get user token from storage:', e);
+        }
+        
+        if (!userToken) {
+            return { success: false, error: 'User not authenticated' };
+        }
+        
+        // Add user_token to session object
+        const sessionWithUser = {
+            ...session,
+            user_token: userToken
+        };
+        
+        console.log(`Sending session ${session.session_identifier} with ${session.items.length} items for clustering`);
         
         const result = await this.makeRequest('cluster-session', {
             method: 'POST',
-            body: JSON.stringify(session)
+            body: JSON.stringify(sessionWithUser)
         });
         
         if (result.success) {
-            console.log(`Received clustering result for session ${session.session_id} with ${result.data.clusters?.length || 0} clusters`);
+            console.log(`Received clustering result for session ${session.session_identifier} with ${result.data.clusters?.length || 0} clusters`);
         }
         
         return result;

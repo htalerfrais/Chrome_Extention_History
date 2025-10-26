@@ -35,6 +35,10 @@ chrome.identity.getAuthToken({ interactive: true }, async (token) => {
     try {
       const user = await authenticateWithGoogle(token);
       console.log("Authenticated user:", user);
+      
+      // Store token for future requests
+      await chrome.storage.local.set({ userToken: token });
+      console.log("User token stored in chrome.storage.local");
     } catch (e) {
       console.error("Backend auth failed:", e);
     }

@@ -10,6 +10,7 @@ from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
 from .services.chat_service import ChatService
 from .services.user_service import UserService
+from .services.mapping_service import MappingService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
 from .models.llm_models import LLMRequest, LLMResponse
 from .models.user_models import AuthenticateRequest, AuthenticateResponse
@@ -37,10 +38,11 @@ app.add_middleware(
 )
 
 # Initialize services
-clustering_service = ClusteringService()
+db_repository = DatabaseRepository()
+mapping_service = MappingService(db_repository)
+clustering_service = ClusteringService(mapping_service=mapping_service)
 llm_service = LLMService()
 chat_service = ChatService(llm_service)
-db_repository = DatabaseRepository()
 user_service = UserService(db_repository)
 # pas de database repository dans l'entrypoint API, on passe toujours par les service métier de business logic dans le API
 
@@ -84,12 +86,22 @@ async def cluster_session(session: HistorySession):
         if not session.items:
             raise HTTPException(status_code=400, detail="Session has no items to cluster")
         
-        # Process single session through clustering service
-        session_result = await clustering_service.cluster_session(session)
+        # Step 1: Get or create user from token
+        user_dict = db_repository.get_or_create_user(session.user_token)
+        if not user_dict:
+            raise HTTPException(status_code=401, detail="Invalid user token")
+        
+        user_id = user_dict["id"]
+        logger.info(f"Authenticated user_id: {user_id}")
+        
+        # Step 2: Process session through clustering service (handles caching and persistence)
+        session_result = await clustering_service.cluster_session(session, user_id)
         
         logger.info(f"Generated clustering result for session {session.session_identifier} with {len(session_result.clusters)} clusters")
         return session_result
         
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error clustering session {getattr(session, 'session_identifier', 'unknown')}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
