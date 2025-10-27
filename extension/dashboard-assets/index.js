@@ -12632,31 +12632,35 @@ function App() {
       const sortedSessions = sessions.sort(
         (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
       );
-      setAvailableSessions(sortedSessions);
+      const sessionsWithId = sortedSessions.map((session) => __spreadProps(__spreadValues({}, session), {
+        session_id: session.session_identifier
+      }));
+      setAvailableSessions(sessionsWithId);
       const initialStates = {};
-      sortedSessions.forEach((session) => {
-        initialStates[session.session_id] = "pending";
+      sessionsWithId.forEach((session) => {
+        initialStates[session.session_identifier] = "pending";
       });
       setSessionAnalysisStates(initialStates);
-      if (sortedSessions.length > 0) {
+      if (sessionsWithId.length > 0) {
         setCurrentSessionIndex(0);
-        setActiveSessionId(sortedSessions[0].session_id);
+        const firstSessionId = sessionsWithId[0].session_identifier;
+        setActiveSessionId(firstSessionId);
         setStatus("Analyzing most recent session...");
-        const firstSession = sortedSessions[0];
+        const firstSession = sessionsWithId[0];
         setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_id]: "loading"
+          [firstSession.session_identifier]: "loading"
         }));
         const clusterResult = await extensionBridge.clusterSession(firstSession);
         if (!clusterResult.success) {
           throw new Error(`Clustering failed: ${clusterResult.error}`);
         }
         setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_id]: clusterResult.data
+          [firstSession.session_identifier]: clusterResult.data
         }));
         setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_id]: "completed"
+          [firstSession.session_identifier]: "completed"
         }));
-        setStatus(`Session ${firstSession.session_id} analyzed successfully`);
+        setStatus(`Session ${firstSession.session_identifier} analyzed successfully`);
         setStatusType("success");
       }
     } catch (error2) {
@@ -12706,7 +12710,7 @@ function App() {
   };
   const handleSessionChange = async (sessionId) => {
     setActiveSessionId(sessionId);
-    const newIndex = availableSessions.findIndex((s) => s.session_id === sessionId);
+    const newIndex = availableSessions.findIndex((s) => s.session_identifier === sessionId);
     if (newIndex !== -1) {
       setCurrentSessionIndex(newIndex);
     }
@@ -12717,14 +12721,14 @@ function App() {
   const goToPreviousSession = async () => {
     if (currentSessionIndex > 0) {
       const newIndex = currentSessionIndex - 1;
-      const newSessionId = availableSessions[newIndex].session_id;
+      const newSessionId = availableSessions[newIndex].session_identifier;
       await handleSessionChange(newSessionId);
     }
   };
   const goToNextSession = async () => {
     if (currentSessionIndex < availableSessions.length - 1) {
       const newIndex = currentSessionIndex + 1;
-      const newSessionId = availableSessions[newIndex].session_id;
+      const newSessionId = availableSessions[newIndex].session_identifier;
       await handleSessionChange(newSessionId);
     }
   };

@@ -79,25 +79,32 @@ function App() {
       )
       
       // Store available sessions and initialize analysis states
-      setAvailableSessions(sortedSessions)
+      // Add session_id field for internal use (use session_identifier as the key)
+      const sessionsWithId = sortedSessions.map((session: any) => ({
+        ...session,
+        session_id: session.session_identifier
+      }))
+      setAvailableSessions(sessionsWithId)
+      
       const initialStates: { [sessionId: string]: 'pending' } = {}
-      sortedSessions.forEach((session: any) => {
-        initialStates[session.session_id] = 'pending'
+      sessionsWithId.forEach((session: any) => {
+        initialStates[session.session_identifier] = 'pending'
       })
       setSessionAnalysisStates(initialStates)
       
       // Set first session (most recent) as active and auto-analyze it
-      if (sortedSessions.length > 0) {
+      if (sessionsWithId.length > 0) {
         setCurrentSessionIndex(0)
-        setActiveSessionId(sortedSessions[0].session_id)
+        const firstSessionId = sessionsWithId[0].session_identifier
+        setActiveSessionId(firstSessionId)
         
         // Auto-analyze the first session
         setStatus('Analyzing most recent session...')
         // Call with immediate session object to avoid pending state depending on setState order
-        const firstSession = sortedSessions[0]
+        const firstSession = sessionsWithId[0]
         setSessionAnalysisStates(prev => ({
           ...prev,
-          [firstSession.session_id]: 'loading'
+          [firstSession.session_identifier]: 'loading'
         }))
         const clusterResult = await extensionBridge.clusterSession(firstSession)
         if (!clusterResult.success) {
@@ -105,13 +112,13 @@ function App() {
         }
         setCurrentSessionResults((prev: any) => ({
           ...prev,
-          [firstSession.session_id]: clusterResult.data
+          [firstSession.session_identifier]: clusterResult.data
         }))
         setSessionAnalysisStates(prev => ({
           ...prev,
-          [firstSession.session_id]: 'completed'
+          [firstSession.session_identifier]: 'completed'
         }))
-        setStatus(`Session ${firstSession.session_id} analyzed successfully`)
+        setStatus(`Session ${firstSession.session_identifier} analyzed successfully`)
         setStatusType('success')
       }
       
@@ -190,7 +197,7 @@ function App() {
     setActiveSessionId(sessionId)
     
     // Update current session index
-    const newIndex = availableSessions.findIndex(s => s.session_id === sessionId)
+    const newIndex = availableSessions.findIndex(s => s.session_identifier === sessionId)
     if (newIndex !== -1) {
       setCurrentSessionIndex(newIndex)
     }
@@ -205,7 +212,7 @@ function App() {
   const goToPreviousSession = async () => {
     if (currentSessionIndex > 0) {
       const newIndex = currentSessionIndex - 1
-      const newSessionId = availableSessions[newIndex].session_id
+      const newSessionId = availableSessions[newIndex].session_identifier
       await handleSessionChange(newSessionId)
     }
   }
@@ -213,7 +220,7 @@ function App() {
   const goToNextSession = async () => {
     if (currentSessionIndex < availableSessions.length - 1) {
       const newIndex = currentSessionIndex + 1
-      const newSessionId = availableSessions[newIndex].session_id
+      const newSessionId = availableSessions[newIndex].session_identifier
       await handleSessionChange(newSessionId)
     }
   }
