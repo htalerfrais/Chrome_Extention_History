@@ -63,11 +63,13 @@ class ApiClient {
             return { success: false, error: 'No valid session provided' };
         }
         
-        // Get user token from chrome.storage
+        // Get user token and google_user_id from chrome.storage
         let userToken;
+        let googleUserId;
         try {
-            const stored = await chrome.storage.local.get('userToken');
+            const stored = await chrome.storage.local.get(['userToken', 'googleUserId']);
             userToken = stored.userToken;
+            googleUserId = stored.googleUserId;
         } catch (e) {
             console.error('Failed to get user token from storage:', e);
         }
@@ -79,7 +81,8 @@ class ApiClient {
         // Add user_token to session object
         const sessionWithUser = {
             ...session,
-            user_token: userToken
+            user_token: userToken,
+            user_google_id: googleUserId
         };
         
         console.log(`Sending session ${session.session_identifier} with ${session.items.length} items for clustering`);
@@ -124,10 +127,10 @@ class ApiClient {
     }
 
     // Authenticate with Google
-    async authenticateWithGoogle(token) {
+    async authenticateWithGoogle(token, googleUserId) {
         const result = await this.makeRequest('authenticate', {
             method: 'POST',
-            body: JSON.stringify({ token })
+            body: JSON.stringify({ token, google_user_id: googleUserId })
         });
         return result;
     }

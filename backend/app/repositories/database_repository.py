@@ -67,20 +67,29 @@ class DatabaseRepository:
     
     # User operations
     
-    def get_or_create_user(self, token: str) -> Optional[Dict]:
-        """Get existing user or create new one"""
+    def get_user_by_google_id(self, google_user_id: str) -> Optional[Dict]:
+        """Get existing user by stable Google user id"""
         def operation(db):
-            user = db.query(User).filter(User.token == token).first()
+            user = db.query(User).filter(User.google_user_id == google_user_id).first()
+            return user
+        return self._execute(operation, "Get user by google_user_id failed")
+
+    def get_or_create_user_by_google_id(self, google_user_id: str, token: Optional[str] = None) -> Optional[Dict]:
+        """Get existing user by google_user_id or create new one; update token if provided."""
+        def operation(db):
+            user = db.query(User).filter(User.google_user_id == google_user_id).first()
             if user:
+                # Update token if changed
+                if token and user.token != token:
+                    user.token = token
+                    db.add(user)
                 return user
-            
-            user = User(token=token)
+            user = User(google_user_id=google_user_id, token=token)
             db.add(user)
             db.flush()
             db.refresh(user)
-            logger.info(f"✅ Created user ID: {user.id}")
+            logger.info(f"✅ Created user ID: {user.id} (google_user_id={google_user_id})")
             return user
-        
         return self._execute(operation, "User operation failed")
     
     # Session operations

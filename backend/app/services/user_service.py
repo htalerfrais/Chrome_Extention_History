@@ -24,9 +24,8 @@ class UserService:
     
 
     def authenticate(self,  request: AuthenticateRequest) -> Optional[Dict]:
-        """Authenticate user with Google"""
-        # returns user_id, token, timestamp
-        return self.db_repository.get_or_create_user(request.token)
+        """Authenticate user with Google using stable google_user_id"""
+        return self.db_repository.get_or_create_user_by_google_id(request.google_user_id, token=request.token)
 
 
 # ------------------- Next steps ------------------------------

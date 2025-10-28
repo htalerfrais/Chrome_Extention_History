@@ -33,11 +33,15 @@ chrome.identity.getAuthToken({ interactive: true }, async (token) => {
       return; // don't call /authenticate with an invalid token
     }
     try {
-      const user = await authenticateWithGoogle(token);
+      // Get stable Google profile info
+      const profile = await new Promise((resolve) => chrome.identity.getProfileUserInfo({ accountStatus: 'ANY' }, resolve));
+      const googleUserId = profile?.id || null; // requires identity.email permission
+      
+      const user = await authenticateWithGoogle(token, googleUserId);
       console.log("Authenticated user:", user);
       
       // Store token for future requests
-      await chrome.storage.local.set({ userToken: token });
+      await chrome.storage.local.set({ userToken: token, googleUserId });
       console.log("User token stored in chrome.storage.local");
     } catch (e) {
       console.error("Backend auth failed:", e);

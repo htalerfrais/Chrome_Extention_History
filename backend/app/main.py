@@ -86,8 +86,14 @@ async def cluster_session(session: HistorySession):
         if not session.items:
             raise HTTPException(status_code=400, detail="Session has no items to cluster")
         
-        # Step 1: Get or create user from token
-        user_dict = db_repository.get_or_create_user(session.user_token)
+        # Step 1: Get or create user by stable google_user_id (sent via /authenticate)
+        # Fallback to token-only if google_user_id is not available in the request model
+        google_user_id = getattr(session, 'user_google_id', None)
+        if google_user_id:
+            user_dict = db_repository.get_or_create_user_by_google_id(google_user_id)
+        else:
+            # Backward compatibility: if only token exists, try to derive user from token
+            user_dict = None
         if not user_dict:
             raise HTTPException(status_code=401, detail="Invalid user token")
         
@@ -138,8 +144,9 @@ async def authenticate(request: AuthenticateRequest):
     Authenticate with Google
     """
     try:
-        logger.info(f"Received authenticate request: {request}")
-        return user_service.authenticate(request)
+        logger.info(f"Received authenticate request for google_user_id={request.google_user_id}")
+        user = user_service.authenticate(request)
+        return user
     except Exception as e:
         logger.error(f"Error authenticating: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")

@@ -7,7 +7,8 @@
       "history",
       "storage",
       "tabs",
-      "identity"
+      "identity",
+      "identity.email"
     ],
     "oauth2": {
       "client_id": "548963635302-p85fa1nd4g783bik03dsh8hibqorm9h3.apps.googleusercontent.com",

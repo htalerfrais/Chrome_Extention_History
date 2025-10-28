@@ -26,12 +26,13 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    token = Column(String, unique=True, nullable=False, index=True)
+    google_user_id = Column(String, unique=True, nullable=False, index=True)
+    token = Column(String, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<User(id={self.id}, token='{self.token}')>"
+        return f"<User(id={self.id}, google_user_id='{self.google_user_id}')>"
 
 
 class Session(Base):
