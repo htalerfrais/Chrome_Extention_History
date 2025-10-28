@@ -187,6 +187,16 @@ class DatabaseRepository:
         
         return self._execute(operation, "Failed to get session with relations")
     
+    def delete_session_by_identifier(self, session_identifier: str) -> Optional[bool]:
+        """Delete a session (and cascaded relations) by its unique identifier"""
+        def operation(db):
+            session = db.query(Session).filter(Session.session_identifier == session_identifier).first()
+            if not session:
+                return None
+            db.delete(session)
+            return True
+        return self._execute(operation, "Failed to delete session by identifier")
+    
     # History item operations
     
     def create_history_item(

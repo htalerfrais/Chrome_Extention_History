@@ -70,7 +70,7 @@ async def health_check():
     }
 
 @app.post("/cluster-session", response_model=SessionClusteringResponse)
-async def cluster_session(session: HistorySession):
+async def cluster_session(session: HistorySession, force: bool = False):
     """
     Cluster a single browsing history session into thematic groups
     
@@ -101,7 +101,7 @@ async def cluster_session(session: HistorySession):
         logger.info(f"Authenticated user_id: {user_id}")
         
         # Step 2: Process session through clustering service (handles caching and persistence)
-        session_result = await clustering_service.cluster_session(session, user_id)
+        session_result = await clustering_service.cluster_session(session, user_id, force=force)
         
         logger.info(f"Generated clustering result for session {session.session_identifier} with {len(session_result.clusters)} clusters")
         return session_result

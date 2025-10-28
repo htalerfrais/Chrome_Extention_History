@@ -22,9 +22,10 @@ class MappingService:
         self.db_repository = db_repository
     
     def save_clustering_result(
-        self, 
-        user_id: int, 
-        response: SessionClusteringResponse
+        self,
+        user_id: int,
+        response: SessionClusteringResponse,
+        replace_if_exists: bool = False
     ) -> int:
         """
         Save clustering result to database
@@ -38,6 +39,12 @@ class MappingService:
         """
         logger.info(f"💾 Saving clustering result for session {response.session_identifier}")
         
+        # Optionally replace existing session record
+        if replace_if_exists:
+            existing = self.db_repository.get_session_by_identifier(response.session_identifier)
+            if existing:
+                self.db_repository.delete_session_by_identifier(response.session_identifier)
+
         # Create Session record
         session_dict = self.db_repository.create_session(
             user_id=user_id,

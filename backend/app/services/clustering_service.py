@@ -19,7 +19,7 @@ class ClusteringService:
         self.max_tokens = settings.clustering_max_tokens
         self.mapping_service = mapping_service  # Injected for caching and persistence
 
-    async def cluster_session(self, session: HistorySession, user_id: int) -> SessionClusteringResponse:
+    async def cluster_session(self, session: HistorySession, user_id: int, force: bool = False) -> SessionClusteringResponse:
         """
         Cluster session with caching and automatic persistence
         
@@ -29,10 +29,12 @@ class ClusteringService:
         4. Save result to DB
         5. Return result
         """
-        logger.info(f"📊 Processing session {session.session_identifier} with {len(session.items)} items")
+        # Canonicalize identifier with user scope to avoid cross-user collisions
+        session.session_identifier = f"u{user_id}:{session.session_identifier}"
+        logger.info(f"📊 Processing session {session.session_identifier} with {len(session.items)} items (force={force})")
         
         # Step 1: Check if session already analyzed (cache check)
-        if self.mapping_service:
+        if self.mapping_service and not force:
             cached_result = self.mapping_service.get_clustering_result(session.session_identifier)
             if cached_result:
                 logger.info(f"✅ Found cached result for session {session.session_identifier}, returning without LLM calls")
@@ -79,7 +81,7 @@ class ClusteringService:
         # Step 3: Save to database (automatic persistence)
         if self.mapping_service:
             try:
-                session_id = self.mapping_service.save_clustering_result(user_id, response)
+                session_id = self.mapping_service.save_clustering_result(user_id, response, replace_if_exists=force)
                 logger.info(f"💾 Saved clustering result to database with session_id: {session_id}")
             except Exception as e:
                 logger.error(f"❌ Failed to save clustering result to database: {e}")

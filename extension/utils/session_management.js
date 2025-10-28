@@ -15,13 +15,12 @@ class SessionManager {
      */
     generateSessionIdentifier(startTime, endTime, items) {
         // Create a stable string from session characteristics
-        // Use start/end times and first/last URLs to ensure uniqueness
+        // Keep it stable for the current session by only using startTime and firstUrl
         const urls = items.map(item => item.url || '').filter(url => url.length > 0);
         const firstUrl = urls[0] || '';
-        const lastUrl = urls[urls.length - 1] || '';
         
         // Create a stable hash string combining key session attributes
-        const hashInput = `${startTime}_${endTime}_${firstUrl}_${lastUrl}_${items.length}`;
+        const hashInput = `${startTime}_${firstUrl}`;
         
         // Generate a deterministic hash using a simple string hashing algorithm
         let hash = 0;
