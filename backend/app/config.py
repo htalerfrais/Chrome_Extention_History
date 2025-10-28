@@ -49,6 +49,8 @@ class Settings(BaseSettings):
     clustering_batch_size: int = 20
     clustering_max_tokens: int = 16384
     clustering_temperature: float = 0.2
+    # Current session detection window (minutes)
+    current_session_gap_minutes: int = 30
     
     # Chat Service  
     chat_max_tokens: int = 8000

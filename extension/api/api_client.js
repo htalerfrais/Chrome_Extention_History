@@ -8,7 +8,9 @@ class ApiClient {
     
     // Generic API request method with retry logic
     async makeRequest(endpoint, options = {}) {
-        const url = this.config.getEndpointUrl(endpoint);
+        const query = options.query || null;
+        const urlBase = this.config.getEndpointUrl(endpoint);
+        const url = query ? `${urlBase}?${new URLSearchParams(query).toString()}` : urlBase;
         const headers = this.config.getRequestHeaders();
         
         const requestOptions = {
@@ -58,7 +60,7 @@ class ApiClient {
     }
     
     // Send single session for clustering
-    async clusterSession(session) {
+    async clusterSession(session, opts = {}) {
         if (!session || !session.items || session.items.length === 0) {
             return { success: false, error: 'No valid session provided' };
         }
@@ -89,7 +91,8 @@ class ApiClient {
         
         const result = await this.makeRequest('cluster-session', {
             method: 'POST',
-            body: JSON.stringify(sessionWithUser)
+            body: JSON.stringify(sessionWithUser),
+            query: opts.force ? { force: 'true' } : undefined
         });
         
         if (result.success) {

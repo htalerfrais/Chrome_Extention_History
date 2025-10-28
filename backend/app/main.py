@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from .config import settings
 from .services.clustering_service import ClusteringService
@@ -100,6 +100,19 @@ async def cluster_session(session: HistorySession, force: bool = False):
         user_id = user_dict["id"]
         logger.info(f"Authenticated user_id: {user_id}")
         
+        # Decide force if not explicitly provided: treat very recent sessions as current
+        if not force:
+            try:
+                gap_minutes = settings.current_session_gap_minutes
+            except Exception:
+                gap_minutes = 30
+            now = datetime.now(timezone.utc)
+            end_time = session.end_time
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
+            is_current = (now - end_time) <= timedelta(minutes=gap_minutes)
+            force = is_current
+
         # Step 2: Process session through clustering service (handles caching and persistence)
         session_result = await clustering_service.cluster_session(session, user_id, force=force)
         

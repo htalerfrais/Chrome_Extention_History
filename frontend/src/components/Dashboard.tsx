@@ -7,11 +7,15 @@ import type { SessionResults } from '../types/session';
 interface DashboardProps {
   currentSessionResults: SessionResults;
   activeSessionId: string | null;
+  onReanalyze?: () => void;
+  isReanalyzing?: boolean;
 }
 
 export default function Dashboard({ 
   currentSessionResults, 
-  activeSessionId
+  activeSessionId,
+  onReanalyze,
+  isReanalyzing
 }: DashboardProps) {
   // Get the current session data
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
@@ -19,7 +23,7 @@ export default function Dashboard({
 
   return (
     <div className="dashboard-content">
-      <ClustersSection sessionData={currentSessionData} isAnalyzing={isAnalyzing} />
+      <ClustersSection sessionData={currentSessionData} isAnalyzing={isAnalyzing} onReanalyze={onReanalyze} isReanalyzing={isReanalyzing} />
     </div>
   );
 }

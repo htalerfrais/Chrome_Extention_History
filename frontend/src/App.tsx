@@ -21,6 +21,7 @@ function App() {
   const [availableSessions, setAvailableSessions] = useState<any[]>([])
   const [sessionAnalysisStates, setSessionAnalysisStates] = useState<SessionAnalysisStates>({})
   const [currentSessionIndex, setCurrentSessionIndex] = useState(0)
+  const [isReanalyzing, setIsReanalyzing] = useState(false)
 
   // Wait for extension services to be ready and auto-load sessions
   useEffect(() => {
@@ -192,6 +193,41 @@ function App() {
     }
   }
 
+  // Force re-analysis for the active session
+  const reanalyzeActiveSession = async () => {
+    if (!activeSessionId) return
+    const session = availableSessions.find(s => s.session_id === activeSessionId)
+    if (!session) return
+
+    try {
+      setIsReanalyzing(true)
+      setStatus(`Re-analyzing session ${activeSessionId}...`)
+      setStatusType('loading')
+
+      const result = await extensionBridge.clusterSession(session, { force: true })
+      if (!result.success) {
+        throw new Error(`Clustering failed: ${result.error}`)
+      }
+
+      setCurrentSessionResults((prev: any) => ({
+        ...prev,
+        [activeSessionId]: result.data
+      }))
+      setSessionAnalysisStates(prev => ({
+        ...prev,
+        [activeSessionId]: 'completed'
+      }))
+      setStatus(`Session ${activeSessionId} re-analyzed successfully`)
+      setStatusType('success')
+    } catch (error) {
+      console.error('Re-analysis failed:', error)
+      setStatus('Re-analysis failed')
+      setStatusType('error')
+    } finally {
+      setIsReanalyzing(false)
+    }
+  }
+
   // Handle session change - analyze if needed
   const handleSessionChange = async (sessionId: string) => {
     setActiveSessionId(sessionId)
@@ -261,6 +297,8 @@ function App() {
             <Dashboard 
               currentSessionResults={currentSessionResults}
               activeSessionId={activeSessionId}
+              onReanalyze={reanalyzeActiveSession}
+              isReanalyzing={isReanalyzing}
             />
           </main>
         }

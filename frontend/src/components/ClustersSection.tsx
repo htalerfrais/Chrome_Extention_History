@@ -24,9 +24,11 @@ interface SessionData {
 interface ClustersSectionProps {
   sessionData: SessionData | null;
   isAnalyzing?: boolean;
+  onReanalyze?: () => void;
+  isReanalyzing?: boolean;
 }
 
-export default function ClustersSection({ sessionData, isAnalyzing = false }: ClustersSectionProps) {
+export default function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }: ClustersSectionProps) {
   // Compute clusters when available
   const clusters = sessionData?.clusters || [];
 
@@ -44,6 +46,15 @@ export default function ClustersSection({ sessionData, isAnalyzing = false }: Cl
           <div className="clusters-header">
             <h2>Browsing Topics</h2>
             <SessionInfo sessionData={sessionData} />
+            {onReanalyze && (
+              <button
+                onClick={onReanalyze}
+                disabled={isReanalyzing}
+                style={{ marginLeft: 'auto' }}
+              >
+                {isReanalyzing ? 'Re-analyzing…' : 'Relancer l’analyse'}
+              </button>
+            )}
           </div>
           <div className="clusters-container">
             {clusters.map((cluster, index) => (
