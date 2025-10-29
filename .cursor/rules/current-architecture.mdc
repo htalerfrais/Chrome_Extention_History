@@ -20,27 +20,30 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
 - Background worker (`extension/background.js`)
   - Collects and preprocesses history; stores in `chrome.storage.local`
   - Authenticates with Google (`chrome.identity`) and stores `userToken`
+  - Preprocessing pipeline: `datesFormating` → `addUrlFeatures` → `filterHistoryURL`
+    - URL similarity threshold configurable via `ExtensionConstants.URL_SIMILARITY_THRESHOLD` (default 0.8)
 - React dashboard (`extension/dashboard.html` + `dashboard-assets/`)
   - Session exploration, on-demand analysis, chat sidebar
 - Services
-  - Session manager (`extension/utils/session_management.js`): groups items; deterministic `session_identifier` and API formatting
-  - API client (`extension/api/api_client.js`): injects `user_token` from storage; calls `/cluster-session`, `/chat`, `/authenticate`
+  - Session manager (`extension/utils/session_management.js`): groups items; deterministic `session_identifier` (stable for current sessions using `startTime + firstUrl`) and API formatting
+  - API client (`extension/api/api_client.js`): injects `user_token` from storage; calls `/cluster-session`, `/chat`, `/authenticate` (supports `?force=true` for reanalysis)
   - ExtensionBridge (`frontend/src/services/extensionBridge.ts`): facade for React to use extension services
 
 ### Backend (FastAPI)
 - API (`backend/app/main.py`)
   - Endpoints: `/`, `/health`, `/authenticate`, `/cluster-session`
-  - `/cluster-session`: validate `user_token` → get/create user → cluster or return cached result
+  - `/cluster-session`: validate `user_token` → get/create user → decide `force` (explicit query param or current-session heuristic via `settings.current_session_gap_minutes`, default 30) → cluster or return cached result
 - Services (`backend/app/services/`)
-  - ClusteringService: two-phase LLM clustering (identify clusters → assign items), cache check + persistence via MappingService
+  - ClusteringService: two-phase LLM clustering (identify clusters → assign items), canonicalizes `session_identifier` to `u{user_id}:{client_id}`, cache check (skipped if `force=True`) + persistence via MappingService with replace-if-exists on reanalysis
   - MappingService: Pydantic ↔ ORM conversion; persists and reconstructs Session → Clusters → HistoryItems
   - LLMService + Providers: provider-agnostic text generation (OpenAI/Anthropic/Google/Ollama)
   - ChatService: stateless conversational LLM
   - UserService: get-or-create user by token
 - Repository (`backend/app/repositories/database_repository.py`)
-  - Sessions: `create_session`, `get_session_by_identifier`, `get_session_with_relations`
+  - Sessions: `create_session`, `get_session_by_identifier`, `get_session_with_relations`, `delete_session_by_identifier`
   - Clusters: `create_cluster`, `get_clusters_by_session_id`
   - HistoryItems: `create_history_item`, `get_history_items_by_cluster_id`
+  - `_execute` wrapper returns dict/list/primitives and manages session lifecycle/commit/rollback
 
 ### Data Layer
 - Pydantic (`backend/app/models/`)
@@ -67,12 +70,13 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
 
 ### Analyze One Session
 1. Extension builds session with deterministic `session_identifier` + `user_token`
-2. Backend: get/create user → check cache via MappingService
-3. If cached: return DB result
-4. If new: run LLM clustering → persist via MappingService → return
+2. Backend: get/create user → decide `force` (explicit or heuristic)
+3. If `force=True`: delete existing session (cascade) and re-create with same canonical id; else check cache via MappingService
+4. If cached and not forced: return DB result; otherwise run LLM clustering → persist via MappingService → return
 
 ### Deterministic IDs
-- `session_identifier` computed from session content in `SessionManager` to be stable across runs
+- Client `session_identifier` computed in `SessionManager` (stable for current sessions using `startTime + firstUrl`)
+- Server canonicalizes to `u{user_id}:{client_session_identifier}` to avoid cross-user collisions and ensure idempotency
 
 ## Design Principles
 - Separation of concerns (UI / extension services / API / persistence)
@@ -86,5 +90,5 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
 - Load extension: Chrome → `chrome://extensions/` → Load unpacked → `extension/`
 - Health: `http://localhost:8000/health`
 
-Last Updated: October 2025
+Last Updated: October 2025 (reanalysis flow, canonical IDs, current-session heuristic, configurable URL threshold)
 
