@@ -5,7 +5,7 @@ This repository handles basic database operations for all models.
 Returns dictionaries to avoid SQLAlchemy session dependencies.
 """
 
-from typing import Optional, Callable, Any, Dict
+from typing import Optional, Callable, Any, Dict, List
 from datetime import datetime
 import logging
 from contextlib import contextmanager
@@ -32,19 +32,29 @@ class DatabaseRepository:
         finally:
             db.close()
     
-    def _execute(self, operation: Callable, error_msg: str = "Operation failed") -> Optional[Dict]:
+    def _execute(self, operation: Callable, error_msg: str = "Operation failed") -> Optional[Any]:
         """
         Generic database operation wrapper
         Handles session lifecycle, commits, rollbacks, and error logging
-        Returns dictionary to avoid SQLAlchemy session dependencies
+        Returns dictionary, list, or primitive types to avoid SQLAlchemy session dependencies
         """
         try:
             with self._get_session() as db:
                 result = operation(db)
-                if result is not None:
-                    # Convert SQLAlchemy object to dict
-                    return self._to_dict(result)
-                return None
+                if result is None:
+                    return None
+                
+                # Handle primitive types (bool, int, str, etc.) - return as-is
+                if isinstance(result, (bool, int, str, float)):
+                    return result
+                
+                # Handle lists of SQLAlchemy objects
+                if isinstance(result, list):
+                    return [self._to_dict(obj) if hasattr(obj, '__table__') else obj for obj in result]
+                
+                # Handle single SQLAlchemy object
+                return self._to_dict(result) if hasattr(result, '__table__') else result
+            
         except Exception as e:
             logger.error(f"❌ {error_msg}: {e}")
             return None
@@ -65,27 +75,45 @@ class DatabaseRepository:
     
     # User operations
     
-    def get_or_create_user(self, email: str, username: Optional[str] = None) -> Optional[Dict]:
-        """Get existing user or create new one"""
+    def get_user_by_google_id(self, google_user_id: str) -> Optional[Dict]:
+        """Get existing user by stable Google user id"""
         def operation(db):
-            user = db.query(User).filter(User.email == email).first()
+            user = db.query(User).filter(User.google_user_id == google_user_id).first()
+            return user
+        return self._execute(operation, "Get user by google_user_id failed")
+
+    def get_or_create_user_by_google_id(self, google_user_id: str, token: Optional[str] = None) -> Optional[Dict]:
+        """Get existing user by google_user_id or create new one; update token if provided."""
+        def operation(db):
+            user = db.query(User).filter(User.google_user_id == google_user_id).first()
             if user:
+                # Update token if changed
+                if token and user.token != token:
+                    user.token = token
+                    db.add(user)
                 return user
-            
-            user = User(email=email, username=username)
+            user = User(google_user_id=google_user_id, token=token)
             db.add(user)
             db.flush()
             db.refresh(user)
-            logger.info(f"✅ Created user ID: {user.id}")
+            logger.info(f"✅ Created user ID: {user.id} (google_user_id={google_user_id})")
             return user
-        
         return self._execute(operation, "User operation failed")
     
     # Session operations
     
+    def get_session_by_identifier(self, session_identifier: str) -> Optional[Dict]:
+        """Get a session by its unique identifier"""
+        def operation(db):
+            session = db.query(Session).filter(Session.session_identifier == session_identifier).first()
+            return session
+        
+        return self._execute(operation, "Failed to get session by identifier")
+    
     def create_session(
         self,
         user_id: int,
+        session_identifier: str,
         start_time: datetime,
         end_time: datetime,
         embedding: Optional[list] = None
@@ -94,6 +122,7 @@ class DatabaseRepository:
         def operation(db):
             session = Session(
                 user_id=user_id,
+                session_identifier=session_identifier,
                 start_time=start_time,
                 end_time=end_time,
                 embedding=embedding
@@ -101,7 +130,7 @@ class DatabaseRepository:
             db.add(session)
             db.flush()
             db.refresh(session)
-            logger.info(f"✅ Created session ID: {session.id}")
+            logger.info(f"✅ Created session ID: {session.id}, identifier: {session.session_identifier}")
             return session
         
         return self._execute(operation, "Failed to create session")
@@ -130,6 +159,52 @@ class DatabaseRepository:
             return cluster
         
         return self._execute(operation, "Failed to create cluster")
+    
+    def get_clusters_by_session_id(self, session_id: int) -> List[Dict]:
+        """Get all clusters for a session"""
+        def operation(db):
+            return db.query(Cluster).filter(Cluster.session_id == session_id).all()
+        
+        result = self._execute(operation, "Failed to get clusters by session id")
+        return result if isinstance(result, list) else []
+    
+    def get_history_items_by_cluster_id(self, cluster_id: int) -> List[Dict]:
+        """Get all history items for a cluster"""
+        def operation(db):
+            return db.query(HistoryItem).filter(HistoryItem.cluster_id == cluster_id).all()
+        
+        result = self._execute(operation, "Failed to get history items by cluster id")
+        return result if isinstance(result, list) else []
+    
+    def get_session_with_relations(self, session_identifier: str) -> Optional[Dict]:
+        """Get session with all related clusters and items"""
+        def operation(db):
+            from sqlalchemy.orm import joinedload
+            
+            session = db.query(Session)\
+                .options(joinedload(Session.clusters))\
+                .filter(Session.session_identifier == session_identifier)\
+                .first()
+            return session
+        
+        return self._execute(operation, "Failed to get session with relations")
+    
+    def delete_session_by_identifier(self, session_identifier: str) -> bool:
+        """
+        Delete a session (and cascaded relations) by its unique identifier
+        
+        Returns:
+            True if deleted, False if not found
+        """
+        def operation(db):
+            session = db.query(Session).filter(Session.session_identifier == session_identifier).first()
+            if not session:
+                return False
+            db.delete(session)
+            return True
+        
+        result = self._execute(operation, "Failed to delete session by identifier")
+        return result is True  # Convert None → False for consistency
     
     # History item operations
     

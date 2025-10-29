@@ -21,6 +21,7 @@ const MAX_CLUSTER_ITEMS_DISPLAY = 5;
 // Clustering constants
 const MAX_CLUSTERS_DEFAULT = 10;
 const MIN_CLUSTER_SIZE_DEFAULT = 2;
+const URL_SIMILARITY_THRESHOLD = 0.8; // Seuil de similarité pour la déduplication d'URLs (0.0-1.0, plus élevé = plus strict)
 
 // Retry configuration
 const API_RETRIES = 3;
@@ -50,8 +51,8 @@ const STATUS_ANALYZING_PATTERNS = 'Analyzing browsing patterns...';
 const STATUS_ANALYSIS_COMPLETE = 'Analysis complete';
 const STATUS_ANALYSIS_FAILED = 'Analysis failed';
 
-// Make available globally
-window.ExtensionConstants = {
+// Create constants object
+const ExtensionConstants = {
     SESSION_GAP_MINUTES,
     HISTORY_DAYS_BACK,
     DAY_MS,
@@ -65,6 +66,7 @@ window.ExtensionConstants = {
     MAX_CLUSTER_ITEMS_DISPLAY,
     MAX_CLUSTERS_DEFAULT,
     MIN_CLUSTER_SIZE_DEFAULT,
+    URL_SIMILARITY_THRESHOLD,
     API_RETRIES,
     API_RETRY_DELAY_MS,
     CHROME_HISTORY_PERMISSION,
@@ -84,3 +86,13 @@ window.ExtensionConstants = {
     STATUS_ANALYSIS_COMPLETE,
     STATUS_ANALYSIS_FAILED
 };
+
+// Make available globally
+if (typeof window !== 'undefined') {
+    window.ExtensionConstants = ExtensionConstants;
+}
+
+// For service workers (background scripts)
+if (typeof self !== 'undefined') {
+    self.ExtensionConstants = ExtensionConstants;
+}

@@ -3,15 +3,19 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 
 from .config import settings
 from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
 from .services.chat_service import ChatService
+from .services.user_service import UserService
+from .services.mapping_service import MappingService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
 from .models.llm_models import LLMRequest, LLMResponse
+from .models.user_models import AuthenticateRequest, AuthenticateResponse
 from .models.chat_models import ChatRequest, ChatResponse
+from .repositories.database_repository import DatabaseRepository
 
 # Configure logging
 logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
@@ -34,9 +38,12 @@ app.add_middleware(
 )
 
 # Initialize services
-clustering_service = ClusteringService()
+db_repository = DatabaseRepository()
+mapping_service = MappingService(db_repository)
+clustering_service = ClusteringService(mapping_service=mapping_service)
 llm_service = LLMService()
 chat_service = ChatService(llm_service)
+user_service = UserService(db_repository)
 # pas de database repository dans l'entrypoint API, on passe toujours par les service métier de business logic dans le API
 
 @app.get("/")
@@ -63,7 +70,7 @@ async def health_check():
     }
 
 @app.post("/cluster-session", response_model=SessionClusteringResponse)
-async def cluster_session(session: HistorySession):
+async def cluster_session(session: HistorySession, force: bool = False):
     """
     Cluster a single browsing history session into thematic groups
     
@@ -74,19 +81,48 @@ async def cluster_session(session: HistorySession):
         SessionClusteringResponse with clusters for the session
     """
     try:
-        logger.info(f"Received session {session.session_id} with {len(session.items)} items for clustering")
+        logger.info(f"Received session {session.session_identifier} with {len(session.items)} items for clustering")
         
         if not session.items:
             raise HTTPException(status_code=400, detail="Session has no items to cluster")
         
-        # Process single session through clustering service
-        session_result = await clustering_service.cluster_session(session)
+        # Step 1: Get or create user by stable google_user_id (sent via /authenticate)
+        # Fallback to token-only if google_user_id is not available in the request model
+        google_user_id = getattr(session, 'user_google_id', None)
+        if google_user_id:
+            user_dict = db_repository.get_or_create_user_by_google_id(google_user_id)
+        else:
+            # Backward compatibility: if only token exists, try to derive user from token
+            user_dict = None
+        if not user_dict:
+            raise HTTPException(status_code=401, detail="Invalid user token")
         
-        logger.info(f"Generated clustering result for session {session.session_id} with {len(session_result.clusters)} clusters")
+        user_id = user_dict["id"]
+        logger.info(f"Authenticated user_id: {user_id}")
+        
+        # Decide force if not explicitly provided: treat very recent sessions as current
+        if not force:
+            try:
+                gap_minutes = settings.current_session_gap_minutes
+            except Exception:
+                gap_minutes = 30
+            now = datetime.now(timezone.utc)
+            end_time = session.end_time
+            if end_time.tzinfo is None:
+                end_time = end_time.replace(tzinfo=timezone.utc)
+            is_current = (now - end_time) <= timedelta(minutes=gap_minutes)
+            force = is_current
+
+        # Step 2: Process session through clustering service (handles caching and persistence)
+        session_result = await clustering_service.cluster_session(session, user_id, force=force)
+        
+        logger.info(f"Generated clustering result for session {session.session_identifier} with {len(session_result.clusters)} clusters")
         return session_result
         
+    except HTTPException:
+        raise
     except Exception as e:
-        logger.error(f"Error clustering session {getattr(session, 'session_id', 'unknown')}: {str(e)}")
+        logger.error(f"Error clustering session {getattr(session, 'session_identifier', 'unknown')}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Clustering failed: {str(e)}")
 
 
@@ -113,6 +149,22 @@ async def chat(request: ChatRequest):
     except Exception as e:
         logger.error(f"Error processing chat: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Chat failed: {str(e)}")
+
+
+@app.post("/authenticate", response_model=AuthenticateResponse)
+async def authenticate(request: AuthenticateRequest):
+    """
+    Authenticate with Google
+    """
+    try:
+        logger.info(f"Received authenticate request for google_user_id={request.google_user_id}")
+        user = user_service.authenticate(request)
+        return user
+    except Exception as e:
+        logger.error(f"Error authenticating: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
+
+
 
 
 if __name__ == "__main__":

@@ -12,78 +12,79 @@ try {
     exit 1
 }
 
-# Sample test data
-$testSessions = @(
-    @{
-        session_id = "session_1"
-        start_time = "2024-01-15T09:00:00Z"
-        end_time = "2024-01-15T10:30:00Z"
-        items = @(
-            @{
-                url = "https://github.com/microsoft/vscode"
-                title = "Visual Studio Code - GitHub"
-                visit_time = "2024-01-15T09:00:00Z"
-                visit_count = 1
-            },
-            @{
-                url = "https://stackoverflow.com/questions/python-fastapi"
-                title = "Python FastAPI Questions - Stack Overflow"
-                visit_time = "2024-01-15T09:15:00Z"
-                visit_count = 1
-            },
-            @{
-                url = "https://fastapi.tiangolo.com/tutorial/"
-                title = "FastAPI Tutorial - FastAPI"
-                visit_time = "2024-01-15T09:30:00Z"
-                visit_count = 2
-            }
-        )
-        duration_minutes = 90
-    },
-    @{
-        session_id = "session_2"
-        start_time = "2024-01-15T14:00:00Z"
-        end_time = "2024-01-15T15:00:00Z"
-        items = @(
-            @{
-                url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
-                title = "Never Gonna Give You Up - YouTube"
-                visit_time = "2024-01-15T14:00:00Z"
-                visit_count = 1
-            },
-            @{
-                url = "https://www.netflix.com/browse"
-                title = "Netflix - Browse"
-                visit_time = "2024-01-15T14:30:00Z"
-                visit_count = 1
-            }
-        )
-        duration_minutes = 60
-    }
-)
+# Sample test session (single session for /cluster-session endpoint)
+$testSession = @{
+    session_id = "session_test_1"
+    start_time = "2024-01-15T09:00:00Z"
+    end_time = "2024-01-15T10:30:00Z"
+    items = @(
+        @{
+            url = "https://github.com/microsoft/vscode"
+            title = "Visual Studio Code - GitHub"
+            visit_time = "2024-01-15T09:00:00Z"
+            url_hostname = "github.com"
+            url_pathname_clean = "/microsoft/vscode"
+            url_search_query = ""
+        },
+        @{
+            url = "https://stackoverflow.com/questions/python-fastapi"
+            title = "Python FastAPI Questions - Stack Overflow"
+            visit_time = "2024-01-15T09:15:00Z"
+            url_hostname = "stackoverflow.com"
+            url_pathname_clean = "/questions/python-fastapi"
+            url_search_query = ""
+        },
+        @{
+            url = "https://fastapi.tiangolo.com/tutorial/"
+            title = "FastAPI Tutorial - FastAPI"
+            visit_time = "2024-01-15T09:30:00Z"
+            url_hostname = "fastapi.tiangolo.com"
+            url_pathname_clean = "/tutorial"
+            url_search_query = ""
+        },
+        @{
+            url = "https://www.youtube.com/watch?v=dQw4w9WgXcQ"
+            title = "Never Gonna Give You Up - YouTube"
+            visit_time = "2024-01-15T09:45:00Z"
+            url_hostname = "www.youtube.com"
+            url_pathname_clean = "/watch"
+            url_search_query = "v=dQw4w9WgXcQ"
+        },
+        @{
+            url = "https://www.netflix.com/browse"
+            title = "Netflix - Browse"
+            visit_time = "2024-01-15T10:00:00Z"
+            url_hostname = "www.netflix.com"
+            url_pathname_clean = "/browse"
+            url_search_query = ""
+        }
+    )
+    duration_minutes = 90
+}
 
 # Test clustering endpoint
-Write-Host "🔍 Testing /cluster endpoint..." -ForegroundColor Yellow
+Write-Host "🔍 Testing /cluster-session endpoint..." -ForegroundColor Yellow
 
 try {
-    $jsonBody = $testSessions | ConvertTo-Json -Depth 10
-    $response = Invoke-RestMethod -Uri "http://localhost:8000/cluster" -Method Post -Body $jsonBody -ContentType "application/json"
+    $jsonBody = $testSession | ConvertTo-Json -Depth 10
+    $response = Invoke-RestMethod -Uri "http://localhost:8000/cluster-session" -Method Post -Body $jsonBody -ContentType "application/json"
     
     Write-Host "✅ Clustering successful!" -ForegroundColor Green
-    Write-Host "📊 Generated $($response.Count) clusters:" -ForegroundColor Cyan
+    Write-Host "📊 Session: $($response.session_id)" -ForegroundColor Cyan
+    Write-Host "⏰ Time range: $($response.session_start_time) → $($response.session_end_time)" -ForegroundColor Cyan
+    Write-Host "📊 Generated $($response.clusters.Count) clusters:" -ForegroundColor Cyan
+    Write-Host ""
     
-    foreach ($cluster in $response) {
-        Write-Host "  🎯 $($cluster.theme): $($cluster.total_items) items (confidence: $($cluster.confidence_score))" -ForegroundColor White
-        Write-Host "    📝 $($cluster.description)" -ForegroundColor Gray
-        Write-Host "    🏷️  Keywords: $($cluster.keywords -join ', ')" -ForegroundColor Gray
+    foreach ($cluster in $response.clusters) {
+        Write-Host "  🎯 Cluster: $($cluster.theme)" -ForegroundColor White
+        Write-Host "    📝 Summary: $($cluster.summary)" -ForegroundColor Gray
+        Write-Host "    🔗 Items: $($cluster.items.Count)" -ForegroundColor Gray
         Write-Host ""
     }
     
 } catch {
     Write-Host "❌ Clustering test failed: $($_.Exception.Message)" -ForegroundColor Red
+    Write-Host "Response: $($_.ErrorDetails.Message)" -ForegroundColor Red
 }
-
-# Clustering now includes stats, so no separate preview needed
-Write-Host "✅ Clustering includes statistics automatically!" -ForegroundColor Green
 
 Write-Host "🎉 API testing completed!" -ForegroundColor Green

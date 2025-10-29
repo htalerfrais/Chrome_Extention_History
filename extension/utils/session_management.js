@@ -7,6 +7,36 @@ class SessionManager {
     }
     
     /**
+     * Generate a deterministic session identifier based on session content
+     * @param {number} startTime - Session start timestamp
+     * @param {number} endTime - Session end timestamp
+     * @param {Array} items - Session items
+     * @returns {string} Deterministic session identifier
+     */
+    generateSessionIdentifier(startTime, endTime, items) {
+        // Create a stable string from session characteristics
+        // Keep it stable for the current session by only using startTime and firstUrl
+        const urls = items.map(item => item.url || '').filter(url => url.length > 0);
+        const firstUrl = urls[0] || '';
+        
+        // Create a stable hash string combining key session attributes
+        const hashInput = `${startTime}_${firstUrl}`;
+        
+        // Generate a deterministic hash using a simple string hashing algorithm
+        let hash = 0;
+        for (let i = 0; i < hashInput.length; i++) {
+            const char = hashInput.charCodeAt(i);
+            hash = ((hash << 5) - hash) + char;
+            hash = hash & hash; // Convert to 32-bit integer
+        }
+        
+        // Convert to positive hex string
+        const hashString = Math.abs(hash).toString(16).padStart(8, '0');
+        
+        return `session_${hashString}`;
+    }
+    
+    /**
      * Groups history items into time-based sessions
      * @param {Array} historyItems - Raw Chrome history items
      * @param {number} sessionGapMinutes - Gap between sessions in minutes
@@ -40,7 +70,7 @@ class SessionManager {
                 }
                 
                 currentSession = {
-                    sessionId: `session_${sessions.length + 1}_${Date.now()}`,
+                    sessionId: null, // Will be set after items are collected
                     startTime: itemTime,
                     endTime: itemTime,
                     items: [item]
@@ -55,6 +85,15 @@ class SessionManager {
         // Add the last session
         if (currentSession) {
             sessions.push(currentSession);
+        }
+        
+        // Now generate deterministic IDs for each session based on their actual content
+        for (const session of sessions) {
+            session.sessionId = this.generateSessionIdentifier(
+                session.startTime,
+                session.endTime,
+                session.items
+            );
         }
         
         // Filter out sessions with too few items
@@ -79,16 +118,13 @@ class SessionManager {
         console.log(`Formatting ${sessions.length} sessions for API`);
         
         return sessions.map(session => ({
-            session_id: session.sessionId,
+            session_identifier: session.sessionId,
             start_time: new Date(session.startTime).toISOString(),
             end_time: new Date(session.endTime).toISOString(),
             items: session.items.map(item => ({
-                id: item.id,
                 url: item.url,
                 title: item.title || 'Untitled',
                 visit_time: new Date(item.lastVisitTime || item.visitTime).toISOString(),
-                visit_count: item.visitCount || 1,
-                typed_count: item.typedCount || 0,
                 url_hostname: item.urlHostname || safeGetHostname(item.url),
                 url_pathname_clean: item.urlPathnameClean || '/',
                 url_search_query: item.urlSearchQuery || ''

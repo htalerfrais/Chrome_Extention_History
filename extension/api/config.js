@@ -10,32 +10,38 @@ class Config {
                 baseUrl: 'http://localhost:8000',
                 'cluster-session': '/cluster-session',
                 'chat': '/chat',
-                health: '/health'
+                'authenticate': '/authenticate',
+                'health': '/health'
             },
             // Production (to be updated when deployed)
             production: {
                 baseUrl: 'https://your-production-api.com',
                 'cluster-session': '/cluster-session',
                 'chat': '/chat',
-                health: '/health'
+                'authenticate': '/authenticate',
+                'health': '/health'
             }
         };
         
         // Default to development
         this.currentEnvironment = 'development';
         
+        // Get constants from global scope (works in both window and self contexts)
+        const constants = (typeof window !== 'undefined' ? window.ExtensionConstants : 
+                          typeof self !== 'undefined' ? self.ExtensionConstants : {});
+        
         // Request configuration
         this.REQUEST_CONFIG = {
-            timeout: window.ExtensionConstants?.API_REQUEST_TIMEOUT_MS || 30000, // 30 seconds
-            retries: window.ExtensionConstants?.API_RETRIES || 3,
-            retryDelay: window.ExtensionConstants?.API_RETRY_DELAY_MS || 1000 // 1 second
+            timeout: constants.API_REQUEST_TIMEOUT_MS || 30000, // 30 seconds
+            retries: constants.API_RETRIES || 3,
+            retryDelay: constants.API_RETRY_DELAY_MS || 1000 // 1 second
         };
         
         // Clustering configuration
         this.CLUSTERING_CONFIG = {
-            maxClusters: window.ExtensionConstants?.MAX_CLUSTERS_DEFAULT || 10,
-            minClusterSize: window.ExtensionConstants?.MIN_CLUSTER_SIZE_DEFAULT || 2,
-            confidenceThreshold: window.ExtensionConstants?.CONFIDENCE_THRESHOLD || 0.5
+            maxClusters: constants.MAX_CLUSTERS_DEFAULT || 10,
+            minClusterSize: constants.MIN_CLUSTER_SIZE_DEFAULT || 2,
+            confidenceThreshold: 0.5
         };
     }
     
@@ -66,7 +72,7 @@ class Config {
         try {
             const response = await fetch(this.getEndpointUrl('health'), {
                 method: 'GET',
-                timeout: window.ExtensionConstants?.API_TIMEOUT_MS || 5000
+                timeout: constants.API_TIMEOUT_MS || 5000
             });
             
             if (response.ok) {
@@ -110,6 +116,11 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
 // Make available globally
 if (typeof window !== 'undefined') {
     window.ExtensionConfig = config;
+}
+
+// For service workers (background scripts)
+if (typeof self !== 'undefined') {
+    self.ExtensionConfig = config;
 }
 
 // For Node.js/module environments

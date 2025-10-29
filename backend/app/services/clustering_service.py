@@ -1,5 +1,5 @@
 import logging
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 import json
 
 from app.config import settings
@@ -13,17 +13,33 @@ logger = logging.getLogger(__name__)
 class ClusteringService:
     """LLM-driven clustering service: identifies clusters and assigns items per session."""
 
-    def __init__(self):
+    def __init__(self, mapping_service=None):
         self.llm_service = LLMService()
         self.batch_size = settings.clustering_batch_size
         self.max_tokens = settings.clustering_max_tokens
+        self.mapping_service = mapping_service  # Injected for caching and persistence
 
-    async def cluster_session(self, session: HistorySession) -> SessionClusteringResponse:
+    async def cluster_session(self, session: HistorySession, user_id: int, force: bool = False) -> SessionClusteringResponse:
         """
-        For a single session: identify clusters with summaries using the LLM, then
-        assign each item to one of those clusters. Returns a SessionClusteringResponse.
+        Cluster session with caching and automatic persistence
+        
+        1. Check if session already analyzed for this user
+        2. If cached, return existing result from DB
+        3. If not, run LLM clustering
+        4. Save result to DB
+        5. Return result
         """
-        logger.info(f"📊 Processing session {session.session_id} with {len(session.items)} items")
+        # Canonicalize identifier with user scope to avoid cross-user collisions
+        session.session_identifier = f"u{user_id}:{session.session_identifier}"
+        logger.info(f"📊 Processing session {session.session_identifier} with {len(session.items)} items (force={force})")
+        
+        # Step 1: Check if session already analyzed (cache check)
+        if self.mapping_service and not force:
+            cached_result = self.mapping_service.get_clustering_result(session.session_identifier)
+            if cached_result:
+                logger.info(f"✅ Found cached result for session {session.session_identifier}, returning without LLM calls")
+                return cached_result
+            logger.info(f"🆕 No cached result found, proceeding with LLM clustering")
 
         # Step 1: Ask LLM to propose clusters for this session
         clusters_meta = await self.identify_clusters_for_session(session)
@@ -34,7 +50,7 @@ class ClusteringService:
         # Build ClusterResult objects
         cluster_results: List[ClusterResult] = []
         for meta in clusters_meta:
-            cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_id}_{len(cluster_results)}"
+            cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_identifier}_{len(cluster_results)}"
             theme: str = meta.get("theme") or "Miscellaneous"
             summary: str = meta.get("summary") or ""
 
@@ -52,7 +68,7 @@ class ClusteringService:
 
         # Create session response
         response = SessionClusteringResponse(
-            session_id=session.session_id,
+            session_identifier=session.session_identifier,
             session_start_time=session.start_time,
             session_end_time=session.end_time,
             clusters=cluster_results
@@ -61,6 +77,15 @@ class ClusteringService:
         # Log ClusterResult models
         for cluster_result in cluster_results:
             logger.info(f"🎯 ClusterResult: {cluster_result.model_dump()}")
+        
+        # Step 3: Save to database (automatic persistence)
+        if self.mapping_service:
+            try:
+                session_id = self.mapping_service.save_clustering_result(user_id, response, replace_if_exists=force)
+                logger.info(f"💾 Saved clustering result to database with session_id: {session_id}")
+            except Exception as e:
+                logger.error(f"❌ Failed to save clustering result to database: {e}")
+                # Don't fail the request, just log the error
 
         return response
 
@@ -138,7 +163,7 @@ class ClusteringService:
                 if cleaned:
                     return cleaned
         except Exception as e:
-            logger.error(f"LLM cluster identification failed for session {session.session_id}: {e}")
+            logger.error(f"LLM cluster identification failed for session {session.session_identifier}: {e}")
 
         # Fallback: single generic cluster
         return [{
@@ -169,11 +194,9 @@ class ClusteringService:
                     assigned_id = next(iter(valid_ids)) if valid_ids else "cluster_generic"
 
                 cluster_item = ClusterItem(
-                    id=item.id,
                     url=item.url,
                     title=item.title,
                     visit_time=item.visit_time,
-                    session_id=session.session_id,
                     url_hostname=item.url_hostname,
                     url_pathname_clean=item.url_pathname_clean,
                     url_search_query=item.url_search_query

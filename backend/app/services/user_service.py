@@ -9,6 +9,7 @@ from typing import Optional, Dict, List
 import logging
 
 from app.repositories.database_repository import DatabaseRepository
+from app.models.user_models import AuthenticateRequest, AuthenticateResponse
 
 logger = logging.getLogger(__name__)
 
@@ -21,14 +22,14 @@ class UserService:
     
     # User CRUD operations
     
-    def get_user_by_id(self, user_id: int) -> Optional[Dict]:
-        """Get user by ID"""
-        pass
-    
-    def get_user_by_email(self, email: str) -> Optional[Dict]:
-        """Get user by email"""
-        pass
-    
+
+    def authenticate(self,  request: AuthenticateRequest) -> Optional[Dict]:
+        """Authenticate user with Google using stable google_user_id"""
+        return self.db_repository.get_or_create_user_by_google_id(request.google_user_id, token=request.token)
+
+
+# ------------------- Next steps ------------------------------
+
     def create_user(self, email: str, username: Optional[str] = None) -> Optional[Dict]:
         """Create a new user"""
         pass
@@ -39,32 +40,4 @@ class UserService:
     
     def delete_user(self, user_id: int) -> bool:
         """Delete user"""
-        pass
-    
-    def list_users(self, limit: int = 100, offset: int = 0) -> List[Dict]:
-        """List users with pagination"""
-        pass
-    
-    # User utility operations
-    
-    def get_or_create_user(self, email: str, username: Optional[str] = None) -> Optional[Dict]:
-        """Get existing user or create new one"""
-        pass
-    
-    def user_exists(self, email: str) -> bool:
-        """Check if user exists by email"""
-        pass
-    
-    def count_users(self) -> int:
-        """Count total users"""
-        pass
-    
-    # User validation methods
-    
-    def _validate_email(self, email: str) -> bool:
-        """Validate email format"""
-        pass
-    
-    def _validate_user_data(self, email: str, username: Optional[str] = None) -> bool:
-        """Validate user data before creation/update"""
         pass

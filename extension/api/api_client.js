@@ -8,7 +8,9 @@ class ApiClient {
     
     // Generic API request method with retry logic
     async makeRequest(endpoint, options = {}) {
-        const url = this.config.getEndpointUrl(endpoint);
+        const query = options.query || null;
+        const urlBase = this.config.getEndpointUrl(endpoint);
+        const url = query ? `${urlBase}?${new URLSearchParams(query).toString()}` : urlBase;
         const headers = this.config.getRequestHeaders();
         
         const requestOptions = {
@@ -58,20 +60,43 @@ class ApiClient {
     }
     
     // Send single session for clustering
-    async clusterSession(session) {
+    async clusterSession(session, opts = {}) {
         if (!session || !session.items || session.items.length === 0) {
             return { success: false, error: 'No valid session provided' };
         }
         
-        console.log(`Sending session ${session.session_id} with ${session.items.length} items for clustering`);
+        // Get user token and google_user_id from chrome.storage
+        let userToken;
+        let googleUserId;
+        try {
+            const stored = await chrome.storage.local.get(['userToken', 'googleUserId']);
+            userToken = stored.userToken;
+            googleUserId = stored.googleUserId;
+        } catch (e) {
+            console.error('Failed to get user token from storage:', e);
+        }
+        
+        if (!userToken) {
+            return { success: false, error: 'User not authenticated' };
+        }
+        
+        // Add user_token to session object
+        const sessionWithUser = {
+            ...session,
+            user_token: userToken,
+            user_google_id: googleUserId
+        };
+        
+        console.log(`Sending session ${session.session_identifier} with ${session.items.length} items for clustering`);
         
         const result = await this.makeRequest('cluster-session', {
             method: 'POST',
-            body: JSON.stringify(session)
+            body: JSON.stringify(sessionWithUser),
+            query: opts.force ? { force: 'true' } : undefined
         });
         
         if (result.success) {
-            console.log(`Received clustering result for session ${session.session_id} with ${result.data.clusters?.length || 0} clusters`);
+            console.log(`Received clustering result for session ${session.session_identifier} with ${result.data.clusters?.length || 0} clusters`);
         }
         
         return result;
@@ -103,15 +128,35 @@ class ApiClient {
         
         return result;
     }
-    
+
+    // Authenticate with Google
+    async authenticateWithGoogle(token, googleUserId) {
+        const result = await this.makeRequest('authenticate', {
+            method: 'POST',
+            body: JSON.stringify({ token, google_user_id: googleUserId })
+        });
+        return result;
+    }
 }
 
 // Create and export API client instance
-const apiClient = new ApiClient(window.ExtensionConfig || require('./config.js'));
+const apiClient = new ApiClient(
+    (typeof window !== 'undefined' ? window.ExtensionConfig : 
+     typeof self !== 'undefined' ? self.ExtensionConfig : 
+     new Config())
+);
+
 
 // Make available globally
 if (typeof window !== 'undefined') {
     window.ApiClient = apiClient;
+}
+
+// For service workers (background scripts)
+if (typeof self !== 'undefined') {
+    self.ApiClient = apiClient;
+    // Expose authenticateWithGoogle function directly for convenience
+    self.authenticateWithGoogle = apiClient.authenticateWithGoogle.bind(apiClient);
 }
 
 // For Node.js/module environments

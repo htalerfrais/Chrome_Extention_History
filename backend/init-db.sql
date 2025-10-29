@@ -9,8 +9,8 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- ===========================
 CREATE TABLE users (
     id SERIAL PRIMARY KEY,
-    email TEXT UNIQUE NOT NULL,
-    username TEXT,
+    google_user_id TEXT UNIQUE NOT NULL,
+    token TEXT,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -20,6 +20,7 @@ CREATE TABLE users (
 CREATE TABLE sessions (
     id SERIAL PRIMARY KEY,
     user_id INT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    session_identifier TEXT NOT NULL UNIQUE,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
     embedding VECTOR(1536), -- adjust size to your model
@@ -27,6 +28,7 @@ CREATE TABLE sessions (
 );
 
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
+CREATE INDEX idx_sessions_identifier ON sessions(session_identifier);
 CREATE INDEX idx_sessions_embedding ON sessions USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- ===========================
@@ -65,8 +67,7 @@ CREATE INDEX idx_history_items_embedding ON history_items USING ivfflat (embeddi
 -- ===========================
 -- SAMPLE DATA (for testing)
 -- ===========================
--- Insert a default user for testing
-INSERT INTO users (email, username) VALUES ('test@example.com', 'Test User');
+INSERT INTO users (google_user_id, token) VALUES ('test_google_id_123', 'test_token_123');
 
 -- ===========================
 -- EXAMPLE QUERIES

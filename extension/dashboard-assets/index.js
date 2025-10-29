@@ -12281,7 +12281,7 @@ function ClusterCard({ cluster }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-items", children: cluster.items.map((item, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index}`)) })
   ] });
 }
-function ClustersSection({ sessionData, isAnalyzing = false }) {
+function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
   const clusters = (sessionData == null ? void 0 : sessionData.clusters) || [];
   if (!isAnalyzing && (!sessionData || clusters.length === 0)) {
     return null;
@@ -12289,18 +12289,29 @@ function ClustersSection({ sessionData, isAnalyzing = false }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-section", children: sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Browsing Topics" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
+      onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: onReanalyze,
+          disabled: isReanalyzing,
+          style: { marginLeft: "auto" },
+          children: isReanalyzing ? "Re-analyzing…" : "Relancer l’analyse"
+        }
+      )
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
   ] }) });
 }
 function Dashboard({
   currentSessionResults,
-  activeSessionId
+  activeSessionId,
+  onReanalyze,
+  isReanalyzing
 }) {
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
   const isAnalyzing = !currentSessionData;
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing }) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing, onReanalyze, isReanalyzing }) });
 }
 function MainLayout({ children, chatComponent }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "main-layout", children: [
@@ -12365,12 +12376,12 @@ class ExtensionBridge {
    * Send single session to backend for clustering using extension's ApiClient
    * This uses the existing api_client.js logic
    */
-  async clusterSession(session) {
+  async clusterSession(session, options) {
     if (!window.ApiClient) {
       throw new Error("ApiClient not available. Extension services not loaded.");
     }
     try {
-      const result = await window.ApiClient.clusterSession(session);
+      const result = await window.ApiClient.clusterSession(session, { force: (options == null ? void 0 : options.force) === true });
       console.log("Single session clustering result:", result);
       return result;
     } catch (error) {
@@ -12592,6 +12603,7 @@ function App() {
   const [availableSessions, setAvailableSessions] = reactExports.useState([]);
   const [sessionAnalysisStates, setSessionAnalysisStates] = reactExports.useState({});
   const [currentSessionIndex, setCurrentSessionIndex] = reactExports.useState(0);
+  const [isReanalyzing, setIsReanalyzing] = reactExports.useState(false);
   reactExports.useEffect(() => {
     const initializeServices = async () => {
       try {
@@ -12632,31 +12644,35 @@ function App() {
       const sortedSessions = sessions.sort(
         (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
       );
-      setAvailableSessions(sortedSessions);
+      const sessionsWithId = sortedSessions.map((session) => __spreadProps(__spreadValues({}, session), {
+        session_id: session.session_identifier
+      }));
+      setAvailableSessions(sessionsWithId);
       const initialStates = {};
-      sortedSessions.forEach((session) => {
-        initialStates[session.session_id] = "pending";
+      sessionsWithId.forEach((session) => {
+        initialStates[session.session_identifier] = "pending";
       });
       setSessionAnalysisStates(initialStates);
-      if (sortedSessions.length > 0) {
+      if (sessionsWithId.length > 0) {
         setCurrentSessionIndex(0);
-        setActiveSessionId(sortedSessions[0].session_id);
+        const firstSessionId = sessionsWithId[0].session_identifier;
+        setActiveSessionId(firstSessionId);
         setStatus("Analyzing most recent session...");
-        const firstSession = sortedSessions[0];
+        const firstSession = sessionsWithId[0];
         setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_id]: "loading"
+          [firstSession.session_identifier]: "loading"
         }));
         const clusterResult = await extensionBridge.clusterSession(firstSession);
         if (!clusterResult.success) {
           throw new Error(`Clustering failed: ${clusterResult.error}`);
         }
         setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_id]: clusterResult.data
+          [firstSession.session_identifier]: clusterResult.data
         }));
         setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_id]: "completed"
+          [firstSession.session_identifier]: "completed"
         }));
-        setStatus(`Session ${firstSession.session_id} analyzed successfully`);
+        setStatus(`Session ${firstSession.session_identifier} analyzed successfully`);
         setStatusType("success");
       }
     } catch (error2) {
@@ -12704,9 +12720,37 @@ function App() {
       setStatusType("error");
     }
   };
+  const reanalyzeActiveSession = async () => {
+    if (!activeSessionId) return;
+    const session = availableSessions.find((s) => s.session_id === activeSessionId);
+    if (!session) return;
+    try {
+      setIsReanalyzing(true);
+      setStatus(`Re-analyzing session ${activeSessionId}...`);
+      setStatusType("loading");
+      const result = await extensionBridge.clusterSession(session, { force: true });
+      if (!result.success) {
+        throw new Error(`Clustering failed: ${result.error}`);
+      }
+      setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
+        [activeSessionId]: result.data
+      }));
+      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
+        [activeSessionId]: "completed"
+      }));
+      setStatus(`Session ${activeSessionId} re-analyzed successfully`);
+      setStatusType("success");
+    } catch (error2) {
+      console.error("Re-analysis failed:", error2);
+      setStatus("Re-analysis failed");
+      setStatusType("error");
+    } finally {
+      setIsReanalyzing(false);
+    }
+  };
   const handleSessionChange = async (sessionId) => {
     setActiveSessionId(sessionId);
-    const newIndex = availableSessions.findIndex((s) => s.session_id === sessionId);
+    const newIndex = availableSessions.findIndex((s) => s.session_identifier === sessionId);
     if (newIndex !== -1) {
       setCurrentSessionIndex(newIndex);
     }
@@ -12717,14 +12761,14 @@ function App() {
   const goToPreviousSession = async () => {
     if (currentSessionIndex > 0) {
       const newIndex = currentSessionIndex - 1;
-      const newSessionId = availableSessions[newIndex].session_id;
+      const newSessionId = availableSessions[newIndex].session_identifier;
       await handleSessionChange(newSessionId);
     }
   };
   const goToNextSession = async () => {
     if (currentSessionIndex < availableSessions.length - 1) {
       const newIndex = currentSessionIndex + 1;
-      const newSessionId = availableSessions[newIndex].session_id;
+      const newSessionId = availableSessions[newIndex].session_identifier;
       await handleSessionChange(newSessionId);
     }
   };
@@ -12767,7 +12811,9 @@ To switch environments, modify extension/api/config.js`);
             Dashboard,
             {
               currentSessionResults,
-              activeSessionId
+              activeSessionId,
+              onReanalyze: reanalyzeActiveSession,
+              isReanalyzing
             }
           )
         ] }),

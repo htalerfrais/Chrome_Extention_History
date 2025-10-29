@@ -23,22 +23,16 @@ Base = declarative_base()
 
 
 class User(Base):
-    """
-    User model - represents users of the Chrome extension
-    
-    Relationships:
-    - One user has many sessions
-    """
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
-    email = Column(String, unique=True, nullable=False, index=True)
-    username = Column(String, nullable=True)
+    google_user_id = Column(String, unique=True, nullable=False, index=True)
+    token = Column(String, nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     sessions = relationship("Session", back_populates="user", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<User(id={self.id}, email='{self.email}', username='{self.username}')>"
+        return f"<User(id={self.id}, google_user_id='{self.google_user_id}')>"
 
 
 class Session(Base):
@@ -47,12 +41,13 @@ class Session(Base):
     
     Relationships:
     - One session belongs to one user
-    - One session has many clusters
+    - One session has many clusters (and one cluster has many history items)
     """
     __tablename__ = "sessions"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
     user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    session_identifier = Column(String, nullable=False, unique=True, index=True)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
     embedding = Column(Vector(1536), nullable=True)
@@ -61,7 +56,7 @@ class Session(Base):
     clusters = relationship("Cluster", back_populates="session", cascade="all, delete-orphan")
     
     def __repr__(self):
-        return f"<Session(id={self.id}, user_id={self.user_id}, start_time='{self.start_time}')>"
+        return f"<Session(id={self.id}, user_id={self.user_id}, session_identifier='{self.session_identifier}')>"
 
 
 class Cluster(Base):
