@@ -40,23 +40,25 @@ export default function ClustersSection({ sessionData, isAnalyzing = false, onRe
   // Render container with optional content and overlay
 
   return (
-    <div className="clusters-section">
+    <div className="bg-black text-white w-full">
       {sessionData && clusters.length > 0 && (
         <>
-          <div className="clusters-header">
-            <h2>Browsing Topics</h2>
-            <SessionInfo sessionData={sessionData} />
-            {onReanalyze && (
-              <button
-                onClick={onReanalyze}
-                disabled={isReanalyzing}
-                style={{ marginLeft: 'auto' }}
-              >
-                {isReanalyzing ? 'Re-analyzing…' : 'Relancer l’analyse'}
-              </button>
-            )}
+          <div className="w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <h2 className="text-sm uppercase tracking-[0.4em] text-white/70">Topics</h2>
+            <div className="flex flex-wrap items-center gap-4 md:justify-end">
+              <SessionInfo sessionData={sessionData} />
+              {onReanalyze && (
+                <button
+                  onClick={onReanalyze}
+                  disabled={isReanalyzing}
+                  className="px-4 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white disabled:opacity-40"
+                >
+                  {isReanalyzing ? 'Re-analyzing' : 'Re-analyze'}
+                </button>
+              )}
+            </div>
           </div>
-          <div className="clusters-container">
+          <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
             {clusters.map((cluster, index) => (
               <ClusterCard key={`${cluster.theme}-${index}`} cluster={cluster} />
             ))}

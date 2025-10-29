@@ -88,54 +88,32 @@ export default function ChatWindow() {
   };
 
   return (
-    <div className="chat-window">
-      {/* Chat header */}
-      <div className="chat-header">
-        <h2>Chat Assistant</h2>
-        {conversationId && (
-          <span className="conversation-badge">Active conversation</span>
-        )}
+    <div className="flex flex-col h-full text-white">
+      <div className="px-4 py-3 border-b border-white/10">
+        <h2 className="text-sm uppercase tracking-widest">Chat</h2>
       </div>
 
-      {/* Messages container */}
-      <div className="chat-messages">
+      <div className="flex-1 overflow-y-auto px-4 py-2 space-y-2">
         {messages.length === 0 ? (
-          <div className="chat-empty">
-            <p>Start a conversation with your browsing history assistant!</p>
+          <div className="h-full w-full flex items-center justify-center text-white/40 text-sm">
+            Start a conversation
           </div>
         ) : (
           messages.map((message, index) => (
             <ChatBubble key={`${message.role}-${index}-${message.timestamp.getTime()}`} message={message} />
           ))
         )}
-        
-        {/* Loading indicator */}
-        {isLoading && (
-          <div className="chat-loading">
-            <div className="chat-loading-dots">
-              <span>.</span>
-              <span>.</span>
-              <span>.</span>
-            </div>
-          </div>
-        )}
-        
-        {/* Auto-scroll anchor */}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Error display */}
       {error && (
-        <div className="chat-error">
-          {error}
-        </div>
+        <div className="px-4 py-2 text-xs text-red-400 text-center">{error}</div>
       )}
 
-      {/* Input container */}
-      <div className="chat-input-container">
+      <div className="px-4 py-3 flex items-center gap-2 border-t border-white/10 bg-[#080808]">
         <input
           type="text"
-          className="chat-input"
+          className="flex-1 bg-transparent border-b border-white/20 outline-none px-0 py-2 text-sm placeholder-white/30 disabled:opacity-40"
           placeholder="Type your message..."
           value={inputValue}
           onChange={handleInputChange}
@@ -143,11 +121,11 @@ export default function ChatWindow() {
           disabled={isLoading}
         />
         <button
-          className="chat-send-button"
+          className="text-sm text-white/70 disabled:text-white/30"
           onClick={handleSendMessage}
           disabled={isLoading || !inputValue.trim()}
         >
-          {isLoading ? 'Sending...' : 'Send'}
+          {isLoading ? 'Sending' : 'Send'}
         </button>
       </div>
     </div>

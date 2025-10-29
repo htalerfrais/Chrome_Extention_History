@@ -8,19 +8,18 @@ import Dashboard from './components/Dashboard'
 import MainLayout from './components/MainLayout'
 import ChatWindow from './components/ChatWindow'
 import { extensionBridge } from './services/extensionBridge'
-import type { SessionResults, SessionAnalysisStates, StatusType } from './types/session'
+import type { SessionResults, SessionAnalysisStates } from './types/session'
 
 function App() {
   // State management
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [status, setStatus] = useState('Waiting for extension services...')
-  const [statusType, setStatusType] = useState<StatusType>('loading')
+  
   const [currentSessionResults, setCurrentSessionResults] = useState<SessionResults>({})
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
   const [availableSessions, setAvailableSessions] = useState<any[]>([])
   const [sessionAnalysisStates, setSessionAnalysisStates] = useState<SessionAnalysisStates>({})
-  const [currentSessionIndex, setCurrentSessionIndex] = useState(0)
   const [isReanalyzing, setIsReanalyzing] = useState(false)
 
   // Wait for extension services to be ready and auto-load sessions
@@ -29,7 +28,7 @@ function App() {
       try {
         await extensionBridge.waitForExtensionServices();
         setStatus('Analyzing most recent session...');
-        setStatusType('loading');
+        
         console.log('Extension services are ready');
         
         // Automatically load sessions after services are ready
@@ -38,7 +37,7 @@ function App() {
         console.error('Failed to initialize extension services:', error);
         setError('Failed to load extension services');
         setStatus('Service initialization failed');
-        setStatusType('error');
+        
       }
     };
 
@@ -53,7 +52,7 @@ function App() {
       
       const constants = extensionBridge.getConstants();
       setStatus('Analyzing most recent session...')
-      setStatusType('loading')
+      
       
       // Check API health using extension service
       const healthCheck = await extensionBridge.checkApiHealth()
@@ -95,7 +94,6 @@ function App() {
       
       // Set first session (most recent) as active and auto-analyze it
       if (sessionsWithId.length > 0) {
-        setCurrentSessionIndex(0)
         const firstSessionId = sessionsWithId[0].session_identifier
         setActiveSessionId(firstSessionId)
         
@@ -120,7 +118,7 @@ function App() {
           [firstSession.session_identifier]: 'completed'
         }))
         setStatus(`Session ${firstSession.session_identifier} analyzed successfully`)
-        setStatusType('success')
+        
       }
       
       
@@ -128,7 +126,7 @@ function App() {
       console.error('Dashboard loading failed:', error)
       setError(error instanceof Error ? error.message : 'Unknown error')
       setStatus(extensionBridge.getConstants().STATUS_ANALYSIS_FAILED)
-      setStatusType('error')
+      
     } finally {
       setIsLoading(false)
     }
@@ -155,7 +153,7 @@ function App() {
       }))
 
       setStatus(`Analyzing session ${sessionId}...`)
-      setStatusType('loading')
+      
 
       // Cluster single session using extension service
       const clusterResult = await extensionBridge.clusterSession(session)
@@ -177,7 +175,7 @@ function App() {
       }))
 
       setStatus(`Session ${sessionId} analyzed successfully`)
-      setStatusType('success')
+      
       
     } catch (error) {
       console.error(`Session analysis failed for ${sessionId}:`, error)
@@ -189,7 +187,7 @@ function App() {
       }))
 
       setStatus(`Session ${sessionId} analysis failed`)
-      setStatusType('error')
+      
     }
   }
 
@@ -202,7 +200,7 @@ function App() {
     try {
       setIsReanalyzing(true)
       setStatus(`Re-analyzing session ${activeSessionId}...`)
-      setStatusType('loading')
+      
 
       const result = await extensionBridge.clusterSession(session, { force: true })
       if (!result.success) {
@@ -218,11 +216,11 @@ function App() {
         [activeSessionId]: 'completed'
       }))
       setStatus(`Session ${activeSessionId} re-analyzed successfully`)
-      setStatusType('success')
+      
     } catch (error) {
       console.error('Re-analysis failed:', error)
       setStatus('Re-analysis failed')
-      setStatusType('error')
+      
     } finally {
       setIsReanalyzing(false)
     }
@@ -233,31 +231,9 @@ function App() {
     setActiveSessionId(sessionId)
     
     // Update current session index
-    const newIndex = availableSessions.findIndex(s => s.session_identifier === sessionId)
-    if (newIndex !== -1) {
-      setCurrentSessionIndex(newIndex)
-    }
-    
     // Analyze session if not already completed
     if (sessionAnalysisStates[sessionId] === 'pending') {
       await analyzeSession(sessionId)
-    }
-  }
-
-  // Navigation functions for Previous/Next buttons
-  const goToPreviousSession = async () => {
-    if (currentSessionIndex > 0) {
-      const newIndex = currentSessionIndex - 1
-      const newSessionId = availableSessions[newIndex].session_identifier
-      await handleSessionChange(newSessionId)
-    }
-  }
-
-  const goToNextSession = async () => {
-    if (currentSessionIndex < availableSessions.length - 1) {
-      const newIndex = currentSessionIndex + 1
-      const newSessionId = availableSessions[newIndex].session_identifier
-      await handleSessionChange(newSessionId)
     }
   }
 
@@ -277,21 +253,15 @@ function App() {
   const activeIsLoading = activeSessionId ? sessionAnalysisStates[activeSessionId] === 'loading' : false
 
   return (
-    <div className="dashboard-container">
+    <div className="min-h-screen bg-black text-white font-sans">
       <Header 
         onSettings={openSettings}
-        onPreviousSession={goToPreviousSession}
-        onNextSession={goToNextSession}
-        currentSessionIndex={currentSessionIndex}
-        totalSessions={availableSessions.length}
-        canGoPrevious={currentSessionIndex > 0}
-        canGoNext={currentSessionIndex < availableSessions.length - 1}
       />
-      <StatusBar status={status} statusType={statusType} />
+      <StatusBar status={status} />
       
       <MainLayout 
         children={
-          <main className="dashboard-main">
+          <main className="w-full">
             {(isLoading || activeIsLoading) && <LoadingSpinner />}
             {error && <ErrorDisplay message={error} onRetry={loadDashboard} />}
             <Dashboard 
@@ -299,6 +269,9 @@ function App() {
               activeSessionId={activeSessionId}
               onReanalyze={reanalyzeActiveSession}
               isReanalyzing={isReanalyzing}
+              availableSessions={availableSessions}
+              sessionAnalysisStates={sessionAnalysisStates}
+              onSessionChange={handleSessionChange}
             />
           </main>
         }

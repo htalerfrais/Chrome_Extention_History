@@ -20,12 +20,14 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
   };
 
   return (
-    <div className={`chat-bubble ${isUser ? 'chat-bubble-user' : 'chat-bubble-assistant'}`}>
-      <div className="chat-bubble-content">
-        {message.content}
-      </div>
-      <div className="chat-bubble-timestamp">
-        {formatTime(message.timestamp)}
+    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+      <div className={`max-w-[85%] space-y-2 ${isUser ? 'text-white' : 'text-white/70'}`}>
+        <p className="text-sm leading-relaxed whitespace-pre-line">
+          {message.content}
+        </p>
+        <span className="block text-[10px] uppercase tracking-[0.25em] text-white/40">
+          {formatTime(message.timestamp)}
+        </span>
       </div>
     </div>
   );
