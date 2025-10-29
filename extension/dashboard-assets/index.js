@@ -12281,7 +12281,7 @@ function ClusterCard({ cluster }) {
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-items", children: cluster.items.map((item, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index}`)) })
   ] });
 }
-function ClustersSection({ sessionData, isAnalyzing = false }) {
+function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
   const clusters = (sessionData == null ? void 0 : sessionData.clusters) || [];
   if (!isAnalyzing && (!sessionData || clusters.length === 0)) {
     return null;
@@ -12289,18 +12289,29 @@ function ClustersSection({ sessionData, isAnalyzing = false }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-section", children: sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Browsing Topics" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData })
+      /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
+      onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: onReanalyze,
+          disabled: isReanalyzing,
+          style: { marginLeft: "auto" },
+          children: isReanalyzing ? "Re-analyzing…" : "Relancer l’analyse"
+        }
+      )
     ] }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
   ] }) });
 }
 function Dashboard({
   currentSessionResults,
-  activeSessionId
+  activeSessionId,
+  onReanalyze,
+  isReanalyzing
 }) {
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
   const isAnalyzing = !currentSessionData;
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing }) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing, onReanalyze, isReanalyzing }) });
 }
 function MainLayout({ children, chatComponent }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "main-layout", children: [
@@ -12365,12 +12376,12 @@ class ExtensionBridge {
    * Send single session to backend for clustering using extension's ApiClient
    * This uses the existing api_client.js logic
    */
-  async clusterSession(session) {
+  async clusterSession(session, options) {
     if (!window.ApiClient) {
       throw new Error("ApiClient not available. Extension services not loaded.");
     }
     try {
-      const result = await window.ApiClient.clusterSession(session);
+      const result = await window.ApiClient.clusterSession(session, { force: (options == null ? void 0 : options.force) === true });
       console.log("Single session clustering result:", result);
       return result;
     } catch (error) {
@@ -12592,6 +12603,7 @@ function App() {
   const [availableSessions, setAvailableSessions] = reactExports.useState([]);
   const [sessionAnalysisStates, setSessionAnalysisStates] = reactExports.useState({});
   const [currentSessionIndex, setCurrentSessionIndex] = reactExports.useState(0);
+  const [isReanalyzing, setIsReanalyzing] = reactExports.useState(false);
   reactExports.useEffect(() => {
     const initializeServices = async () => {
       try {
@@ -12708,6 +12720,34 @@ function App() {
       setStatusType("error");
     }
   };
+  const reanalyzeActiveSession = async () => {
+    if (!activeSessionId) return;
+    const session = availableSessions.find((s) => s.session_id === activeSessionId);
+    if (!session) return;
+    try {
+      setIsReanalyzing(true);
+      setStatus(`Re-analyzing session ${activeSessionId}...`);
+      setStatusType("loading");
+      const result = await extensionBridge.clusterSession(session, { force: true });
+      if (!result.success) {
+        throw new Error(`Clustering failed: ${result.error}`);
+      }
+      setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
+        [activeSessionId]: result.data
+      }));
+      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
+        [activeSessionId]: "completed"
+      }));
+      setStatus(`Session ${activeSessionId} re-analyzed successfully`);
+      setStatusType("success");
+    } catch (error2) {
+      console.error("Re-analysis failed:", error2);
+      setStatus("Re-analysis failed");
+      setStatusType("error");
+    } finally {
+      setIsReanalyzing(false);
+    }
+  };
   const handleSessionChange = async (sessionId) => {
     setActiveSessionId(sessionId);
     const newIndex = availableSessions.findIndex((s) => s.session_identifier === sessionId);
@@ -12771,7 +12811,9 @@ To switch environments, modify extension/api/config.js`);
             Dashboard,
             {
               currentSessionResults,
-              activeSessionId
+              activeSessionId,
+              onReanalyze: reanalyzeActiveSession,
+              isReanalyzing
             }
           )
         ] }),

@@ -36,17 +36,25 @@ class DatabaseRepository:
         """
         Generic database operation wrapper
         Handles session lifecycle, commits, rollbacks, and error logging
-        Returns dictionary or list to avoid SQLAlchemy session dependencies
+        Returns dictionary, list, or primitive types to avoid SQLAlchemy session dependencies
         """
         try:
             with self._get_session() as db:
                 result = operation(db)
-                if result is not None:
-                    # Convert SQLAlchemy object(s) to dict(s)
-                    if isinstance(result, list):
-                        return [self._to_dict(obj) for obj in result]
-                    return self._to_dict(result)
-                return None
+                if result is None:
+                    return None
+                
+                # Handle primitive types (bool, int, str, etc.) - return as-is
+                if isinstance(result, (bool, int, str, float)):
+                    return result
+                
+                # Handle lists of SQLAlchemy objects
+                if isinstance(result, list):
+                    return [self._to_dict(obj) if hasattr(obj, '__table__') else obj for obj in result]
+                
+                # Handle single SQLAlchemy object
+                return self._to_dict(result) if hasattr(result, '__table__') else result
+            
         except Exception as e:
             logger.error(f"❌ {error_msg}: {e}")
             return None
@@ -155,23 +163,17 @@ class DatabaseRepository:
     def get_clusters_by_session_id(self, session_id: int) -> List[Dict]:
         """Get all clusters for a session"""
         def operation(db):
-            clusters = db.query(Cluster).filter(Cluster.session_id == session_id).all()
-            return clusters
+            return db.query(Cluster).filter(Cluster.session_id == session_id).all()
         
         result = self._execute(operation, "Failed to get clusters by session id")
-        if result is None:
-            return []
         return result if isinstance(result, list) else []
     
     def get_history_items_by_cluster_id(self, cluster_id: int) -> List[Dict]:
         """Get all history items for a cluster"""
         def operation(db):
-            items = db.query(HistoryItem).filter(HistoryItem.cluster_id == cluster_id).all()
-            return items
+            return db.query(HistoryItem).filter(HistoryItem.cluster_id == cluster_id).all()
         
         result = self._execute(operation, "Failed to get history items by cluster id")
-        if result is None:
-            return []
         return result if isinstance(result, list) else []
     
     def get_session_with_relations(self, session_identifier: str) -> Optional[Dict]:
@@ -187,15 +189,22 @@ class DatabaseRepository:
         
         return self._execute(operation, "Failed to get session with relations")
     
-    def delete_session_by_identifier(self, session_identifier: str) -> Optional[bool]:
-        """Delete a session (and cascaded relations) by its unique identifier"""
+    def delete_session_by_identifier(self, session_identifier: str) -> bool:
+        """
+        Delete a session (and cascaded relations) by its unique identifier
+        
+        Returns:
+            True if deleted, False if not found
+        """
         def operation(db):
             session = db.query(Session).filter(Session.session_identifier == session_identifier).first()
             if not session:
-                return None
+                return False
             db.delete(session)
             return True
-        return self._execute(operation, "Failed to delete session by identifier")
+        
+        result = self._execute(operation, "Failed to delete session by identifier")
+        return result is True  # Convert None → False for consistency
     
     # History item operations
     
