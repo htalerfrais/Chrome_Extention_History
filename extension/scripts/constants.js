@@ -21,6 +21,7 @@ const MAX_CLUSTER_ITEMS_DISPLAY = 5;
 // Clustering constants
 const MAX_CLUSTERS_DEFAULT = 10;
 const MIN_CLUSTER_SIZE_DEFAULT = 2;
+const URL_SIMILARITY_THRESHOLD = 0.8; // Seuil de similarité pour la déduplication d'URLs (0.0-1.0, plus élevé = plus strict)
 
 // Retry configuration
 const API_RETRIES = 3;
@@ -65,6 +66,7 @@ const ExtensionConstants = {
     MAX_CLUSTER_ITEMS_DISPLAY,
     MAX_CLUSTERS_DEFAULT,
     MIN_CLUSTER_SIZE_DEFAULT,
+    URL_SIMILARITY_THRESHOLD,
     API_RETRIES,
     API_RETRY_DELAY_MS,
     CHROME_HISTORY_PERMISSION,

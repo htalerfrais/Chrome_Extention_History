@@ -17,7 +17,12 @@ function datesFormating(items) {
 // threshold in [0,1] (e.g., 0.8)
 function filterHistoryURL(items, threshold) {
     if (!Array.isArray(items)) return [];
-    const similarityThreshold = typeof threshold === 'number' ? threshold : 0.6;
+    
+    // Récupérer le seuil depuis constants ou utiliser celui fourni, sinon fallback
+    const constants = (typeof window !== 'undefined' ? window.ExtensionConstants : 
+                      typeof self !== 'undefined' ? self.ExtensionConstants : null);
+    const defaultThreshold = constants?.URL_SIMILARITY_THRESHOLD || 0.6;
+    const similarityThreshold = typeof threshold === 'number' ? threshold : defaultThreshold;
 
     const kept = [];
     const dropped = [];
