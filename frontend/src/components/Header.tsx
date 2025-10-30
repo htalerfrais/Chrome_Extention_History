@@ -3,59 +3,20 @@
 
 interface HeaderProps {
   onSettings: () => void;
-  onPreviousSession: () => void;
-  onNextSession: () => void;
-  currentSessionIndex: number;
-  totalSessions: number;
-  canGoPrevious: boolean;
-  canGoNext: boolean;
 }
 
 export default function Header({ 
-  onSettings, 
-  onPreviousSession, 
-  onNextSession, 
-  currentSessionIndex, 
-  totalSessions, 
-  canGoPrevious, 
-  canGoNext 
+  onSettings
 }: HeaderProps) {
   return (
-    <header className="dashboard-header">
-      <div className="header-content">
-        <div className="logo-section">
-          <img src="/icons/Engrave2.png" alt="Engrave it" className="logo" />
-          <h1>Engrave it !!!</h1>
+    <header className="bg-black text-white sticky top-0 z-[100]">
+      <div className="flex items-center justify-between w-full px-6 py-4">
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm tracking-widest uppercase">Engrave it</h1>
         </div>
-        
-        {/* Session Navigation */}
-        {totalSessions > 0 && (
-          <div className="session-navigation">
-            <button 
-              className="btn btn-nav" 
-              onClick={onPreviousSession}
-              disabled={!canGoPrevious}
-              title="Previous Session"
-            >
-              <span className="icon">←</span>
-            </button>
-            <span className="session-counter">
-              Session {currentSessionIndex + 1} of {totalSessions}
-            </span>
-            <button 
-              className="btn btn-nav" 
-              onClick={onNextSession}
-              disabled={!canGoNext}
-              title="Next Session"
-            >
-              <span className="icon">→</span>
-            </button>
-          </div>
-        )}
-        
-        <div className="header-actions">
-          <button className="btn btn-secondary" onClick={onSettings}>
-            <span className="icon">⚙️</span>
+
+        <div className="flex items-center gap-3">
+          <button className="text-white/70 hover:text-white" onClick={onSettings}>
             Settings
           </button>
         </div>

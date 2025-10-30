@@ -10,14 +10,14 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, chatComponent }: MainLayoutProps) {
   return (
-    <div className="main-layout">
+    <div className="flex h-[calc(100vh-120px)] bg-black">
       {/* Main content area - 70% */}
-      <div className="main-content">
+      <div className="flex-1 overflow-y-auto thin-scrollbar">
         {children}
       </div>
       
       {/* Chat sidebar - 30% */}
-      <div className="chat-sidebar">
+      <div className="w-[32%] min-w-[300px] border-l border-white/10 bg-[#080808]">
         {chatComponent}
       </div>
     </div>

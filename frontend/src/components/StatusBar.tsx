@@ -3,15 +3,13 @@
 
 interface StatusBarProps {
   status: string;
-  statusType: 'loading' | 'success' | 'error';
 }
 
-export default function StatusBar({ status, statusType }: StatusBarProps) {
+export default function StatusBar({ status }: StatusBarProps) {
   return (
-    <div className="status-bar">
-      <div className="status-content">
-        <span className="status-text">{status}</span>
-        <div className={`status-indicator ${statusType}`}></div>
+    <div className="bg-black text-white">
+      <div className="w-full px-6 py-2 flex items-center justify-between">
+        <span className="text-xs text-white/70">{status}</span>
       </div>
     </div>
   );

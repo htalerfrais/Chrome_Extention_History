@@ -12087,64 +12087,18 @@ function requireClient() {
 }
 var clientExports = requireClient();
 function Header({
-  onSettings,
-  onPreviousSession,
-  onNextSession,
-  currentSessionIndex,
-  totalSessions,
-  canGoPrevious,
-  canGoNext
+  onSettings
 }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "dashboard-header", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "header-content", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "logo-section", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("img", { src: "/icons/Engrave2.png", alt: "Engrave it", className: "logo" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { children: "Engrave it !!!" })
-    ] }),
-    totalSessions > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-navigation", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          className: "btn btn-nav",
-          onClick: onPreviousSession,
-          disabled: !canGoPrevious,
-          title: "Previous Session",
-          children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", children: "←" })
-        }
-      ),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "session-counter", children: [
-        "Session ",
-        currentSessionIndex + 1,
-        " of ",
-        totalSessions
-      ] }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          className: "btn btn-nav",
-          onClick: onNextSession,
-          disabled: !canGoNext,
-          title: "Next Session",
-          children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", children: "→" })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "header-actions", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("button", { className: "btn btn-secondary", onClick: onSettings, children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "icon", children: "⚙️" }),
-      "Settings"
-    ] }) })
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "bg-black text-white sticky top-0 z-[100]", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between w-full px-6 py-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-sm tracking-widest uppercase", children: "Engrave it" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "text-white/70 hover:text-white", onClick: onSettings, children: "Settings" }) })
   ] }) });
 }
-function StatusBar({ status, statusType }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "status-bar", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "status-content", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "status-text", children: status }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `status-indicator ${statusType}` })
-  ] }) });
+function StatusBar({ status }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-black text-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full px-6 py-2 flex items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/70", children: status }) }) });
 }
 function LoadingSpinner() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "loading-container", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "loading-spinner" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "status-text", children: "Analyzing session..." })
-  ] });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full py-16 flex flex-col items-center justify-center text-white/40 uppercase tracking-[0.35em] text-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Analyzing Session" }) });
 }
 function ErrorDisplay({ message, onRetry }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "error-container", children: [
@@ -12163,24 +12117,23 @@ function SessionInfo({ sessionData }) {
   const endTime = new Date(sessionData.session_end_time);
   const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60));
   const clusterCount = ((_a = sessionData.clusters) == null ? void 0 : _a.length) || 0;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-info", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-info-item", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Duration:" }),
-      " ",
+  const dateLabel = startTime.toLocaleDateString();
+  const startLabel = startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const endLabel = endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/40", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: dateLabel }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+      startLabel,
+      " → ",
+      endLabel
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
       duration,
-      " minutes"
+      " min"
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-info-item", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Time:" }),
-      " ",
-      startTime.toLocaleString(),
-      " - ",
-      endTime.toLocaleString()
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "session-info-item", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("strong", { children: "Topics:" }),
-      " ",
-      clusterCount
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+      clusterCount,
+      " topics"
     ] })
   ] });
 }
@@ -12248,25 +12201,25 @@ function ClusterItem({ item }) {
   const currentFaviconUrl = alternativeUrls[currentFaviconIndex];
   const visitTime = formatVisitTime(item.visit_time);
   const shouldShowFallback = showFallback || alternativeUrls.length === 0;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cluster-item", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 py-2", children: [
     !shouldShowFallback ? /* @__PURE__ */ jsxRuntimeExports.jsx(
       "img",
       {
         src: currentFaviconUrl,
         alt: "",
-        className: "item-favicon",
+        className: "w-5 h-5",
         onError: handleFaviconError
       }
-    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-favicon-fallback", children: getInitials(item.title) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "item-content", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-title", title: item.title, children: item.title }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-url", title: domain, children: domain })
+    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-5 h-5 text-[10px] font-semibold bg-white text-black flex items-center justify-center", children: getInitials(item.title) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white truncate", title: item.title, children: item.title }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/50 truncate", title: domain, children: domain })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "item-time", children: visitTime }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/50", children: visitTime }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       "button",
       {
-        className: "item-open-btn",
+        className: "text-white/60 hover:text-white",
         onClick: handleOpenUrl,
         title: "Ouvrir dans un nouvel onglet",
         children: "↗"
@@ -12275,10 +12228,10 @@ function ClusterItem({ item }) {
   ] });
 }
 function ClusterCard({ cluster }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "cluster-card", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-theme", children: cluster.theme }),
-    cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-summary", title: cluster.summary, children: cluster.summary }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "cluster-items", children: cluster.items.map((item, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index}`)) })
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#111111] text-white p-6 space-y-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs uppercase tracking-[0.3em] text-white/60", children: cluster.theme }),
+    cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white/60", title: cluster.summary, children: cluster.summary }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-80 overflow-y-auto pr-2 space-y-2 thin-scrollbar", children: cluster.items.map((item, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index}`)) })
   ] });
 }
 function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
@@ -12286,37 +12239,116 @@ function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isRean
   if (!isAnalyzing && (!sessionData || clusters.length === 0)) {
     return null;
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-section", children: sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "clusters-header", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Browsing Topics" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
-      onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "button",
-        {
-          onClick: onReanalyze,
-          disabled: isReanalyzing,
-          style: { marginLeft: "auto" },
-          children: isReanalyzing ? "Re-analyzing…" : "Relancer l’analyse"
-        }
-      )
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-black text-white w-full", children: sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.4em] text-white/70", children: "Topics" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-4 md:justify-end", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
+        onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: onReanalyze,
+            disabled: isReanalyzing,
+            className: "px-4 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white disabled:opacity-40",
+            children: isReanalyzing ? "Re-analyzing" : "Re-analyze"
+          }
+        )
+      ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "clusters-container", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: clusters.map((cluster, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index}`)) })
   ] }) });
+}
+function SessionTabs({
+  currentSessionResults,
+  activeSessionId,
+  onSessionChange,
+  availableSessions,
+  sessionAnalysisStates
+}) {
+  const sortedSessions = availableSessions.map((session) => ({
+    sessionId: session.session_id,
+    sessionData: session,
+    startTime: new Date(session.start_time)
+  })).sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
+  if (sortedSessions.length === 0) {
+    return null;
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full overflow-x-auto border-b border-white/10 bg-black", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2 px-6 py-2", children: sortedSessions.map((session, index) => {
+    var _a, _b;
+    const sessionNumber = index + 1;
+    const startTime = new Date(session.sessionData.start_time);
+    const endTime = new Date(session.sessionData.end_time);
+    const duration = Math.max(1, Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60)));
+    const itemCount = ((_a = session.sessionData.items) == null ? void 0 : _a.length) || 0;
+    const analysisState = sessionAnalysisStates[session.sessionId] || "pending";
+    const sessionResult = currentSessionResults[session.sessionId];
+    const clusterCount = ((_b = sessionResult == null ? void 0 : sessionResult.clusters) == null ? void 0 : _b.length) || 0;
+    let statusText = "";
+    switch (analysisState) {
+      case "pending":
+        statusText = `${itemCount} items`;
+        break;
+      case "loading":
+        statusText = "Analyzing";
+        break;
+      case "completed":
+        statusText = `${duration} min · ${clusterCount} topics`;
+        break;
+      case "error":
+        statusText = "Analysis failed";
+        break;
+    }
+    const isActive = session.sessionId === activeSessionId;
+    return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "button",
+      {
+        onClick: () => onSessionChange(session.sessionId),
+        className: `flex flex-col items-start gap-1 min-w-[160px] px-4 py-3 border border-white/10 ${isActive ? "bg-white/10 text-white" : "bg-transparent text-white/50 hover:text-white"} text-left`,
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] uppercase tracking-[0.3em]", children: [
+            "Session ",
+            sessionNumber
+          ] }),
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] uppercase tracking-[0.2em] text-white/40", children: [
+            startTime.toLocaleDateString(),
+            " · ",
+            statusText
+          ] })
+        ]
+      },
+      session.sessionId
+    );
+  }) }) });
 }
 function Dashboard({
   currentSessionResults,
   activeSessionId,
   onReanalyze,
-  isReanalyzing
+  isReanalyzing,
+  availableSessions,
+  sessionAnalysisStates,
+  onSessionChange
 }) {
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
   const isAnalyzing = !currentSessionData;
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "dashboard-content", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing, onReanalyze, isReanalyzing }) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full space-y-6", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      SessionTabs,
+      {
+        currentSessionResults,
+        activeSessionId,
+        onSessionChange,
+        availableSessions,
+        sessionAnalysisStates
+      }
+    ),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing, onReanalyze, isReanalyzing })
+  ] });
 }
 function MainLayout({ children, chatComponent }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "main-layout", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "main-content", children }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-sidebar", children: chatComponent })
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-[calc(100vh-120px)] bg-black", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto thin-scrollbar", children }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[32%] min-w-[300px] border-l border-white/10 bg-[#080808]", children: chatComponent })
   ] });
 }
 function ChatBubble({ message }) {
@@ -12328,10 +12360,10 @@ function ChatBubble({ message }) {
       minute: "2-digit"
     });
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `chat-bubble ${isUser ? "chat-bubble-user" : "chat-bubble-assistant"}`, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-bubble-content", children: message.content }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-bubble-timestamp", children: formatTime(message.timestamp) })
-  ] });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `flex ${isUser ? "justify-end" : "justify-start"}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `max-w-[85%] space-y-2 ${isUser ? "text-white" : "text-white/70"}`, children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm leading-relaxed whitespace-pre-line", children: message.content }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-[10px] uppercase tracking-[0.25em] text-white/40", children: formatTime(message.timestamp) })
+  ] }) });
 }
 class ExtensionBridge {
   /**
@@ -12553,27 +12585,19 @@ function ChatWindow() {
       handleSendMessage();
     }
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-window", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-header", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { children: "Chat Assistant" }),
-      conversationId && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "conversation-badge", children: "Active conversation" })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-messages", children: [
-      messages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-empty", children: /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: "Start a conversation with your browsing history assistant!" }) }) : messages.map((message, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBubble, { message }, `${message.role}-${index}-${message.timestamp.getTime()}`)),
-      isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-loading", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-loading-dots", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." })
-      ] }) }),
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full text-white", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-4 py-3 border-b border-white/10", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-widest", children: "Chat" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto px-4 py-2 space-y-2", children: [
+      messages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-full w-full flex items-center justify-center text-white/40 text-sm", children: "Start a conversation" }) : messages.map((message, index) => /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBubble, { message }, `${message.role}-${index}-${message.timestamp.getTime()}`)),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: messagesEndRef })
     ] }),
-    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-error", children: error }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "chat-input-container", children: [
+    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-4 py-2 text-xs text-red-400 text-center", children: error }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-3 flex items-center gap-2 border-t border-white/10 bg-[#080808]", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "input",
         {
           type: "text",
-          className: "chat-input",
+          className: "flex-1 bg-transparent border-b border-white/20 outline-none px-0 py-2 text-sm placeholder-white/30 disabled:opacity-40",
           placeholder: "Type your message...",
           value: inputValue,
           onChange: handleInputChange,
@@ -12584,10 +12608,10 @@ function ChatWindow() {
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
-          className: "chat-send-button",
+          className: "text-sm text-white/70 disabled:text-white/30",
           onClick: handleSendMessage,
           disabled: isLoading || !inputValue.trim(),
-          children: isLoading ? "Sending..." : "Send"
+          children: isLoading ? "Sending" : "Send"
         }
       )
     ] })
@@ -12597,26 +12621,22 @@ function App() {
   const [isLoading, setIsLoading] = reactExports.useState(false);
   const [error, setError] = reactExports.useState(null);
   const [status, setStatus] = reactExports.useState("Waiting for extension services...");
-  const [statusType, setStatusType] = reactExports.useState("loading");
   const [currentSessionResults, setCurrentSessionResults] = reactExports.useState({});
   const [activeSessionId, setActiveSessionId] = reactExports.useState(null);
   const [availableSessions, setAvailableSessions] = reactExports.useState([]);
   const [sessionAnalysisStates, setSessionAnalysisStates] = reactExports.useState({});
-  const [currentSessionIndex, setCurrentSessionIndex] = reactExports.useState(0);
   const [isReanalyzing, setIsReanalyzing] = reactExports.useState(false);
   reactExports.useEffect(() => {
     const initializeServices = async () => {
       try {
         await extensionBridge.waitForExtensionServices();
         setStatus("Analyzing most recent session...");
-        setStatusType("loading");
         console.log("Extension services are ready");
         await loadDashboard();
       } catch (error2) {
         console.error("Failed to initialize extension services:", error2);
         setError("Failed to load extension services");
         setStatus("Service initialization failed");
-        setStatusType("error");
       }
     };
     initializeServices();
@@ -12627,7 +12647,6 @@ function App() {
       setError(null);
       const constants = extensionBridge.getConstants();
       setStatus("Analyzing most recent session...");
-      setStatusType("loading");
       const healthCheck = await extensionBridge.checkApiHealth();
       if (!healthCheck.success) {
         throw new Error(`API not available: ${healthCheck.error}`);
@@ -12654,7 +12673,6 @@ function App() {
       });
       setSessionAnalysisStates(initialStates);
       if (sessionsWithId.length > 0) {
-        setCurrentSessionIndex(0);
         const firstSessionId = sessionsWithId[0].session_identifier;
         setActiveSessionId(firstSessionId);
         setStatus("Analyzing most recent session...");
@@ -12673,13 +12691,11 @@ function App() {
           [firstSession.session_identifier]: "completed"
         }));
         setStatus(`Session ${firstSession.session_identifier} analyzed successfully`);
-        setStatusType("success");
       }
     } catch (error2) {
       console.error("Dashboard loading failed:", error2);
       setError(error2 instanceof Error ? error2.message : "Unknown error");
       setStatus(extensionBridge.getConstants().STATUS_ANALYSIS_FAILED);
-      setStatusType("error");
     } finally {
       setIsLoading(false);
     }
@@ -12698,7 +12714,6 @@ function App() {
         [sessionId]: "loading"
       }));
       setStatus(`Analyzing session ${sessionId}...`);
-      setStatusType("loading");
       const clusterResult = await extensionBridge.clusterSession(session);
       if (!clusterResult.success) {
         throw new Error(`Clustering failed: ${clusterResult.error}`);
@@ -12710,14 +12725,12 @@ function App() {
         [sessionId]: "completed"
       }));
       setStatus(`Session ${sessionId} analyzed successfully`);
-      setStatusType("success");
     } catch (error2) {
       console.error(`Session analysis failed for ${sessionId}:`, error2);
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [sessionId]: "error"
       }));
       setStatus(`Session ${sessionId} analysis failed`);
-      setStatusType("error");
     }
   };
   const reanalyzeActiveSession = async () => {
@@ -12727,7 +12740,6 @@ function App() {
     try {
       setIsReanalyzing(true);
       setStatus(`Re-analyzing session ${activeSessionId}...`);
-      setStatusType("loading");
       const result = await extensionBridge.clusterSession(session, { force: true });
       if (!result.success) {
         throw new Error(`Clustering failed: ${result.error}`);
@@ -12739,37 +12751,17 @@ function App() {
         [activeSessionId]: "completed"
       }));
       setStatus(`Session ${activeSessionId} re-analyzed successfully`);
-      setStatusType("success");
     } catch (error2) {
       console.error("Re-analysis failed:", error2);
       setStatus("Re-analysis failed");
-      setStatusType("error");
     } finally {
       setIsReanalyzing(false);
     }
   };
   const handleSessionChange = async (sessionId) => {
     setActiveSessionId(sessionId);
-    const newIndex = availableSessions.findIndex((s) => s.session_identifier === sessionId);
-    if (newIndex !== -1) {
-      setCurrentSessionIndex(newIndex);
-    }
     if (sessionAnalysisStates[sessionId] === "pending") {
       await analyzeSession(sessionId);
-    }
-  };
-  const goToPreviousSession = async () => {
-    if (currentSessionIndex > 0) {
-      const newIndex = currentSessionIndex - 1;
-      const newSessionId = availableSessions[newIndex].session_identifier;
-      await handleSessionChange(newSessionId);
-    }
-  };
-  const goToNextSession = async () => {
-    if (currentSessionIndex < availableSessions.length - 1) {
-      const newIndex = currentSessionIndex + 1;
-      const newSessionId = availableSessions[newIndex].session_identifier;
-      await handleSessionChange(newSessionId);
     }
   };
   const openSettings = () => {
@@ -12787,24 +12779,18 @@ Session Gap: ${sessionGap} minutes
 To switch environments, modify extension/api/config.js`);
   };
   const activeIsLoading = activeSessionId ? sessionAnalysisStates[activeSessionId] === "loading" : false;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "dashboard-container", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen bg-black text-white font-sans", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       Header,
       {
-        onSettings: openSettings,
-        onPreviousSession: goToPreviousSession,
-        onNextSession: goToNextSession,
-        currentSessionIndex,
-        totalSessions: availableSessions.length,
-        canGoPrevious: currentSessionIndex > 0,
-        canGoNext: currentSessionIndex < availableSessions.length - 1
+        onSettings: openSettings
       }
     ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBar, { status, statusType }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBar, { status }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       MainLayout,
       {
-        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "dashboard-main", children: [
+        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "w-full", children: [
           (isLoading || activeIsLoading) && /* @__PURE__ */ jsxRuntimeExports.jsx(LoadingSpinner, {}),
           error && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: loadDashboard }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
@@ -12813,7 +12799,10 @@ To switch environments, modify extension/api/config.js`);
               currentSessionResults,
               activeSessionId,
               onReanalyze: reanalyzeActiveSession,
-              isReanalyzing
+              isReanalyzing,
+              availableSessions,
+              sessionAnalysisStates,
+              onSessionChange: handleSessionChange
             }
           )
         ] }),

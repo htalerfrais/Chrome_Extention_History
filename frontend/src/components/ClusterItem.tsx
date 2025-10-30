@@ -111,32 +111,32 @@ export default function ClusterItem({ item }: ClusterItemProps) {
   const shouldShowFallback = showFallback || alternativeUrls.length === 0;
 
   return (
-    <div className="cluster-item">
+    <div className="flex items-center gap-3 py-2">
       {!shouldShowFallback ? (
         <img
           src={currentFaviconUrl}
           alt=""
-          className="item-favicon"
+          className="w-5 h-5"
           onError={handleFaviconError}
         />
       ) : (
-        <div className="item-favicon-fallback">
+        <div className="w-5 h-5 text-[10px] font-semibold bg-white text-black flex items-center justify-center">
           {getInitials(item.title)}
         </div>
       )}
-      <div className="item-content">
-        <div className="item-title" title={item.title}>
+      <div className="flex-1 min-w-0">
+        <div className="text-sm text-white truncate" title={item.title}>
           {item.title}
         </div>
-        <div className="item-url" title={domain}>
+        <div className="text-xs text-white/50 truncate" title={domain}>
           {domain}
         </div>
       </div>
-      <div className="item-time">
+      <div className="text-xs text-white/50">
         {visitTime}
       </div>
       <button 
-        className="item-open-btn"
+        className="text-white/60 hover:text-white"
         onClick={handleOpenUrl}
         title="Ouvrir dans un nouvel onglet"
       >
