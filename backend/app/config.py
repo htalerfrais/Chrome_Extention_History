@@ -58,8 +58,8 @@ class Settings(BaseSettings):
     chat_history_limit: int = 10
     
     # Embeddings
-    embedding_provider: str = "openai"
-    embedding_model: str = "text-embedding-3-small"
+    embedding_provider: str = "google"
+    embedding_model: str = "text-embedding-004"
     embedding_dim: int = 1536
 
     # Provider URLs

@@ -9,7 +9,7 @@ logger = logging.getLogger(__name__)
 
 
 class EmbeddingService:
-    """Minimal embedding client (OpenAI-compatible)."""
+    """Minimal embedding client using Google Generative Language API."""
 
     def __init__(
         self,
@@ -17,8 +17,8 @@ class EmbeddingService:
         base_url: Optional[str] = None,
         model: Optional[str] = None,
     ) -> None:
-        self.api_key = api_key or settings.openai_api_key
-        self.base_url = (base_url or settings.openai_base_url).rstrip("/")
+        self.api_key = api_key or settings.google_api_key
+        self.base_url = (base_url or settings.google_base_url).rstrip("/")
         self.model = model or settings.embedding_model
         self.timeout = settings.api_timeout
 
@@ -30,19 +30,13 @@ class EmbeddingService:
             logger.warning("EmbeddingService: missing API key, returning empty vectors.")
             return [[] for _ in texts]
 
-        url = f"{self.base_url}/embeddings"
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json",
-        }
-        payload = {
-            "model": self.model,
-            "input": texts,
-        }
+        url = f"{self.base_url}/models/{self.model}:embedText"
+        params = {"key": self.api_key}
+        payload = {"requests": [{"input": text} for text in texts]}
 
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, headers=headers, json=payload)
+                response = await client.post(url, params=params, json=payload)
                 response.raise_for_status()
                 data = response.json()
         except Exception as exc:
@@ -50,10 +44,14 @@ class EmbeddingService:
             return [[] for _ in texts]
 
         vectors: List[List[float]] = []
-        for item in data.get("data", []):
-            embedding = item.get("embedding")
-            if isinstance(embedding, list):
-                vectors.append([float(x) for x in embedding])
+        for item in data.get("embeddings", []):
+            values = None
+            if isinstance(item, dict):
+                values = item.get("values")
+                if values is None and isinstance(item.get("embedding"), dict):
+                    values = item["embedding"].get("values")
+            if isinstance(values, list):
+                vectors.append([float(x) for x in values])
 
         # Ensure result length matches input length
         if len(vectors) != len(texts):
