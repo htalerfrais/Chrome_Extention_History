@@ -50,8 +50,7 @@ class MappingService:
             user_id=user_id,
             session_identifier=response.session_identifier,
             start_time=response.session_start_time,
-            end_time=response.session_end_time,
-            embedding=None  # TODO: Add embedding generation if needed
+            end_time=response.session_end_time
         )
         
         if not session_dict:
@@ -66,7 +65,7 @@ class MappingService:
                 session_id=session_id,
                 name=cluster.theme,
                 description=cluster.summary,
-                embedding=None  # TODO: Add embedding generation if needed
+                embedding=cluster.embedding or None
             )
             
             if not cluster_dict:
@@ -88,7 +87,7 @@ class MappingService:
                         "url_pathname_clean": item.url_pathname_clean,
                         "url_search_query": item.url_search_query
                     },
-                    embedding=None  # TODO: Add embedding generation if needed
+                    embedding=item.embedding or None
                 )
             
             logger.info(f"✅ Created {len(cluster.items)} history items for cluster {cluster_id}")
@@ -149,7 +148,8 @@ class MappingService:
                     visit_time=item_dict["visit_time"],
                     url_hostname=item_dict.get("domain"),
                     url_pathname_clean=raw_semantics.get("url_pathname_clean"),
-                    url_search_query=raw_semantics.get("url_search_query")
+                url_search_query=raw_semantics.get("url_search_query"),
+                embedding=item_dict.get("embedding")
                 )
                 cluster_items.append(cluster_item)
             
@@ -158,7 +158,8 @@ class MappingService:
                 cluster_id=f"cluster_{cluster_id}",  # Generate simple cluster_id
                 theme=cluster_dict["name"],
                 summary=cluster_dict.get("description") or "",
-                items=cluster_items
+            items=cluster_items,
+            embedding=cluster_dict.get("embedding")
             )
             cluster_results.append(cluster_result)
         

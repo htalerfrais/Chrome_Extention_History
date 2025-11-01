@@ -57,6 +57,11 @@ class Settings(BaseSettings):
     chat_temperature: float = 0.7
     chat_history_limit: int = 10
     
+    # Embeddings
+    embedding_provider: str = "openai"
+    embedding_model: str = "text-embedding-3-small"
+    embedding_dim: int = 1536
+
     # Provider URLs
     openai_base_url: str = "https://api.openai.com/v1"
     anthropic_base_url: str = "https://api.anthropic.com"

@@ -50,7 +50,6 @@ class Session(Base):
     session_identifier = Column(String, nullable=False, unique=True, index=True)
     start_time = Column(DateTime, nullable=False)
     end_time = Column(DateTime, nullable=False)
-    embedding = Column(Vector(1536), nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     user = relationship("User", back_populates="sessions")
     clusters = relationship("Cluster", back_populates="session", cascade="all, delete-orphan")

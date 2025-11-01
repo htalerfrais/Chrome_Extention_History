@@ -23,13 +23,11 @@ CREATE TABLE sessions (
     session_identifier TEXT NOT NULL UNIQUE,
     start_time TIMESTAMP NOT NULL,
     end_time TIMESTAMP NOT NULL,
-    embedding VECTOR(1536), -- adjust size to your model
     created_at TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX idx_sessions_user_id ON sessions(user_id);
 CREATE INDEX idx_sessions_identifier ON sessions(session_identifier);
-CREATE INDEX idx_sessions_embedding ON sessions USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
 
 -- ===========================
 -- CLUSTERS

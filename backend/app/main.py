@@ -11,6 +11,7 @@ from .services.llm_service import LLMService
 from .services.chat_service import ChatService
 from .services.user_service import UserService
 from .services.mapping_service import MappingService
+from .services.embedding_service import EmbeddingService
 from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
 from .models.llm_models import LLMRequest, LLMResponse
 from .models.user_models import AuthenticateRequest, AuthenticateResponse
@@ -40,7 +41,8 @@ app.add_middleware(
 # Initialize services
 db_repository = DatabaseRepository()
 mapping_service = MappingService(db_repository)
-clustering_service = ClusteringService(mapping_service=mapping_service)
+embedding_service = EmbeddingService()
+clustering_service = ClusteringService(mapping_service=mapping_service, embedding_service=embedding_service)
 llm_service = LLMService()
 chat_service = ChatService(llm_service)
 user_service = UserService(db_repository)

@@ -27,4 +27,4 @@ alwaysApply: true
       - Open–closed principle (The open–closed principle (OCP) states that software entities should be open for extension, but closed for modification.)
       - Liskov substitution principle (The Liskov substitution principle (LSP) states that functions that use pointers or references to base classes must be able to use objects of derived classes without knowing it.See also design by contract.)
       - Interface segregation principle (The interface segregation principle (ISP) states that "clients should not be forced to depend upon interfaces that they do not use.)
-      - Dependency inversion principle (The dependency inversion principle (DIP) states to depend upon abstractions, not concretes.)
+      - Dependency inversion principle (The dependency inversion principle (DIP) states to depend upon abstractions, not concretes.) : inject dependencies through constructor rather than hardcoding them.
