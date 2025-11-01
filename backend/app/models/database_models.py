@@ -72,7 +72,7 @@ class Cluster(Base):
     session_id = Column(Integer, ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String, nullable=False)
     description = Column(Text, nullable=True)
-    embedding = Column(Vector(1536), nullable=True)
+    embedding = Column(Vector(768), nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     session = relationship("Session", back_populates="clusters")
     history_items = relationship("HistoryItem", back_populates="cluster", cascade="all, delete-orphan")
@@ -97,7 +97,7 @@ class HistoryItem(Base):
     domain = Column(String, nullable=True)
     visit_time = Column(DateTime, nullable=False)
     raw_semantics = Column(JSON, nullable=True)
-    embedding = Column(Vector(1536), nullable=True)
+    embedding = Column(Vector(768), nullable=True)
     created_at = Column(DateTime, default=func.now(), nullable=False)
     cluster = relationship("Cluster", back_populates="history_items")
     

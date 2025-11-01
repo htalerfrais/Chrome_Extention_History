@@ -115,8 +115,7 @@ class DatabaseRepository:
         user_id: int,
         session_identifier: str,
         start_time: datetime,
-        end_time: datetime,
-        embedding: Optional[list] = None
+        end_time: datetime
     ) -> Optional[Dict]:
         """Create a new browsing session"""
         def operation(db):
@@ -124,8 +123,7 @@ class DatabaseRepository:
                 user_id=user_id,
                 session_identifier=session_identifier,
                 start_time=start_time,
-                end_time=end_time,
-                embedding=embedding
+                end_time=end_time
             )
             db.add(session)
             db.flush()

@@ -37,7 +37,7 @@ CREATE TABLE clusters (
     session_id INT NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
     name TEXT NOT NULL,           -- cluster label/theme
     description TEXT,             -- human-readable summary
-    embedding VECTOR(1536),
+    embedding VECTOR(768),
     created_at TIMESTAMP DEFAULT NOW()
 );
 
@@ -55,7 +55,7 @@ CREATE TABLE history_items (
     domain TEXT,
     visit_time TIMESTAMP NOT NULL,
     raw_semantics JSONB,          -- e.g., extracted keywords, meta info
-    embedding VECTOR(1536),
+    embedding VECTOR(768),
     created_at TIMESTAMP DEFAULT NOW()
 );
 

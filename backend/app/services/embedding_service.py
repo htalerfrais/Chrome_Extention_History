@@ -30,28 +30,47 @@ class EmbeddingService:
             logger.warning("EmbeddingService: missing API key, returning empty vectors.")
             return [[] for _ in texts]
 
-        url = f"{self.base_url}/models/{self.model}:embedText"
+        # Google Generative Language API: embedContent endpoint
+        # Official format: POST /v1beta/models/{model}:embedContent
+        # Request: {"content": {"parts": [{"text": "..."}]}}
+        url = f"{self.base_url}/models/{self.model}:embedContent"
         params = {"key": self.api_key}
-        payload = {"requests": [{"input": text} for text in texts]}
-
-        try:
-            async with httpx.AsyncClient(timeout=self.timeout) as client:
-                response = await client.post(url, params=params, json=payload)
-                response.raise_for_status()
-                data = response.json()
-        except Exception as exc:
-            logger.error(f"EmbeddingService request failed: {exc}")
-            return [[] for _ in texts]
-
+        
         vectors: List[List[float]] = []
-        for item in data.get("embeddings", []):
-            values = None
-            if isinstance(item, dict):
-                values = item.get("values")
-                if values is None and isinstance(item.get("embedding"), dict):
-                    values = item["embedding"].get("values")
-            if isinstance(values, list):
-                vectors.append([float(x) for x in values])
+        
+        async with httpx.AsyncClient(timeout=self.timeout) as client:
+            for text in texts:
+                try:
+                    payload = {"content": {"parts": [{"text": text}]}}
+                    response = await client.post(url, params=params, json=payload)
+                    
+                    if response.status_code != 200:
+                        error_body = response.text
+                        logger.error(f"EmbeddingService: API returned {response.status_code} - {error_body}")
+                        
+                    response.raise_for_status()
+                    data = response.json()
+                    
+                    # Google API returns: {"embedding": {"values": [...]}}
+                    embedding_data = data.get("embedding", {})
+                    values = embedding_data.get("values", [])
+                    
+                    if isinstance(values, list) and len(values) > 0:
+                        vectors.append([float(x) for x in values])
+                        logger.debug(f"EmbeddingService: generated embedding with {len(values)} dimensions")
+                    else:
+                        logger.warning(f"EmbeddingService: invalid embedding format for text: {text[:50]}...")
+                        vectors.append([])
+                        
+                except Exception as exc:
+                    logger.error(f"EmbeddingService request failed for text '{text[:50]}...': {exc}")
+                    if hasattr(exc, 'response') and exc.response is not None:
+                        try:
+                            error_body = exc.response.text
+                            logger.error(f"EmbeddingService: Error response body: {error_body}")
+                        except:
+                            pass
+                    vectors.append([])
 
         # Ensure result length matches input length
         if len(vectors) != len(texts):

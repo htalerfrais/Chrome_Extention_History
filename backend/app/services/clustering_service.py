@@ -100,16 +100,19 @@ class ClusteringService:
 
     async def _attach_embeddings(self, cluster_results: List[ClusterResult]) -> None:
         if not self.embedding_service or not cluster_results:
+            logger.warning("EmbeddingService: skipping embeddings (service not available or no clusters)")
             return
 
         cluster_texts: List[str] = [self._build_cluster_embedding_text(cluster) for cluster in cluster_results]
         cluster_vectors: List[List[float]] = []
 
         if cluster_texts:
+            logger.info(f"🔢 Computing embeddings for {len(cluster_texts)} clusters")
             cluster_vectors = await self.embedding_service.embed_texts(cluster_texts)
+            logger.info(f"✅ Received {len(cluster_vectors)} cluster embeddings")
 
         for idx, vector in enumerate(cluster_vectors):
-            cluster_results[idx].embedding = vector or None
+            cluster_results[idx].embedding = vector if vector else None
 
         item_requests: List[str] = []
         item_index_map: List[Tuple[int, int]] = []
@@ -124,12 +127,15 @@ class ClusteringService:
                 item_index_map.append((cluster_idx, item_idx))
 
         if not item_requests:
+            logger.warning("EmbeddingService: no item texts to embed")
             return
 
+        logger.info(f"🔢 Computing embeddings for {len(item_requests)} items")
         item_vectors = await self.embedding_service.embed_texts(item_requests)
+        logger.info(f"✅ Received {len(item_vectors)} item embeddings")
 
         for (cluster_idx, item_idx), vector in zip(item_index_map, item_vectors):
-            cluster_results[cluster_idx].items[item_idx].embedding = vector or None
+            cluster_results[cluster_idx].items[item_idx].embedding = vector if vector else None
 
     def _build_cluster_embedding_text(self, cluster: ClusterResult) -> str:
         text = cluster.summary or cluster.theme or ""
