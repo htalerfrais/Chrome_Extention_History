@@ -88,6 +88,8 @@ async def cluster_session(session: HistorySession, force: bool = False):
         if not session.items:
             raise HTTPException(status_code=400, detail="Session has no items to cluster")
         
+
+        # all that management of user and orchestration should be in a separate backend service writt'en with node i think
         # Expect and require user_google_id for all requests
         google_user_id = getattr(session, 'user_google_id', None)
         if not google_user_id:
