@@ -88,20 +88,17 @@ async def cluster_session(session: HistorySession, force: bool = False):
         if not session.items:
             raise HTTPException(status_code=400, detail="Session has no items to cluster")
         
-        # Step 1: Get or create user by stable google_user_id (sent via /authenticate)
-        # Fallback to token-only if google_user_id is not available in the request model
+        # Expect and require user_google_id for all requests
         google_user_id = getattr(session, 'user_google_id', None)
-        if google_user_id:
-            user_dict = db_repository.get_or_create_user_by_google_id(google_user_id)
-        else:
-            # Backward compatibility: if only token exists, try to derive user from token
-            user_dict = None
+        if not google_user_id:
+            raise HTTPException(status_code=401, detail="Missing user_google_id")
+        
+        user_dict = db_repository.get_or_create_user_by_google_id(google_user_id)
         if not user_dict:
-            raise HTTPException(status_code=401, detail="Invalid user token")
+            raise HTTPException(status_code=401, detail="Invalid user_google_id")
         
         user_id = user_dict["id"]
         logger.info(f"Authenticated user_id: {user_id}")
-        
         # Decide force if not explicitly provided: treat very recent sessions as current
         if not force:
             try:
