@@ -115,8 +115,7 @@ class DatabaseRepository:
         user_id: int,
         session_identifier: str,
         start_time: datetime,
-        end_time: datetime,
-        embedding: Optional[list] = None
+        end_time: datetime
     ) -> Optional[Dict]:
         """Create a new browsing session"""
         def operation(db):
@@ -124,8 +123,7 @@ class DatabaseRepository:
                 user_id=user_id,
                 session_identifier=session_identifier,
                 start_time=start_time,
-                end_time=end_time,
-                embedding=embedding
+                end_time=end_time
             )
             db.add(session)
             db.flush()
@@ -176,6 +174,64 @@ class DatabaseRepository:
         result = self._execute(operation, "Failed to get history items by cluster id")
         return result if isinstance(result, list) else []
     
+    def search_clusters_by_embedding(
+        self,
+        user_id: int,
+        query_embedding: Optional[List[float]],
+        limit: int = 5
+    ) -> List[Dict]:
+        """Semantic search clusters for a user using cosine distance."""
+        if not query_embedding:
+            return []
+
+        def operation(db):
+            query = (
+                db.query(Cluster)
+                .join(Session)
+                .filter(Session.user_id == user_id)
+                .filter(Cluster.embedding.isnot(None))
+                .order_by(Cluster.embedding.cosine_distance(query_embedding))
+                .limit(limit)
+            )
+            return query.all()
+
+        result = self._execute(operation, "Failed to search clusters by embedding")
+        return result if isinstance(result, list) else []
+
+    def search_history_items_by_embedding(
+        self,
+        user_id: int,
+        query_embedding: Optional[List[float]],
+        cluster_ids: Optional[List[int]] = None,
+        limit: int = 20
+    ) -> List[Dict]:
+        """Semantic search history items for a user using cosine distance."""
+        if not query_embedding:
+            return []
+
+        def operation(db):
+            query = (
+                db.query(HistoryItem)
+                .join(Cluster)
+                .join(Session)
+                .filter(Session.user_id == user_id)
+                .filter(HistoryItem.embedding.isnot(None))
+            )
+
+            if cluster_ids:
+                query = query.filter(HistoryItem.cluster_id.in_(cluster_ids))
+
+            query = (
+                query
+                .order_by(HistoryItem.embedding.cosine_distance(query_embedding))
+                .limit(limit)
+            )
+
+            return query.all()
+
+        result = self._execute(operation, "Failed to search history items by embedding")
+        return result if isinstance(result, list) else []
+
     def get_session_with_relations(self, session_identifier: str) -> Optional[Dict]:
         """Get session with all related clusters and items"""
         def operation(db):

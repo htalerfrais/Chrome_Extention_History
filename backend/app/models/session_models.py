@@ -39,6 +39,7 @@ class ClusterItem(BaseModel):
     url_hostname: Optional[str] = None
     url_pathname_clean: Optional[str] = None
     url_search_query: Optional[str] = None
+    embedding: Optional[List[float]] = None
 
 class ClusterResult(BaseModel):
     """Result of clustering algorithm"""
@@ -46,6 +47,7 @@ class ClusterResult(BaseModel):
     theme: str
     summary: str
     items: List[ClusterItem]
+    embedding: Optional[List[float]] = None
 
 class SessionClusteringResponse(BaseModel):
     """Response model for session-based clustering"""
@@ -53,4 +55,6 @@ class SessionClusteringResponse(BaseModel):
     session_start_time: datetime
     session_end_time: datetime
     clusters: List[ClusterResult]
+
+
     
