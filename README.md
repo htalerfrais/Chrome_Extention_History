@@ -1,64 +1,35 @@
-# Chrome Extension History - V0.6
+# Chrome Extension History 🧠
 
-A Chrome extension that organizes your browsing history into thematic clusters using AI-powered analysis, with a modern React dashboard featuring lazy loading for optimal performance.
+> **🚧 Work in Progress** - This project is actively being developed.
 
-## 🎯 Features
+## What is this?
 
-- **⚡ Lazy Loading**: On-demand session analysis for lightning-fast initial load
-- **AI-Powered Clustering**: LLM-driven thematic analysis of browsing sessions
-- **React Dashboard**: Modern UI with real-time state management
-- **Session Organization**: Time-based grouping of browsing history
-- **Multi-Provider LLM**: Google Gemini, OpenAI, Anthropic, Ollama support
-- **Local Processing**: Privacy-first with Docker backend
+A Chrome extension that acts as your **intelligent navigation assistant**. Ever felt overwhelmed by dozens of open tabs? This extension helps you **close tabs without worry** by automatically organizing your browsing history into thematic clusters (work, hobbies, research, etc.) and making them easily accessible through a friendly dashboard.
 
-## 🚀 Quick Start
+Think of it as a smart memory for your browsing sessions—everything you've explored is preserved, organized, and ready to chat about.
 
-### Prerequisites
-- Docker Desktop
-- Chrome browser
-- LLM API Key (Google Gemini recommended)
+## The Goal
 
-### 1. Start Backend
-```powershell
-.\scripts\dev_up.ps1
-```
+Reduce the mental load of managing multiple tabs by providing an intelligent interface that:
+- **Organizes** your browsing history into clear thematic groups
+- **Preserves** important topics you've explored
+- **Lets you chat** with your browsing history naturally (e.g., "What seemed urgent today?")
 
-### 2. Load Extension
-1. Go to `chrome://extensions/`
-2. Enable "Developer mode"
-3. Click "Load unpacked" → select `extension/` folder
-
-### 3. Use Dashboard
-1. Click extension icon
-2. Click "📊 Dashboard" 
-3. Click "Refresh Analysis" to load sessions
-4. Click on any session tab to analyze it on-demand
-
-## 🏗️ Architecture
+## Architecture (at a glance)
 
 ```
-Chrome Extension + React Frontend → FastAPI Backend → LLM Providers
+Chrome Extension (React UI) → FastAPI Backend → PostgreSQL + LLM Analysis
 ```
 
-- **Frontend**: React + TypeScript with lazy loading and ExtensionBridge pattern
-- **Backend**: Python FastAPI with single-session clustering service
-- **Data Flow**: Chrome APIs → Session grouping → On-demand AI clustering → React UI
-- **Performance**: Sessions load instantly, analysis happens only when requested
+The extension collects your history, groups it into sessions, and uses AI to cluster pages by theme. Everything is cached for fast access, and you can interact with your history through a conversational interface.
 
-## 🔧 Configuration
+## Understanding the Repo
 
-Set API keys in `docker-compose.yml`:
-```yaml
-environment:
-  - GOOGLE_API_KEY=your_key_here
-```
-
-## 🛡️ Privacy
-
-- All processing happens locally
-- No browsing data leaves your machine
-- Only metadata sent to LLM providers
+- `extension/` - Chrome extension code (background worker + React dashboard)
+- `backend/` - FastAPI server with clustering and chat services
+- `frontend/` - React frontend source (builds into `extension/dashboard-assets/`)
+- `.cursor/rules/` - Project documentation (specifications & architecture details)
 
 ---
 
-**Version 0.6** - Lazy Loading Architecture ⚡
+*Still in development, but already useful! 🚀*
