@@ -66,6 +66,8 @@ class ChatService:
         
         Phase 1: Simple LLM chat with conversation context from client
         Phase 2: Will add tool calling and history data integration
+
+        ChatRequest contains the history of the conversation.
         """
         try:
             # Log complete ChatRequest payload
