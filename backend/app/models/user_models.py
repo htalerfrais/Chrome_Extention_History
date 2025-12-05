@@ -1,15 +1,14 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional, Dict, Any
 from datetime import datetime
 
+
 class AuthenticateRequest(BaseModel):
+    """Request containing only the OAuth token - google_user_id is extracted server-side"""
     token: str = Field(...)
-    google_user_id: str = Field(...)
+
 
 class AuthenticateResponse(BaseModel):
-    # what does our frontend need to know about the user ?
-    # we need to know what everything that is gonig to be needeed to call the other services
-
+    """Response with user info after successful authentication"""
     id: int = Field(...)
     google_user_id: str = Field(...)
     token: str = Field(...)
