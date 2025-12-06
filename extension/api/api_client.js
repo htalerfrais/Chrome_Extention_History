@@ -105,13 +105,23 @@ class ApiClient {
             return { success: false, error: 'Message cannot be empty' };
         }
         
+        // Get user token from chrome.storage for history search
+        let userToken;
+        try {
+            const stored = await chrome.storage.local.get(['userToken']);
+            userToken = stored.userToken;
+        } catch (e) {
+            console.error('Failed to get user token from storage:', e);
+        }
+        
         console.log(`Sending chat message${conversationId ? ` for conversation ${conversationId}` : ''}`);
         
         const payload = {
             message: message,
             conversation_id: conversationId,
             history: history,
-            provider: "google"
+            provider: "google",
+            user_token: userToken || null
         };
         
         const result = await this.makeRequest('chat', {

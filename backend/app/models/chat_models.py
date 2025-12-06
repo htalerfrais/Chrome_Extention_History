@@ -38,6 +38,7 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[str] = Field(None) # created if not existing yet
     history: Optional[List[ChatMessage]] = Field(default=[])
     provider: ChatProvider = Field(default=ChatProvider.GOOGLE)
+    user_token: Optional[str] = Field(None)  # Google OAuth token for history search
 
 class ChatResponse(BaseModel):
     """Response model for chat endpoint"""
