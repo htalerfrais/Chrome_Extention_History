@@ -1,7 +1,5 @@
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from pydantic import BaseModel
-from typing import List, Dict, Any
 import logging
 from datetime import datetime, timedelta, timezone
 
@@ -12,8 +10,8 @@ from .services.chat_service import ChatService
 from .services.user_service import UserService
 from .services.mapping_service import MappingService
 from .services.embedding_service import EmbeddingService
-from .models.session_models import HistorySession, ClusterResult, SessionClusteringResponse
-from .models.llm_models import LLMRequest, LLMResponse
+from .services.google_auth_service import GoogleAuthService
+from .models.session_models import HistorySession, SessionClusteringResponse
 from .models.user_models import AuthenticateRequest, AuthenticateResponse
 from .models.chat_models import ChatRequest, ChatResponse
 from .repositories.database_repository import DatabaseRepository
@@ -45,8 +43,8 @@ embedding_service = EmbeddingService()
 clustering_service = ClusteringService(mapping_service=mapping_service, embedding_service=embedding_service)
 llm_service = LLMService()
 chat_service = ChatService(llm_service)
-user_service = UserService(db_repository)
-# pas de database repository dans l'entrypoint API, on passe toujours par les service métier de business logic dans le API
+google_auth_service = GoogleAuthService()
+user_service = UserService(db_repository, google_auth_service)
 
 @app.get("/")
 async def root():
@@ -77,7 +75,7 @@ async def cluster_session(session: HistorySession, force: bool = False):
     Cluster a single browsing history session into thematic groups
     
     Args:
-        session: Single browsing history session to cluster
+        session: Single browsing history session to cluster (must include user_token)
         
     Returns:
         SessionClusteringResponse with clusters for the session
@@ -88,19 +86,17 @@ async def cluster_session(session: HistorySession, force: bool = False):
         if not session.items:
             raise HTTPException(status_code=400, detail="Session has no items to cluster")
         
-
-        # all that management of user and orchestration should be in a separate backend service writt'en with node i think
-        # Expect and require user_google_id for all requests
-        google_user_id = getattr(session, 'user_google_id', None)
-        if not google_user_id:
-            raise HTTPException(status_code=401, detail="Missing user_google_id")
+        # Validate token and get user (token is the source of truth)
+        if not session.user_token:
+            raise HTTPException(status_code=401, detail="Missing user_token")
         
-        user_dict = db_repository.get_or_create_user_by_google_id(google_user_id)
+        user_dict = await user_service.get_user_from_token(session.user_token)
         if not user_dict:
-            raise HTTPException(status_code=401, detail="Invalid user_google_id")
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
         
         user_id = user_dict["id"]
         logger.info(f"Authenticated user_id: {user_id}")
+        
         # Decide force if not explicitly provided: treat very recent sessions as current
         if not force:
             try:
@@ -114,7 +110,7 @@ async def cluster_session(session: HistorySession, force: bool = False):
             is_current = (now - end_time) <= timedelta(minutes=gap_minutes)
             force = is_current
 
-        # Step 2: Process session through clustering service (handles caching and persistence)
+        # Process session through clustering service (handles caching and persistence)
         session_result = await clustering_service.cluster_session(session, user_id, force=force)
         
         logger.info(f"Generated clustering result for session {session.session_identifier} with {len(session_result.clusters)} clusters")
@@ -155,17 +151,24 @@ async def chat(request: ChatRequest):
 @app.post("/authenticate", response_model=AuthenticateResponse)
 async def authenticate(request: AuthenticateRequest):
     """
-    Authenticate with Google
+    Authenticate with Google OAuth token.
+    
+    The token is validated against Google's servers and the google_user_id
+    is extracted from the validated token (not trusted from client).
     """
     try:
-        logger.info(f"Received authenticate request for google_user_id={request.google_user_id}")
-        user = user_service.authenticate(request)
+        logger.info("Received authenticate request")
+        user = await user_service.authenticate(request)
+        
+        if not user:
+            raise HTTPException(status_code=401, detail="Invalid or expired token")
+        
         return user
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Error authenticating: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Authentication failed: {str(e)}")
-
-
 
 
 if __name__ == "__main__":

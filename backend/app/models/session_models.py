@@ -14,8 +14,7 @@ class HistoryItem(BaseModel):
 
 class HistorySession(BaseModel):
     """A session of browsing history items grouped by time"""
-    user_token: str  # Google OAuth token for user identification
-    user_google_id: Optional[str] = None  # Stable Google user id
+    user_token: str  # Google OAuth token - validated server-side to get user identity
     session_identifier: str
     start_time: datetime
     end_time: datetime
