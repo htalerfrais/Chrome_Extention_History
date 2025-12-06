@@ -120,6 +120,10 @@ class ChatService:
             return match.group(1).strip()
         return None
     
+    def _strip_search_tag(self, response_text: str) -> str:
+        """Remove [SEARCH: query] tag from response text"""
+        return re.sub(self.SEARCH_TAG_PATTERN, '', response_text, flags=re.IGNORECASE).strip()
+    
     async def process_message(self, request: ChatRequest) -> ChatResponse:
         """
         Process user message with optional tool calling
@@ -151,55 +155,61 @@ class ChatService:
             
             first_response = await self.llm_service.generate_text(llm_request)
             response_text = first_response.generated_text
+            response_metadata = first_response  # Track which response we're using
             
             # Step 2: Check for search tool call
             search_query = self._parse_search_request(response_text)
             
-            if search_query and request.user_token:
-                logger.info(f"🔍 Tool call detected: searching for '{search_query}'")
-                
-                # Get user_id from token
-                user_dict = await self.user_service.get_user_from_token(request.user_token)
-                
-                if user_dict:
-                    user_id = user_dict["id"]
-                    
-                    # Execute search
-                    clusters, items = await self.search_service.search(
-                        user_id=user_id,
-                        query_text=search_query
-                    )
-                    
-                    search_context = self._format_search_results(clusters, items)
-                    logger.info(f"🔍 Search returned {len(clusters)} clusters, {len(items)} items")
-                    
-                    # Step 3: Second LLM call with context (no tool instructions)
-                    context_prompt = self._build_conversation_prompt(
-                        request.message,
-                        history,
-                        with_tool_instructions=False,
-                        search_context=search_context
-                    )
-                    
-                    llm_request_with_context = LLMRequest(
-                        prompt=context_prompt,
-                        provider=request.provider,
-                        max_tokens=settings.chat_max_tokens,
-                        temperature=settings.chat_temperature
-                    )
-                    
-                    final_response = await self.llm_service.generate_text(llm_request_with_context)
-                    response_text = final_response.generated_text
+            if search_query:
+                if not request.user_token:
+                    logger.warning("Search requested but user_token missing - stripping tag from response")
+                    response_text = self._strip_search_tag(response_text)
                 else:
-                    logger.warning(f"User not found for token")
-                    # Continue with first response without search
+                    logger.info(f"🔍 Tool call detected: searching for '{search_query}'")
+                    
+                    # Get user_id from token
+                    user_dict = await self.user_service.get_user_from_token(request.user_token)
+                    
+                    if user_dict:
+                        user_id = user_dict["id"]
+                        
+                        # Execute search
+                        clusters, items = await self.search_service.search(
+                            user_id=user_id,
+                            query_text=search_query
+                        )
+                        
+                        search_context = self._format_search_results(clusters, items)
+                        logger.info(f"🔍 Search returned {len(clusters)} clusters, {len(items)} items")
+                        
+                        # Step 3: Second LLM call with context (no tool instructions)
+                        context_prompt = self._build_conversation_prompt(
+                            request.message,
+                            history,
+                            with_tool_instructions=False,
+                            search_context=search_context
+                        )
+                        
+                        llm_request_with_context = LLMRequest(
+                            prompt=context_prompt,
+                            provider=request.provider,
+                            max_tokens=settings.chat_max_tokens,
+                            temperature=settings.chat_temperature
+                        )
+                        
+                        final_response = await self.llm_service.generate_text(llm_request_with_context)
+                        response_text = final_response.generated_text
+                        response_metadata = final_response  # Use metadata from the actual response
+                    else:
+                        logger.warning("User not found for token - stripping tag from response")
+                        response_text = self._strip_search_tag(response_text)
             
             response = ChatResponse(
                 response=response_text,
                 conversation_id=conversation_id,
                 timestamp=datetime.now(),
-                provider=first_response.provider,
-                model=first_response.model
+                provider=response_metadata.provider,
+                model=response_metadata.model
             )
             
             logger.info(f"💬 ChatResponse payload: {response.model_dump()}")
