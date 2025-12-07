@@ -9,7 +9,7 @@ from ..models.chat_models import ChatRequest, ChatResponse, ChatMessage
 from ..models.llm_models import LLMRequest
 from ..models.session_models import ClusterResult, ClusterItem
 from .llm_service import LLMService
-from .search_service import SearchService
+from .search_service import SearchService, SearchFilters
 from .user_service import UserService
 
 logger = logging.getLogger(__name__)
@@ -41,10 +41,15 @@ class ChatService:
     
     def _build_system_prompt(self, with_tool_instructions: bool = True) -> str:
         """Build system prompt with or without tool instructions"""
+        now = datetime.now()
+        current_date = now.strftime("%Y-%m-%d")
+        current_time = now.strftime("%H:%M:%S")
+        
         base_prompt = (
-            "You are a helpful assistant for browsing history analysis. "
-            "You help users understand their browsing patterns and find information from their history. "
-            "Be concise, friendly, and helpful in your responses."
+            f"You are a helpful assistant for browsing history analysis. "
+            f"Current date and time: {current_date} {current_time}. "
+            f"You help users understand their browsing patterns and find information from their history. "
+            f"Be concise, friendly, and helpful in your responses."
         )
         
         if with_tool_instructions:
@@ -53,9 +58,17 @@ class ChatService:
                 "TOOL AVAILABLE - History Search:\n"
                 "If the user's question would benefit from searching their browsing history, "
                 "start your response ONLY with [SEARCH: your search query] on a single line.\n"
-                "Examples of when to search:\n"
+                "You can add optional filters using: [SEARCH: query | filter:value | filter:value]\n"
+                "Available filters:\n"
+                "- after:YYYY-MM-DD - only items visited after this date\n"
+                "- before:YYYY-MM-DD - only items visited before this date\n"
+                "- title:keyword - only items with keyword in title\n"
+                "- domain:keyword - only items from domains containing keyword\n"
+                "Examples:\n"
                 "- 'What articles did I read about AI?' → [SEARCH: AI articles]\n"
                 "- 'Show me my shopping history' → [SEARCH: shopping purchases]\n"
+                f"- 'What did I read today?' → [SEARCH: * | after:{current_date}]\n"
+                "- 'What did I read on Amazon last month?' → [SEARCH: shopping | domain:amazon | after:2024-10-01]\n"
                 "Do NOT search for greetings, general questions, or topics unrelated to their browsing."
             )
         return base_prompt
@@ -109,16 +122,63 @@ class ChatService:
             for item in items[:10]:
                 title = item.title or "Untitled"
                 domain = item.url_hostname or ""
-                parts.append(f"• {title} ({domain})")
+                url = item.url or ""
+                visit_date = item.visit_time.strftime('%Y-%m-%d') if item.visit_time else ""
+                parts.append(f"• {title} ({domain}) - visited: {visit_date} - {url}")
         
         return "\n".join(parts)
     
-    def _parse_search_request(self, response_text: str) -> Optional[str]:
-        """Extract search query from LLM response if present"""
+    def _parse_search_request(self, response_text: str) -> Optional[SearchFilters]:
+        """Extract search query and filters from LLM response if present"""
         match = re.match(self.SEARCH_TAG_PATTERN, response_text, re.IGNORECASE)
-        if match:
-            return match.group(1).strip()
-        return None
+        if not match:
+            return None
+        
+        content = match.group(1).strip()
+        if not content:
+            return None
+        
+        # Parse query and filters: "query | filter:value | filter:value"
+        parts = [p.strip() for p in content.split('|')]
+        query_text = parts[0] if parts else None
+        
+        # Initialize filters
+        date_from = None
+        date_to = None
+        title_contains = None
+        domain_contains = None
+        
+        # Parse filter parts
+        for part in parts[1:]:
+            if ':' not in part:
+                continue
+            
+            key, value = part.split(':', 1)
+            key = key.strip().lower()
+            value = value.strip()
+            
+            if key == 'after':
+                try:
+                    date_from = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                except ValueError:
+                    logger.warning(f"Invalid date format in 'after' filter: {value}")
+            elif key == 'before':
+                try:
+                    date_to = datetime.fromisoformat(value.replace('Z', '+00:00'))
+                except ValueError:
+                    logger.warning(f"Invalid date format in 'before' filter: {value}")
+            elif key == 'title':
+                title_contains = value
+            elif key == 'domain':
+                domain_contains = value
+        
+        return SearchFilters(
+            query_text=query_text,
+            date_from=date_from,
+            date_to=date_to,
+            title_contains=title_contains,
+            domain_contains=domain_contains
+        )
     
     def _strip_search_tag(self, response_text: str) -> str:
         """Remove [SEARCH: query] tag from response text"""
@@ -158,14 +218,14 @@ class ChatService:
             response_metadata = first_response  # Track which response we're using
             
             # Step 2: Check for search tool call
-            search_query = self._parse_search_request(response_text)
+            search_filters = self._parse_search_request(response_text)
             
-            if search_query:
+            if search_filters:
                 if not request.user_token:
                     logger.warning("Search requested but user_token missing - stripping tag from response")
                     response_text = self._strip_search_tag(response_text)
                 else:
-                    logger.info(f"🔍 Tool call detected: searching for '{search_query}'")
+                    logger.info(f"🔍 Tool call detected: searching with query='{search_filters.query_text}', filters={search_filters}")
                     
                     # Get user_id from token
                     user_dict = await self.user_service.get_user_from_token(request.user_token)
@@ -176,7 +236,7 @@ class ChatService:
                         # Execute search
                         clusters, items = await self.search_service.search(
                             user_id=user_id,
-                            query_text=search_query
+                            filters=search_filters
                         )
                         
                         search_context = self._format_search_results(clusters, items)

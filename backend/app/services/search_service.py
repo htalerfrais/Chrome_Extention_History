@@ -1,5 +1,7 @@
 import logging
-from typing import List, Tuple
+from typing import List, Tuple, Optional
+from dataclasses import dataclass
+from datetime import datetime
 
 from app.repositories.database_repository import DatabaseRepository
 from app.services.embedding_service import EmbeddingService
@@ -7,6 +9,16 @@ from app.models.session_models import ClusterResult, ClusterItem
 
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class SearchFilters:
+    """Filters for history search"""
+    query_text: Optional[str] = None
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    title_contains: Optional[str] = None
+    domain_contains: Optional[str] = None
 
 
 class SearchService:
@@ -23,37 +35,57 @@ class SearchService:
     async def search(
         self,
         user_id: int,
-        query_text: str,
+        filters: SearchFilters,
         limit_clusters: int = 5,
         limit_items: int = 20,
     ) -> Tuple[List[ClusterResult], List[ClusterItem]]:
-        """Search clusters and items matching the query for a given user."""
-        query = (query_text or "").strip()
-        if not query:
-            logger.info("SearchService: empty query, returning no results")
+        """Search clusters and items matching the query and filters for a given user."""
+        query = (filters.query_text or "").strip()
+        
+        # Generate embedding only if query_text is provided
+        query_embedding = None
+        if query:
+            embeddings = await self.embedding_service.embed_texts([query])
+            if embeddings and embeddings[0]:
+                query_embedding = embeddings[0]
+            else:
+                logger.warning("SearchService: embedding generation failed")
+        
+        # Check if we have at least query or filters
+        has_query = bool(query_embedding)
+        has_filters = any([
+            filters.date_from,
+            filters.date_to,
+            filters.title_contains,
+            filters.domain_contains
+        ])
+        
+        if not has_query and not has_filters:
+            logger.info("SearchService: no query and no filters, returning no results")
             return [], []
-
-        embeddings = await self.embedding_service.embed_texts([query])
-        if not embeddings or not embeddings[0]:
-            logger.warning("SearchService: embedding generation failed, returning empty results")
-            return [], []
-
-        query_embedding = embeddings[0]
-
-        cluster_dicts = self.db_repository.search_clusters_by_embedding(
-            user_id=user_id,
-            query_embedding=query_embedding,
-            limit=limit_clusters,
-        )
+        
+        # Search clusters (only if we have an embedding)
+        cluster_dicts = []
+        if query_embedding:
+            cluster_dicts = self.db_repository.search_clusters_by_embedding(
+                user_id=user_id,
+                query_embedding=query_embedding,
+                limit=limit_clusters,
+            )
         clusters = [self._dict_to_cluster_result(cluster_dict) for cluster_dict in cluster_dicts]
 
         cluster_ids = [cluster_dict.get("id") for cluster_dict in cluster_dicts if cluster_dict.get("id") is not None]
 
+        # Search items with filters
         item_dicts = self.db_repository.search_history_items_by_embedding(
             user_id=user_id,
             query_embedding=query_embedding,
             cluster_ids=cluster_ids or None,
             limit=limit_items,
+            date_from=filters.date_from,
+            date_to=filters.date_to,
+            title_contains=filters.title_contains,
+            domain_contains=filters.domain_contains,
         )
         items = [self._dict_to_cluster_item(item_dict) for item_dict in item_dicts]
 

@@ -203,29 +203,50 @@ class DatabaseRepository:
         user_id: int,
         query_embedding: Optional[List[float]],
         cluster_ids: Optional[List[int]] = None,
-        limit: int = 20
+        limit: int = 20,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+        title_contains: Optional[str] = None,
+        domain_contains: Optional[str] = None,
     ) -> List[Dict]:
-        """Semantic search history items for a user using cosine distance."""
-        if not query_embedding:
-            return []
-
+        """Semantic search history items for a user using cosine distance with optional filters."""
         def operation(db):
             query = (
                 db.query(HistoryItem)
                 .join(Cluster)
                 .join(Session)
                 .filter(Session.user_id == user_id)
-                .filter(HistoryItem.embedding.isnot(None))
             )
 
+            # Apply embedding filter only if provided
+            if query_embedding:
+                query = query.filter(HistoryItem.embedding.isnot(None))
+
+            # Apply cluster filter
             if cluster_ids:
                 query = query.filter(HistoryItem.cluster_id.in_(cluster_ids))
 
-            query = (
-                query
-                .order_by(HistoryItem.embedding.cosine_distance(query_embedding))
-                .limit(limit)
-            )
+            # Apply date filters
+            if date_from:
+                query = query.filter(HistoryItem.visit_time >= date_from)
+            if date_to:
+                query = query.filter(HistoryItem.visit_time <= date_to)
+
+            # Apply title filter
+            if title_contains:
+                query = query.filter(HistoryItem.title.ilike(f'%{title_contains}%'))
+
+            # Apply domain filter
+            if domain_contains:
+                query = query.filter(HistoryItem.domain.ilike(f'%{domain_contains}%'))
+
+            # Order by embedding similarity if embedding provided, otherwise by visit_time desc
+            if query_embedding:
+                query = query.order_by(HistoryItem.embedding.cosine_distance(query_embedding))
+            else:
+                query = query.order_by(HistoryItem.visit_time.desc())
+
+            query = query.limit(limit)
 
             return query.all()
 
