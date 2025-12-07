@@ -23,7 +23,7 @@ class ChatService:
     - 2 LLM calls when history search is needed
     """
     
-    SEARCH_TAG_PATTERN = r'^\[SEARCH:\s*(.+?)\]'
+    SEARCH_TAG_PATTERN = r'\[SEARCH:\s*(.+?)\]'
     
     def __init__(
         self, 
@@ -130,7 +130,7 @@ class ChatService:
     
     def _parse_search_request(self, response_text: str) -> Optional[SearchFilters]:
         """Extract search query and filters from LLM response if present"""
-        match = re.match(self.SEARCH_TAG_PATTERN, response_text, re.IGNORECASE)
+        match = re.search(self.SEARCH_TAG_PATTERN, response_text, re.IGNORECASE)
         if not match:
             return None
         
