@@ -636,6 +636,10 @@ html, body, #root {
   max-width: 85% !important;
 }
 
+.max-w-none{
+  max-width: none !important;
+}
+
 .flex-1{
   flex: 1 1 0% !important;
 }
@@ -726,10 +730,6 @@ html, body, #root {
   overflow: hidden !important;
   text-overflow: ellipsis !important;
   white-space: nowrap !important;
-}
-
-.whitespace-pre-line{
-  white-space: pre-line !important;
 }
 
 .border{

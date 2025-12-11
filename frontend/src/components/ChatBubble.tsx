@@ -1,6 +1,7 @@
 // ChatBubble component - displays individual chat messages
 // Shows message from user or assistant with appropriate styling
 
+import ReactMarkdown from 'react-markdown';
 import type { ChatMessage } from '../types/chat';
 
 interface ChatBubbleProps {
@@ -22,9 +23,9 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
   return (
     <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-[85%] space-y-2 ${isUser ? 'text-white' : 'text-white/70'}`}>
-        <p className="text-sm leading-relaxed whitespace-pre-line">
-          {message.content}
-        </p>
+        <div className="text-sm leading-relaxed prose prose-invert prose-sm max-w-none">
+          <ReactMarkdown>{message.content}</ReactMarkdown>
+        </div>
         <span className="block text-[10px] uppercase tracking-[0.25em] text-white/40">
           {formatTime(message.timestamp)}
         </span>
