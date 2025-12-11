@@ -22,9 +22,9 @@
       "default_title": "Engrave it",
       "default_popup": "popup.html",
       "default_icon": {
-        "128": "icons/Obra.png",
-        "48" : "icons/Obra.png",
-        "16" : "icons/Obra.png"
+        "128": "icons/big_Obra-128.png",
+        "48" : "icons/big_Obra-48.png",
+        "16" : "icons/big_Obra-16.png"
       }
     },
     "host_permissions": [

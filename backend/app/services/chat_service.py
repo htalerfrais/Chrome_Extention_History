@@ -49,7 +49,7 @@ class ChatService:
             f"You are a helpful assistant for browsing history analysis. "
             f"Current date and time: {current_date} {current_time}. "
             f"You help users understand their browsing patterns and find information from their history. "
-            f"Be concise, friendly, and helpful in your responses."
+            f"Be friendly, and helpful in your responses."
         )
         
         if with_tool_instructions:

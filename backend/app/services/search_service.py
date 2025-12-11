@@ -42,7 +42,11 @@ class SearchService:
         """Search clusters and items matching the query and filters for a given user."""
         query = (filters.query_text or "").strip()
         
-        # Generate embedding only if query_text is provided
+        # Treat "*" as empty query (wildcard means "all", not a literal search)
+        if query == "*":
+            query = ""
+        
+        # Generate embedding only if meaningful query_text is provided
         query_embedding = None
         if query:
             embeddings = await self.embedding_service.embed_texts([query])
@@ -64,13 +68,15 @@ class SearchService:
             logger.info("SearchService: no query and no filters, returning no results")
             return [], []
         
-        # Search clusters (only if we have an embedding)
+        # Search clusters (only if we have an embedding or date filters)
         cluster_dicts = []
-        if query_embedding:
+        if query_embedding or filters.date_from or filters.date_to:
             cluster_dicts = self.db_repository.search_clusters_by_embedding(
                 user_id=user_id,
                 query_embedding=query_embedding,
                 limit=limit_clusters,
+                date_from=filters.date_from,
+                date_to=filters.date_to,
             )
         clusters = [self._dict_to_cluster_result(cluster_dict) for cluster_dict in cluster_dicts]
 

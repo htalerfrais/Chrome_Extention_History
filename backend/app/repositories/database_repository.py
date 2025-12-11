@@ -178,10 +178,13 @@ class DatabaseRepository:
         self,
         user_id: int,
         query_embedding: Optional[List[float]],
-        limit: int = 5
+        limit: int = 5,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
     ) -> List[Dict]:
-        """Semantic search clusters for a user using cosine distance."""
-        if not query_embedding:
+        """Semantic search clusters for a user using cosine distance with optional date filters."""
+        # Need at least embedding or date filters
+        if not query_embedding and not date_from and not date_to:
             return []
 
         def operation(db):
@@ -189,10 +192,22 @@ class DatabaseRepository:
                 db.query(Cluster)
                 .join(Session)
                 .filter(Session.user_id == user_id)
-                .filter(Cluster.embedding.isnot(None))
-                .order_by(Cluster.embedding.cosine_distance(query_embedding))
-                .limit(limit)
             )
+            
+            # Apply date filters on session
+            if date_from:
+                query = query.filter(Session.start_time >= date_from)
+            if date_to:
+                query = query.filter(Session.end_time <= date_to)
+            
+            # Order by embedding similarity if provided, otherwise by session time desc
+            if query_embedding:
+                query = query.filter(Cluster.embedding.isnot(None))
+                query = query.order_by(Cluster.embedding.cosine_distance(query_embedding))
+            else:
+                query = query.order_by(Session.start_time.desc())
+            
+            query = query.limit(limit)
             return query.all()
 
         result = self._execute(operation, "Failed to search clusters by embedding")
