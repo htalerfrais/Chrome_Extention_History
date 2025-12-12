@@ -21905,7 +21905,10 @@ function defaultUrlTransform(value) {
   return "";
 }
 function ChatBubble({ message }) {
+  var _a, _b;
   const isUser = message.role === "user";
+  const hasSources = message.role === "assistant" && (((_a = message.sources) == null ? void 0 : _a.length) || 0) > 0;
+  const [showSources, setShowSources] = reactExports.useState(false);
   const formatTime = (timestamp) => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString("en-US", {
@@ -21915,7 +21918,50 @@ function ChatBubble({ message }) {
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `flex ${isUser ? "justify-end" : "justify-start"}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `max-w-[85%] space-y-2 ${isUser ? "text-white" : "text-white/70"}`, children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm leading-relaxed prose prose-invert prose-sm max-w-none", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Markdown, { children: message.content }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-[10px] uppercase tracking-[0.25em] text-white/40", children: formatTime(message.timestamp) })
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-[10px] uppercase tracking-[0.25em] text-white/40", children: formatTime(message.timestamp) }),
+    hasSources && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "border border-white/10 rounded-md overflow-hidden", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          type: "button",
+          className: "w-full px-3 py-2 flex items-center justify-between text-xs uppercase tracking-widest text-white/70 bg-white/5 hover:bg-white/10 transition",
+          onClick: () => setShowSources((prev) => !prev),
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Sources" }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/50", children: showSources ? "Hide" : "Show" })
+          ]
+        }
+      ),
+      showSources && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-48 overflow-y-auto divide-y divide-white/5 bg-white/5", children: (_b = message.sources) == null ? void 0 : _b.map((source, idx) => {
+        const title = source.title || "Untitled";
+        const domain = source.url_hostname || (() => {
+          try {
+            return new URL(source.url).hostname;
+          } catch (e) {
+            return "";
+          }
+        })();
+        const dateLabel = source.visit_time ? new Date(source.visit_time).toLocaleDateString() : "";
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "a",
+          {
+            href: source.url,
+            target: "_blank",
+            rel: "noreferrer",
+            className: "block px-3 py-2 hover:bg-white/10 transition",
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white", children: title }),
+              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/60", children: domain || source.url }),
+              dateLabel && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[11px] text-white/50", children: [
+                "Visited: ",
+                dateLabel
+              ] })
+            ]
+          },
+          `${idx}-${source.url}`
+        );
+      }) })
+    ] })
   ] }) });
 }
 class ExtensionBridge {
@@ -22091,6 +22137,7 @@ function ChatWindow() {
     (_a = messagesEndRef.current) == null ? void 0 : _a.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
   const handleSendMessage = async () => {
+    var _a;
     const trimmedMessage = inputValue.trim();
     if (!trimmedMessage || isLoading) {
       return;
@@ -22111,10 +22158,12 @@ function ChatWindow() {
         messages
       );
       if (result.success && result.data) {
+        const sources = (_a = result.data.sources) != null ? _a : [];
         const assistantMessage = {
           role: "assistant",
           content: result.data.response,
-          timestamp: new Date(result.data.timestamp)
+          timestamp: new Date(result.data.timestamp),
+          sources
         };
         setMessages((prev) => [...prev, assistantMessage]);
         setConversationId(result.data.conversation_id);
