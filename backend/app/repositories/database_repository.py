@@ -194,11 +194,14 @@ class DatabaseRepository:
                 .filter(Session.user_id == user_id)
             )
             
-            # Apply date filters on session
+            # Apply date filters on session (check for overlap, not containment)
+            # Two intervals [a, b] and [c, d] overlap if: b >= c AND a <= d
+            # For session [start_time, end_time] to overlap with [date_from, date_to]:
+            # end_time >= date_from AND start_time <= date_to
             if date_from:
-                query = query.filter(Session.start_time >= date_from)
+                query = query.filter(Session.end_time >= date_from)
             if date_to:
-                query = query.filter(Session.end_time <= date_to)
+                query = query.filter(Session.start_time <= date_to)
             
             # Order by embedding similarity if provided, otherwise by session time desc
             if query_embedding:

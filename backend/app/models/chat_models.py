@@ -51,6 +51,17 @@ class ChatRequest(BaseModel):
     provider: ChatProvider = Field(default=ChatProvider.GOOGLE)
     user_token: Optional[str] = Field(None)  # Google OAuth token for history search
 
+class SourceItem(BaseModel):
+    """
+    Lightweight representation of a history item used as a source reference.
+    Derived from ClusterItem but excludes embedding to reduce payload size.
+    """
+    url: str
+    title: str
+    visit_time: datetime
+    url_hostname: Optional[str] = None
+
+
 class ChatResponse(BaseModel):
     """Response model for chat endpoint"""
     response: str = Field(...)
@@ -58,3 +69,4 @@ class ChatResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     provider: str = Field(...)
     model: str = Field(...)
+    sources: Optional[List[SourceItem]] = None  # RAG search sources

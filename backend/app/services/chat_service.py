@@ -5,7 +5,7 @@ import logging
 import re
 
 from app.config import settings
-from ..models.chat_models import ChatRequest, ChatResponse, ChatMessage
+from ..models.chat_models import ChatRequest, ChatResponse, ChatMessage, SourceItem
 from ..models.llm_models import LLMRequest
 from ..models.session_models import ClusterResult, ClusterItem
 from .llm_service import LLMService
@@ -18,7 +18,7 @@ class ChatService:
     """
     Service for managing chat conversations with tool calling support
     
-    Tool calling: Single-pass detection with [SEARCH: query] tag
+    Tool calling: Single-pass detection with [SEARCH: query | filter:value | filter:value] tag
     - 1 LLM call for simple questions
     - 2 LLM calls when history search is needed
     """
@@ -198,6 +198,7 @@ class ChatService:
             
             conversation_id = request.conversation_id or self._generate_conversation_id()
             history = request.history or []
+            sources = None  # Will be populated if search is performed
             
             # Step 1: First LLM call with tool instructions
             prompt = self._build_conversation_prompt(
@@ -242,6 +243,17 @@ class ChatService:
                         search_context = self._format_search_results(clusters, items)
                         logger.info(f"🔍 Search returned {len(clusters)} clusters, {len(items)} items")
                         
+                        # Convert ClusterItem to SourceItem for response
+                        sources = [
+                            SourceItem(
+                                url=item.url,
+                                title=item.title,
+                                visit_time=item.visit_time,
+                                url_hostname=item.url_hostname
+                            )
+                            for item in items
+                        ]
+                        
                         # Step 3: Second LLM call with context (no tool instructions)
                         context_prompt = self._build_conversation_prompt(
                             request.message,
@@ -269,7 +281,8 @@ class ChatService:
                 conversation_id=conversation_id,
                 timestamp=datetime.now(),
                 provider=response_metadata.provider,
-                model=response_metadata.model
+                model=response_metadata.model,
+                sources=sources
             )
             
             logger.info(f"💬 ChatResponse payload: {response.model_dump()}")
