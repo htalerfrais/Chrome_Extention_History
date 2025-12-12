@@ -7,10 +7,18 @@ export type MessageRole = 'user' | 'assistant' | 'system';
 
 export type ChatProvider = 'openai' | 'anthropic' | 'google' | 'ollama';
 
+export interface SourceItem {
+  url: string;
+  title: string;
+  visit_time: string;
+  url_hostname?: string;
+}
+
 export interface ChatMessage {
   role: MessageRole;
   content: string;
   timestamp: Date;
+  sources?: SourceItem[];
 }
 
 export interface ChatRequest {
@@ -26,6 +34,7 @@ export interface ChatResponse {
   timestamp: string;
   provider: string;
   model: string;
+  sources?: SourceItem[] | null;
 }
 
 // === API Response wrapper (used by ApiClient) ===

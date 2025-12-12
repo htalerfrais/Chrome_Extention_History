@@ -3,6 +3,16 @@ from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 
+
+class SearchFilters(BaseModel):
+    """Filters for history search"""
+    query_text: Optional[str] = None
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    title_contains: Optional[str] = None
+    domain_contains: Optional[str] = None
+
+
 # === Enums for type safety ===
 
 class MessageRole(str, Enum):
@@ -20,6 +30,7 @@ class ChatProvider(str, Enum):
 
 # === Core Chat Models ===
 
+# Dans un ChatRequest on peut avoir plusieurs ChatMessage objects
 class ChatMessage(BaseModel):
     """Individual chat message"""
     model_config = ConfigDict(use_enum_values=True)
@@ -38,6 +49,18 @@ class ChatRequest(BaseModel):
     conversation_id: Optional[str] = Field(None) # created if not existing yet
     history: Optional[List[ChatMessage]] = Field(default=[])
     provider: ChatProvider = Field(default=ChatProvider.GOOGLE)
+    user_token: Optional[str] = Field(None)  # Google OAuth token for history search
+
+class SourceItem(BaseModel):
+    """
+    Lightweight representation of a history item used as a source reference.
+    Derived from ClusterItem but excludes embedding to reduce payload size.
+    """
+    url: str
+    title: str
+    visit_time: datetime
+    url_hostname: Optional[str] = None
+
 
 class ChatResponse(BaseModel):
     """Response model for chat endpoint"""
@@ -46,3 +69,4 @@ class ChatResponse(BaseModel):
     timestamp: datetime = Field(default_factory=datetime.now)
     provider: str = Field(...)
     model: str = Field(...)
+    sources: Optional[List[SourceItem]] = None  # RAG search sources

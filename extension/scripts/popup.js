@@ -21,7 +21,7 @@ document.getElementById('searchBtn').addEventListener('click', () => {
             try { hostname = new URL(item.url).hostname; } catch (e) { hostname = ''; }
             const favicon = document.createElement('img');
             favicon.className = 'favicon';
-            favicon.src = hostname ? `https://www.google.com/s2/favicons?domain=${hostname}&sz=32` : 'icons/Engrave-16.png';
+            favicon.src = hostname ? `https://www.google.com/s2/favicons?domain=${hostname}&sz=32` : 'icons/big_Obra-16.png';
             favicon.alt = 'favicon';
 
             // title + date

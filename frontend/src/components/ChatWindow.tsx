@@ -52,10 +52,12 @@ export default function ChatWindow() {
 
       if (result.success && result.data) {
         // Add assistant response to UI
+        const sources = result.data.sources ?? [];
         const assistantMessage: ChatMessage = {
           role: 'assistant',
           content: result.data.response,
-          timestamp: new Date(result.data.timestamp)
+          timestamp: new Date(result.data.timestamp),
+          sources
         };
         
         setMessages(prev => [...prev, assistantMessage]);
