@@ -1,5 +1,13 @@
 from pydantic import BaseModel, Field
+from typing import Optional
 from datetime import datetime
+
+
+class TokenInfo(BaseModel):
+    """Validated token information from Google"""
+    google_user_id: str = Field(...)  # "sub" field - stable user identifier
+    email: Optional[str] = None
+    expires_in: int = 0
 
 
 class AuthenticateRequest(BaseModel):

@@ -3,6 +3,16 @@ from typing import List, Optional
 from datetime import datetime
 from enum import Enum
 
+
+class SearchFilters(BaseModel):
+    """Filters for history search"""
+    query_text: Optional[str] = None
+    date_from: Optional[datetime] = None
+    date_to: Optional[datetime] = None
+    title_contains: Optional[str] = None
+    domain_contains: Optional[str] = None
+
+
 # === Enums for type safety ===
 
 class MessageRole(str, Enum):
@@ -20,6 +30,7 @@ class ChatProvider(str, Enum):
 
 # === Core Chat Models ===
 
+# Dans un ChatRequest on peut avoir plusieurs ChatMessage objects
 class ChatMessage(BaseModel):
     """Individual chat message"""
     model_config = ConfigDict(use_enum_values=True)

@@ -8,21 +8,13 @@ and extracts the stable google_user_id from the token itself.
 import httpx
 import logging
 from typing import Optional
-from dataclasses import dataclass
 
 from app.config import settings
+from app.models.user_models import TokenInfo
 
 logger = logging.getLogger(__name__)
 
 GOOGLE_TOKENINFO_URL = "https://oauth2.googleapis.com/tokeninfo"
-
-
-@dataclass
-class TokenInfo:
-    """Validated token information from Google"""
-    google_user_id: str  # "sub" field - stable user identifier
-    email: Optional[str] = None
-    expires_in: int = 0
 
 
 class GoogleAuthService:

@@ -1,24 +1,13 @@
 import logging
 from typing import List, Tuple, Optional
-from dataclasses import dataclass
-from datetime import datetime
 
 from app.repositories.database_repository import DatabaseRepository
 from app.services.embedding_service import EmbeddingService
 from app.models.session_models import ClusterResult, ClusterItem
+from app.models.chat_models import SearchFilters
 
 
 logger = logging.getLogger(__name__)
-
-
-@dataclass
-class SearchFilters:
-    """Filters for history search"""
-    query_text: Optional[str] = None
-    date_from: Optional[datetime] = None
-    date_to: Optional[datetime] = None
-    title_contains: Optional[str] = None
-    domain_contains: Optional[str] = None
 
 
 class SearchService:
