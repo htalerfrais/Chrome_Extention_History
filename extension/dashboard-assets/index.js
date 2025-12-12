@@ -12060,7 +12060,7 @@ function Header({
   onSettings
 }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "bg-black text-white sticky top-0 z-[100]", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between w-full px-6 py-4", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-sm tracking-widest uppercase", children: "Engrave it" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-sm tracking-widest uppercase", children: "Obra" }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "text-white/70 hover:text-white", onClick: onSettings, children: "Settings" }) })
   ] }) });
 }

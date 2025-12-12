@@ -7,6 +7,7 @@ export default defineConfig({
   base: './', // Force relative paths for Chrome extension
   build: {
     outDir: '../extension/dashboard-assets',
+    emptyOutDir: true, // Clean output directory before build
     rollupOptions: {
       output: {
         // Generate single files for Chrome extension

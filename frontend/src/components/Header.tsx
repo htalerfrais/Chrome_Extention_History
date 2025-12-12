@@ -12,7 +12,7 @@ export default function Header({
     <header className="bg-black text-white sticky top-0 z-[100]">
       <div className="flex items-center justify-between w-full px-6 py-4">
         <div className="flex items-center gap-3">
-          <h1 className="text-sm tracking-widest uppercase">Engrave it</h1>
+          <h1 className="text-sm tracking-widest uppercase">Obra</h1>
         </div>
 
         <div className="flex items-center gap-3">

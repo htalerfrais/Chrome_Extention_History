@@ -1,6 +1,6 @@
 {
     "manifest_version": 3,
-    "name": "Engrave it",
+    "name": "Obra",
     "version": "0.1",
     "description": "Collecte et analyse ton historique Chrome",
     "permissions": [
@@ -19,7 +19,7 @@
       "service_worker": "background.js"
     },
     "action": {
-      "default_title": "Engrave it",
+      "default_title": "Obra",
       "default_popup": "popup.html",
       "default_icon": {
         "128": "icons/big_Obra-128.png",
