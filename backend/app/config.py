@@ -58,6 +58,10 @@ class Settings(BaseSettings):
     chat_temperature: float = 0.7
     chat_history_limit: int = 10
     
+    # Search Service
+    search_limit_clusters: int = 5
+    search_limit_items_per_cluster: int = 4
+    
     # Embeddings
     embedding_provider: str = "google"
     embedding_model: str = "text-embedding-004"  # Returns 768 dimensions
