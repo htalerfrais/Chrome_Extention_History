@@ -12,6 +12,25 @@ class HistoryItem(BaseModel):
     url_pathname_clean: Optional[str] = None
     url_search_query: Optional[str] = None
 
+
+class SemanticGroup(BaseModel):
+    """
+    A group of HistoryItems sharing the same title + hostname.
+    Used for compression during clustering to reduce embedding calls and LLM tokens.
+    """
+    group_key: str  # "title::hostname" used for grouping
+    title: str
+    hostname: str
+    item_count: int
+    # Representative example for LLM context
+    example_visit_time: datetime
+    example_pathname_clean: Optional[str] = None
+    # All items in this group (for decompression)
+    items: List[HistoryItem]
+    # Embedding computed once for the group
+    embedding: Optional[List[float]] = None
+
+
 class HistorySession(BaseModel):
     """A session of browsing history items grouped by time"""
     user_token: str  # Google OAuth token - validated server-side to get user identity
