@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     clustering_batch_size: int = 20
     clustering_max_tokens: int = 16384
     clustering_temperature: float = 0.2
+    clustering_similarity_threshold: float = 0.35  # cosine similarity threshold for cluster assignment
     # Current session detection window (minutes)
     current_session_gap_minutes: int = 30
     
