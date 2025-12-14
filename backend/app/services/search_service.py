@@ -1,6 +1,7 @@
 import logging
 from typing import List, Tuple, Optional
 
+from app.config import settings
 from app.repositories.database_repository import DatabaseRepository
 from app.services.embedding_service import EmbeddingService
 from app.models.session_models import ClusterResult, ClusterItem
@@ -25,10 +26,14 @@ class SearchService:
         self,
         user_id: int,
         filters: SearchFilters,
-        limit_clusters: int = 5,
-        limit_items: int = 20,
+        limit_clusters: int = settings.search_limit_clusters,
+        limit_items_per_cluster: int = settings.search_limit_items_per_cluster,
     ) -> Tuple[List[ClusterResult], List[ClusterItem]]:
-        """Search clusters and items matching the query and filters for a given user."""
+        """Search clusters and items matching the query and filters for a given user.
+        
+        Args:
+            limit_items_per_cluster: Max items retrieved per cluster (ensures inter-cluster diversity)
+        """
         query = (filters.query_text or "").strip()
         
         # Treat "*" as empty query (wildcard means "all", not a literal search)
@@ -71,23 +76,42 @@ class SearchService:
 
         cluster_ids = [cluster_dict.get("id") for cluster_dict in cluster_dicts if cluster_dict.get("id") is not None]
 
-        # Search items with filters
-        item_dicts = self.db_repository.search_history_items_by_embedding(
-            user_id=user_id,
-            query_embedding=query_embedding,
-            cluster_ids=cluster_ids or None,
-            limit=limit_items,
-            date_from=filters.date_from,
-            date_to=filters.date_to,
-            title_contains=filters.title_contains,
-            domain_contains=filters.domain_contains,
-        )
-        items = [self._dict_to_cluster_item(item_dict) for item_dict in item_dicts]
+        # Search items per cluster (limit applied per cluster for diversity)
+        all_item_dicts = []
+        if cluster_ids:
+            for cluster_id in cluster_ids:
+                cluster_item_dicts = self.db_repository.search_history_items_by_embedding(
+                    user_id=user_id,
+                    query_embedding=query_embedding,
+                    cluster_ids=[cluster_id],
+                    limit=limit_items_per_cluster,
+                    date_from=filters.date_from,
+                    date_to=filters.date_to,
+                    title_contains=filters.title_contains,
+                    domain_contains=filters.domain_contains,
+                )
+                all_item_dicts.extend(cluster_item_dicts)
+        else:
+            # No clusters found, search all items with fallback limit
+            fallback_limit = limit_items_per_cluster * limit_clusters
+            all_item_dicts = self.db_repository.search_history_items_by_embedding(
+                user_id=user_id,
+                query_embedding=query_embedding,
+                cluster_ids=None,
+                limit=fallback_limit,
+                date_from=filters.date_from,
+                date_to=filters.date_to,
+                title_contains=filters.title_contains,
+                domain_contains=filters.domain_contains,
+            )
+        
+        items = [self._dict_to_cluster_item(item_dict) for item_dict in all_item_dicts]
 
         logger.info(
-            "SearchService: search completed (clusters=%s, items=%s)",
+            "SearchService: search completed (clusters=%s, items=%s, limit_per_cluster=%s)",
             len(clusters),
             len(items),
+            limit_items_per_cluster,
         )
 
         return clusters, items

@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     clustering_batch_size: int = 20
     clustering_max_tokens: int = 16384
     clustering_temperature: float = 0.2
+    clustering_similarity_threshold: float = 0.25  # cosine similarity threshold for cluster assignment
     # Current session detection window (minutes)
     current_session_gap_minutes: int = 30
     
@@ -56,6 +57,10 @@ class Settings(BaseSettings):
     chat_max_tokens: int = 8000
     chat_temperature: float = 0.7
     chat_history_limit: int = 10
+    
+    # Search Service
+    search_limit_clusters: int = 5
+    search_limit_items_per_cluster: int = 4
     
     # Embeddings
     embedding_provider: str = "google"

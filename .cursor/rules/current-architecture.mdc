@@ -34,7 +34,7 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
   - Endpoints: `/`, `/health`, `/authenticate`, `/cluster-session`
   - `/cluster-session`: validate `user_token` → get/create user → decide `force` (explicit query param or current-session heuristic via `settings.current_session_gap_minutes`, default 30) → cluster or return cached result
 - Services (`backend/app/services/`)
-  - ClusteringService: two-phase LLM clustering (identify clusters → assign items), canonicalizes `session_identifier` to `u{user_id}:{client_id}`, cache check (skipped if `force=True`) + persistence via MappingService with replace-if-exists on reanalysis
+  - ClusteringService: LLM identifies thematic clusters → items assigned via embedding cosine similarity (threshold in `settings.clustering_similarity_threshold`); hardcoded generic cluster for unmatched items; canonicalizes `session_identifier` to `u{user_id}:{client_id}`, cache check (skipped if `force=True`) + persistence via MappingService
   - MappingService: Pydantic ↔ ORM conversion; persists and reconstructs Session → Clusters → HistoryItems
   - LLMService + Providers: provider-agnostic text generation (OpenAI/Anthropic/Google/Ollama)
   - ChatService: conversational LLM with tool calling via `[SEARCH: query | filter:value]` tag detection (1 LLM call simple, 2 calls when search needed)
@@ -91,5 +91,5 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
 - Load extension: Chrome → `chrome://extensions/` → Load unpacked → `extension/`
 - Health: `http://localhost:8000/health`
 
-Last Updated: December 2025 (ChatService tool calling, SearchService filters)
+Last Updated: December 2025 (ClusteringService embedding-based assignment)
 

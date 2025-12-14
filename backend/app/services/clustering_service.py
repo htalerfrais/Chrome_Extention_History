@@ -1,72 +1,130 @@
 import logging
-from typing import List, Dict, Any, Optional, Tuple
+from typing import List, Dict, Any, Optional
 import json
 
+import numpy as np
+
 from app.config import settings
-from ..models.session_models import HistorySession, ClusterResult, ClusterItem, SessionClusteringResponse
+from ..models.session_models import HistorySession, ClusterResult, ClusterItem, SessionClusteringResponse, SemanticGroup
 from ..models.llm_models import LLMRequest
 from .llm_service import LLMService
 from .embedding_service import EmbeddingService
 
 logger = logging.getLogger(__name__)
 
+# Hardcoded fallback cluster for items that don't match any thematic cluster
+GENERIC_CLUSTER = {
+    "cluster_id": "cluster_generic",
+    "theme": "General Browsing",
+    "summary": "Miscellaneous browsing activity that doesn't fit into specific thematic clusters."
+}
+
+
+def _cosine_similarity(vec_a: List[float], vec_b: List[float]) -> float:
+    """Compute cosine similarity between two vectors."""
+    a = np.array(vec_a)
+    b = np.array(vec_b)
+    norm_a = np.linalg.norm(a)
+    norm_b = np.linalg.norm(b)
+    if norm_a == 0 or norm_b == 0:
+        return 0.0
+    return float(np.dot(a, b) / (norm_a * norm_b))
+
 
 class ClusteringService:
     """LLM-driven clustering service: identifies clusters and assigns items per session."""
 
     def __init__(self, mapping_service=None, embedding_service: Optional[EmbeddingService] = None):
-        self.llm_service = LLMService() # TODO : shouldn't instanciate and import directly here, but i should inject it in the constructor
-        self.batch_size = settings.clustering_batch_size
+        self.llm_service = LLMService()  # TODO: should inject via constructor
         self.max_tokens = settings.clustering_max_tokens
-        self.mapping_service = mapping_service  # Injected for caching and persistence : respects good Dependency injection principles
+        self.mapping_service = mapping_service
         self.embedding_service = embedding_service or EmbeddingService()
 
     async def cluster_session(self, session: HistorySession, user_id: int, force: bool = False) -> SessionClusteringResponse:
         """
-        Cluster session with caching and automatic persistence
+        Cluster session using SemanticGroup compression and embedding-based similarity.
         
-        1. Check if session already analyzed for this user
-        2. If cached, return existing result from DB
-        3. If not, run LLM clustering
-        4. Save result to DB
-        5. Return result
+        Workflow:
+        1. Check cache - return if already analyzed
+        2. Create SemanticGroups (compression by title+hostname)
+        3. Embed SemanticGroups (fewer API calls)
+        4. LLM generates thematic clusters from groups
+        5. Embed clusters
+        6. Assign groups to clusters via cosine similarity
+        7. Decompress groups back to items
+        8. Build response, save to DB, return
         """
         # Canonicalize identifier with user scope to avoid cross-user collisions
         session.session_identifier = f"u{user_id}:{session.session_identifier}"
         logger.info(f"📊 Processing session {session.session_identifier} with {len(session.items)} items (force={force})")
         
-        # Step 1: Check if session already analyzed (cache check)
+        # Step 1: Check cache
         if self.mapping_service and not force:
             cached_result = self.mapping_service.get_clustering_result(session.session_identifier)
             if cached_result:
-                logger.info(f"✅ Found cached result for session {session.session_identifier}, returning without LLM calls")
+                logger.info(f"✅ Found cached result for session {session.session_identifier}, returning without processing")
                 return cached_result
-            logger.info(f"🆕 No cached result found, proceeding with LLM clustering")
+            logger.info(f"🆕 No cached result found, proceeding with clustering")
 
-        # Step 1: Ask LLM to propose clusters for this session
-        clusters_meta = await self.identify_clusters_for_session(session)
+        # Step 2: Create SemanticGroups (compression)
+        groups = self._create_semantic_groups(session)
+        logger.info(f"📦 Compressed {len(session.items)} items into {len(groups)} semantic groups")
 
-        # Step 2: Assign each item to one of the identified clusters
-        cluster_id_to_items = await self.assign_items_to_clusters(session, clusters_meta)
+        # Step 3: Embed SemanticGroups
+        groups = await self._embed_semantic_groups(groups)
 
-        # Build ClusterResult objects
+        # Step 4: LLM generates thematic clusters from groups
+        clusters_meta = await self.identify_clusters_from_groups(groups)
+        logger.info(f"🎯 LLM identified {len(clusters_meta)} thematic clusters")
+
+        # Step 5: Embed clusters based on theme + summary
+        clusters_meta = await self._embed_clusters(clusters_meta)
+
+        # Step 6: Assign groups to clusters via cosine similarity
+        cluster_id_to_groups = self._assign_groups_by_similarity(groups, clusters_meta)
+
+        # Step 7: Decompress groups back to items
+        cluster_id_to_items = self._decompress_groups_to_items(cluster_id_to_groups)
+
+        # Step 8: Build ClusterResult objects
         cluster_results: List[ClusterResult] = []
+        
+        # Add thematic clusters from LLM
         for meta in clusters_meta:
-            # cluster_id generated by LLM is only used here, in db we have a autoincremented cluster_id
-            cluster_id: str = meta.get("cluster_id") or f"cluster_{session.session_identifier}_{len(cluster_results)}"
+            cluster_id: str = meta.get("cluster_id") or f"cluster_{len(cluster_results)}"
             theme: str = meta.get("theme") or "Miscellaneous"
             summary: str = meta.get("summary") or ""
+            embedding = meta.get("embedding")
 
             items = cluster_id_to_items.get(cluster_id, [])
             if len(items) == 0:
-                # Skip empty clusters to keep output compact
+                # Skip empty clusters
                 continue
 
             cluster_results.append(ClusterResult(
                 cluster_id=cluster_id,
                 theme=theme,
                 summary=summary,
-                items=items
+                items=items,
+                embedding=embedding if embedding else None
+            ))
+
+        # Add hardcoded Generic cluster if it has items
+        generic_items = cluster_id_to_items.get(GENERIC_CLUSTER["cluster_id"], [])
+        if generic_items:
+            # Embed the generic cluster
+            generic_embedding = None
+            if self.embedding_service:
+                generic_text = self._build_cluster_meta_embedding_text(GENERIC_CLUSTER)
+                vectors = await self.embedding_service.embed_texts([generic_text])
+                generic_embedding = vectors[0] if vectors and vectors[0] else None
+            
+            cluster_results.append(ClusterResult(
+                cluster_id=GENERIC_CLUSTER["cluster_id"],
+                theme=GENERIC_CLUSTER["theme"],
+                summary=GENERIC_CLUSTER["summary"],
+                items=generic_items,
+                embedding=generic_embedding
             ))
 
         # Create session response
@@ -77,8 +135,6 @@ class ClusteringService:
             clusters=cluster_results
         )
 
-        await self._attach_embeddings(cluster_results)
-
         # Log ClusterResult models
         for cluster_result in cluster_results:
             log_payload = cluster_result.model_dump()
@@ -87,7 +143,7 @@ class ClusteringService:
                 item_payload.pop("embedding", None)
             logger.info(f"🎯 ClusterResult: {log_payload}")
         
-        # Step 3: Save to database (automatic persistence)
+        # Step 9: Save to database
         if self.mapping_service:
             try:
                 session_id = self.mapping_service.save_clustering_result(user_id, response, replace_if_exists=force)
@@ -98,50 +154,8 @@ class ClusteringService:
 
         return response
 
-    async def _attach_embeddings(self, cluster_results: List[ClusterResult]) -> None:
-        if not self.embedding_service or not cluster_results:
-            logger.warning("EmbeddingService: skipping embeddings (service not available or no clusters)")
-            return
-
-        cluster_texts: List[str] = [self._build_cluster_embedding_text(cluster) for cluster in cluster_results]
-        cluster_vectors: List[List[float]] = []
-
-        if cluster_texts:
-            logger.info(f"🔢 Computing embeddings for {len(cluster_texts)} clusters")
-            cluster_vectors = await self.embedding_service.embed_texts(cluster_texts)
-            logger.info(f"✅ Received {len(cluster_vectors)} cluster embeddings")
-
-        for idx, vector in enumerate(cluster_vectors):
-            cluster_results[idx].embedding = vector if vector else None
-
-        item_requests: List[str] = []
-        item_index_map: List[Tuple[int, int]] = []
-
-        for cluster_idx, cluster in enumerate(cluster_results):
-            for item_idx, item in enumerate(cluster.items):
-                text = self._build_item_embedding_text(item)
-                if not text:
-                    cluster.items[item_idx].embedding = None
-                    continue
-                item_requests.append(text)
-                item_index_map.append((cluster_idx, item_idx))
-
-        if not item_requests:
-            logger.warning("EmbeddingService: no item texts to embed")
-            return
-
-        logger.info(f"🔢 Computing embeddings for {len(item_requests)} items")
-        item_vectors = await self.embedding_service.embed_texts(item_requests)
-        logger.info(f"✅ Received {len(item_vectors)} item embeddings")
-
-        for (cluster_idx, item_idx), vector in zip(item_index_map, item_vectors):
-            cluster_results[cluster_idx].items[item_idx].embedding = vector if vector else None
-
-    def _build_cluster_embedding_text(self, cluster: ClusterResult) -> str:
-        text = cluster.summary or cluster.theme or ""
-        return text.strip()[:1200]
-
-    def _build_item_embedding_text(self, item: ClusterItem) -> Optional[str]:
+    def _build_item_embedding_text(self, item: Any) -> Optional[str]:
+        """Build embedding text from a HistoryItem or ClusterItem."""
         parts: List[str] = []
         if item.title:
             parts.append(item.title)
@@ -158,9 +172,226 @@ class ClusteringService:
         text = " | ".join(part.strip() for part in parts if part)
         return text[:1200]
 
-    async def identify_clusters_for_session(self, session: HistorySession) -> List[Dict[str, Any]]:
-        """Use LLM to propose clusters (cluster_id, theme, summary) for a session."""
-        simplified_items = self._prepare_session_items_for_llm(session)
+    def _build_cluster_meta_embedding_text(self, cluster_meta: Dict[str, Any]) -> str:
+        """Build embedding text from cluster metadata (theme + summary)."""
+        theme = cluster_meta.get("theme", "")
+        summary = cluster_meta.get("summary", "")
+        text = f"{theme} - {summary}" if summary else theme
+        return text.strip()[:1200]
+
+    def _create_semantic_groups(self, session: HistorySession) -> List[SemanticGroup]:
+        """
+        Group session items by (title, hostname) to reduce redundant embeddings.
+        Items with empty/null title become individual groups (group of 1).
+        """
+        groups_dict: Dict[str, List] = {}
+        no_title_counter = 0
+        
+        for item in session.items:
+            title = item.title.strip() if item.title else ""
+            hostname = item.url_hostname or ""
+            
+            # Items with empty title become individual groups
+            if not title:
+                group_key = f"__notitle__{no_title_counter}::{hostname}"
+                no_title_counter += 1
+            else:
+                group_key = f"{title}::{hostname}"
+            
+            if group_key not in groups_dict:
+                groups_dict[group_key] = []
+            groups_dict[group_key].append(item)
+        
+        # Convert to SemanticGroup objects
+        semantic_groups: List[SemanticGroup] = []
+        for group_key, items in groups_dict.items():
+            # Use first item as representative example
+            first_item = items[0]
+            title = first_item.title.strip() if first_item.title else ""
+            hostname = first_item.url_hostname or ""
+            
+            semantic_groups.append(SemanticGroup(
+                group_key=group_key,
+                title=title,
+                hostname=hostname,
+                item_count=len(items),
+                example_visit_time=first_item.visit_time,
+                example_pathname_clean=first_item.url_pathname_clean,
+                items=items,
+                embedding=None
+            ))
+        
+        return semantic_groups
+
+    async def _embed_semantic_groups(self, groups: List[SemanticGroup]) -> List[SemanticGroup]:
+        """
+        Embed each SemanticGroup once based on title + hostname + example_pathname_clean.
+        Returns groups with embedding field populated.
+        """
+        if not self.embedding_service or not groups:
+            return groups
+
+        # Build embedding text for each group
+        group_texts: List[str] = []
+        group_indices: List[int] = []
+        
+        for idx, group in enumerate(groups):
+            parts: List[str] = []
+            if group.title:
+                parts.append(group.title)
+            if group.hostname:
+                parts.append(group.hostname)
+            if group.example_pathname_clean:
+                parts.append(group.example_pathname_clean)
+            
+            if parts:
+                text = " | ".join(part.strip() for part in parts if part)[:1200]
+                group_texts.append(text)
+                group_indices.append(idx)
+
+        if not group_texts:
+            logger.warning("No valid group texts to embed")
+            return groups
+
+        logger.info(f"🔢 Embedding {len(group_texts)} semantic groups")
+        vectors = await self.embedding_service.embed_texts(group_texts)
+        logger.info(f"✅ Received {len(vectors)} group embeddings")
+
+        # Assign embeddings to groups
+        for idx, vector in zip(group_indices, vectors):
+            groups[idx].embedding = vector if vector else None
+
+        return groups
+
+    async def _embed_clusters(self, clusters_meta: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+        """
+        Embed clusters based on their theme and summary.
+        Returns clusters_meta with 'embedding' field added.
+        """
+        if not self.embedding_service or not clusters_meta:
+            return clusters_meta
+
+        cluster_texts = [self._build_cluster_meta_embedding_text(c) for c in clusters_meta]
+        
+        logger.info(f"🔢 Embedding {len(cluster_texts)} clusters")
+        vectors = await self.embedding_service.embed_texts(cluster_texts)
+        logger.info(f"✅ Received {len(vectors)} cluster embeddings")
+
+        # Add embeddings to cluster metadata
+        for cluster, vector in zip(clusters_meta, vectors):
+            cluster["embedding"] = vector if vector else []
+
+        return clusters_meta
+
+    def _assign_groups_by_similarity(
+        self,
+        groups: List[SemanticGroup],
+        clusters_with_embeddings: List[Dict[str, Any]]
+    ) -> Dict[str, List[SemanticGroup]]:
+        """
+        Assign SemanticGroups to clusters based on cosine similarity between embeddings.
+        
+        Args:
+            groups: List of SemanticGroups with embeddings
+            clusters_with_embeddings: List of cluster metadata with 'embedding' field
+        
+        Returns:
+            Dict mapping cluster_id to list of SemanticGroups assigned to it
+        """
+        threshold = settings.clustering_similarity_threshold
+        
+        # Initialize cluster map (including generic cluster)
+        cluster_map: Dict[str, List[SemanticGroup]] = {
+            c["cluster_id"]: [] for c in clusters_with_embeddings
+        }
+        cluster_map[GENERIC_CLUSTER["cluster_id"]] = []
+        
+        # Filter out clusters without valid embeddings
+        valid_clusters = [
+            c for c in clusters_with_embeddings 
+            if c.get("embedding") and len(c["embedding"]) > 0
+        ]
+        
+        for group in groups:
+            group_embedding = group.embedding
+            
+            # If group has no embedding, assign to generic
+            if not group_embedding:
+                cluster_map[GENERIC_CLUSTER["cluster_id"]].append(group)
+                continue
+            
+            # Find the most similar cluster
+            best_cluster_id = GENERIC_CLUSTER["cluster_id"]
+            best_similarity = -1.0
+            
+            for cluster in valid_clusters:
+                cluster_embedding = cluster["embedding"]
+                similarity = _cosine_similarity(group_embedding, cluster_embedding)
+                
+                if similarity > best_similarity:
+                    best_similarity = similarity
+                    best_cluster_id = cluster["cluster_id"]
+            
+            # Assign to best cluster if above threshold, otherwise to generic
+            if best_similarity >= threshold:
+                cluster_map[best_cluster_id].append(group)
+                logger.debug(f"Group '{group.title[:30]}...' ({group.item_count} items) assigned to '{best_cluster_id}' (similarity: {best_similarity:.3f})")
+            else:
+                cluster_map[GENERIC_CLUSTER["cluster_id"]].append(group)
+                logger.debug(f"Group '{group.title[:30]}...' assigned to generic (best similarity: {best_similarity:.3f} < {threshold})")
+        
+        return cluster_map
+
+    def _decompress_groups_to_items(
+        self,
+        cluster_id_to_groups: Dict[str, List[SemanticGroup]]
+    ) -> Dict[str, List[ClusterItem]]:
+        """
+        Expand SemanticGroups back to individual ClusterItems.
+        Each item in a group receives the group's embedding.
+        
+        Args:
+            cluster_id_to_groups: Dict mapping cluster_id to list of SemanticGroups
+        
+        Returns:
+            Dict mapping cluster_id to list of ClusterItems
+        """
+        cluster_id_to_items: Dict[str, List[ClusterItem]] = {}
+        
+        for cluster_id, groups in cluster_id_to_groups.items():
+            items: List[ClusterItem] = []
+            
+            for group in groups:
+                # Each item in the group gets the group's embedding
+                group_embedding = group.embedding
+                
+                for history_item in group.items:
+                    cluster_item = ClusterItem(
+                        url=history_item.url,
+                        title=history_item.title,
+                        visit_time=history_item.visit_time,
+                        url_hostname=history_item.url_hostname,
+                        url_pathname_clean=history_item.url_pathname_clean,
+                        url_search_query=history_item.url_search_query,
+                        embedding=group_embedding
+                    )
+                    items.append(cluster_item)
+            
+            cluster_id_to_items[cluster_id] = items
+        
+        return cluster_id_to_items
+
+    async def identify_clusters_from_groups(self, groups: List[SemanticGroup]) -> List[Dict[str, Any]]:
+        """
+        Use LLM to propose thematic clusters from SemanticGroups.
+        
+        This method receives compressed groups (title+hostname with visit counts)
+        instead of individual items, reducing LLM input tokens significantly.
+        
+        Note: This method only returns thematic clusters identified by the LLM.
+        The generic/fallback cluster is hardcoded and handled separately in cluster_session.
+        """
+        simplified_groups = self._prepare_groups_for_llm(groups)
 
         example = [
             {
@@ -172,29 +403,32 @@ class ClusteringService:
                 "cluster_id": "cluster_2",
                 "theme": "Research & Learning",
                 "summary": "In-depth research session covering tutorials on machine learning algorithms, academic papers about neural networks, and educational videos explaining complex programming concepts. Multiple visits to documentation sites and learning platforms."
-            },
-            {
-                "cluster_id": "cluster_generic",
-                "theme": "General Browsing",
-                "summary": "Miscellaneous browsing activity including social media checks, news articles, and various unrelated pages that don't form a cohesive theme."
             }
         ]
 
         prompt = (
             "You are an assistant that organizes web browsing sessions into thematic clusters.\n"
-            "Given the simplified list of session items, identify between 1 and 10 THEMATIC clusters.\n"
-            "IMPORTANT: You must ALWAYS include a 'cluster_generic' cluster for items that don't fit specific themes.\n\n"
+            "Given the list of browsing activity groups (each group represents pages with the same title on a domain, "
+            "with visit_count indicating how many times the user visited), identify between 1 and 10 THEMATIC clusters.\n\n"
+            "IMPORTANT GUIDELINES:\n"
+            "- Create SPECIFIC, semantically distinct clusters. It's better to have more specific clusters than fewer broad ones.\n"
+            "- Each cluster should represent a clear, coherent theme that genuinely matches the groups it will contain.\n"
+            "- Clusters should be well-separated semantically - avoid creating clusters that are too broad or vague.\n"
+            "- If groups represent different specific topics or activities, create separate clusters for them rather than forcing them into a single broad cluster.\n"
+            "- Consider creating clusters even for smaller groups if they represent distinct themes that don't fit well into other clusters.\n"
+            "- Groups that don't fit any thematic cluster will be handled separately, so prioritize precision over coverage.\n\n"
             "For each cluster, provide:\n"
-            "- A clear, descriptive theme name\n"
+            "- A clear, descriptive theme name (be specific, not generic)\n"
             "- A DETAILED summary (2-3 sentences) that:\n"
-            "  * Describes the main activities and topics explored\n"
+            "  * Describes the main activities and topics explored with precision\n"
             "  * Mentions specific websites or types of content visited\n"
             "  * Explains the user's apparent goal or interest\n"
-            "  * Uses engaging, informative language\n\n"
+            "  * Uses engaging, informative language\n"
+            "  * Clearly distinguishes this cluster from others\n\n"
             "Return ONLY a compact JSON array. Each element must have keys: \"cluster_id\", \"theme\", \"summary\".\n"
             "Do not include any other text.\n\n"
             f"Example format:\n{json.dumps(example, ensure_ascii=False)}\n\n"
-            f"Session items (simplified):\n{json.dumps(simplified_items, ensure_ascii=False)}\n"
+            f"Browsing activity groups:\n{json.dumps(simplified_groups, ensure_ascii=False)}\n"
         )
 
         try:
@@ -204,9 +438,8 @@ class ClusteringService:
             
             data = self._extract_json(raw)
             if isinstance(data, list):
-                # Basic schema cleanup
+                # Basic schema cleanup - only keep thematic clusters
                 cleaned: List[Dict[str, Any]] = []
-                has_generic = False
                 
                 for idx, c in enumerate(data):
                     if not isinstance(c, dict):
@@ -215,120 +448,31 @@ class ClusteringService:
                     theme = str(c.get("theme") or "Miscellaneous")
                     summary = str(c.get("summary") or "")
                     
-                    # Track if generic cluster is present
+                    # Skip if LLM generated a generic cluster (we handle that separately)
                     if cid == "cluster_generic":
-                        has_generic = True
+                        continue
                     
                     cleaned.append({"cluster_id": cid, "theme": theme, "summary": summary})
                 
-                # ALWAYS ensure generic cluster exists
-                if not has_generic:
-                    cleaned.append({
-                        "cluster_id": "cluster_generic",
-                        "theme": "General Browsing",
-                        "summary": "General browsing activity that doesn't fit into specific thematic clusters"
-                    })
-                
-                if cleaned:
-                    return cleaned
+                return cleaned
         except Exception as e:
-            logger.error(f"LLM cluster identification failed for session {session.session_identifier}: {e}")
+            logger.error(f"LLM cluster identification from groups failed: {e}")
 
-        # Fallback: single generic cluster
-        return [{
-            "cluster_id": "cluster_generic",
-            "theme": "General Browsing",
-            "summary": "General browsing activity that doesn't fit into specific thematic clusters"
-        }]
+        # Fallback: empty list (all groups will go to hardcoded generic cluster)
+        return []
 
-    async def assign_items_to_clusters(self, session: HistorySession, clusters_meta: List[Dict[str, Any]]) -> Dict[str, List[ClusterItem]]:
-        """Assign items in batches to reduce the number of LLM calls."""
-        cluster_map: Dict[str, List[ClusterItem]] = {c["cluster_id"]: [] for c in clusters_meta}
-        valid_ids = {c["cluster_id"] for c in clusters_meta}
-
-        BATCH_SIZE = self.batch_size  # be careful with this value, Gemini 2.5-Pro inconsistent MAX_TOKENS behavior because of internal reasoning tokens
-        items = session.items
-        for start in range(0, len(items), BATCH_SIZE):
-            batch = items[start:start + BATCH_SIZE]
-            logger.info(f"📦 Processing batch with {len(batch)} items")
-            assigned_ids = await self._assign_batch_to_clusters(batch, clusters_meta)
-
-            # Safety: ensure alignment
-            if len(assigned_ids) != len(batch):
-                first_cluster = next(iter(valid_ids)) if valid_ids else "cluster_generic"
-                assigned_ids = [first_cluster] * len(batch)
-
-            for item, assigned_id in zip(batch, assigned_ids):
-                if assigned_id not in valid_ids:
-                    assigned_id = next(iter(valid_ids)) if valid_ids else "cluster_generic"
-
-                cluster_item = ClusterItem(
-                    url=item.url,
-                    title=item.title,
-                    visit_time=item.visit_time,
-                    url_hostname=item.url_hostname,
-                    url_pathname_clean=item.url_pathname_clean,
-                    url_search_query=item.url_search_query
-                )
-                cluster_map[assigned_id].append(cluster_item)
-
-        return cluster_map
-
-    async def _assign_batch_to_clusters(self, items_batch: List[Any], clusters_meta: List[Dict[str, Any]]) -> List[str]:
-        """Assign a batch of items to clusters with a single LLM call. Returns a list of cluster_ids."""
-        clusters_json = json.dumps(clusters_meta, ensure_ascii=False)
-        simplified_batch = [self._simplify_item_for_llm(item) for item in items_batch]
-
-        prompt = (
-            "You are assigning browsing items to predefined clusters.\n"
-            "IMPORTANT: Use 'cluster_generic' for items that don't clearly fit any specific thematic cluster.\n"
-            "Only assign items to thematic clusters if they clearly belong to that theme.\n"
-            "When in doubt, use 'cluster_generic'.\n\n"
-            "Return ONLY a JSON array of cluster_id strings, one for each item in order.\n\n"
-            f"Clusters:\n{clusters_json}\n\n"
-            f"Items to assign (in order):\n{json.dumps(simplified_batch, ensure_ascii=False)}\n\n"
-            "Return format example: [\"cluster_1\", \"cluster_generic\", \"cluster_2\"]\n"
-        )
-
-        try:
-            req = LLMRequest(prompt=prompt, provider=settings.default_provider, max_tokens=self.max_tokens, temperature=0.0)
-            resp = await self.llm_service.generate_text(req)
-            raw = resp.generated_text.strip()
-            
-            assignments = self._extract_json(raw)
-            # Expecting a list of strings
-            if isinstance(assignments, list) and all(isinstance(x, (str,)) for x in assignments):
-                return [str(x).strip() for x in assignments]
-        except Exception as e:
-            logger.warning(f"Batch assignment failed: {e}")
-
-        # Fallback: assign everything to the first cluster (if any)
-        first_cluster = clusters_meta[0]["cluster_id"] if clusters_meta else "cluster_generic"
-        return [first_cluster] * len(items_batch)
-
-
-
-
-    def _prepare_session_items_for_llm(self, session: HistorySession) -> List[Dict[str, Any]]:
-        """Return simplified items for prompts: only title, url_hostname, url_pathname_clean, url_search_query."""
+    def _prepare_groups_for_llm(self, groups: List[SemanticGroup]) -> List[Dict[str, Any]]:
+        """Return compressed group info for LLM: title, hostname, visit_count, example_visit_time, example_pathname_clean."""
         return [
             {
-                "title": it.title,
-                "url_hostname": it.url_hostname,
-                "url_pathname_clean": it.url_pathname_clean,
-                "url_search_query": it.url_search_query,
+                "title": g.title,
+                "hostname": g.hostname,
+                "visit_count": g.item_count,
+                "example_visit_time": g.example_visit_time.isoformat(),
+                "example_pathname_clean": g.example_pathname_clean,
             }
-            for it in session.items
+            for g in groups
         ]
-
-    def _simplify_item_for_llm(self, item: Any) -> Dict[str, Any]:
-        """Simplified representation of a single HistoryItem for assignment prompts."""
-        return {
-            "title": item.title,
-            "url_hostname": item.url_hostname,
-            "url_pathname_clean": item.url_pathname_clean,
-            "url_search_query": item.url_search_query,
-        }
 
     def _extract_json(self, text: str) -> Any:
         """Extract JSON array/object from raw LLM text output."""
