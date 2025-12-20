@@ -385,7 +385,7 @@ class ClusteringService:
         """
         Use LLM to propose thematic clusters from SemanticGroups.
         
-        This method receives compressed groups (title+hostname with visit counts)
+        This method receives compressed groups (title+hostname+pathname)
         instead of individual items, reducing LLM input tokens significantly.
         
         Note: This method only returns thematic clusters identified by the LLM.
@@ -408,8 +408,8 @@ class ClusteringService:
 
         prompt = (
             "You are an assistant that organizes web browsing sessions into thematic clusters.\n"
-            "Given the list of browsing activity groups (each group represents pages with the same title on a domain, "
-            "with visit_count indicating how many times the user visited), identify between 1 and 10 THEMATIC clusters.\n\n"
+            "Given the list of browsing activity groups (each group represents pages with the same title on a domain), "
+            "identify between 1 and 10 THEMATIC clusters.\n\n"
             "IMPORTANT GUIDELINES:\n"
             "- Create SPECIFIC, semantically distinct clusters. It's better to have more specific clusters than fewer broad ones.\n"
             "- Each cluster should represent a clear, coherent theme that genuinely matches the groups it will contain.\n"
@@ -462,14 +462,11 @@ class ClusteringService:
         return []
 
     def _prepare_groups_for_llm(self, groups: List[SemanticGroup]) -> List[Dict[str, Any]]:
-        """Return compressed group info for LLM: title, hostname, visit_count, example_visit_time, example_pathname_clean."""
+        """Return compressed group info for LLM: title, hostname."""
         return [
             {
                 "title": g.title,
                 "hostname": g.hostname,
-                "visit_count": g.item_count,
-                "example_visit_time": g.example_visit_time.isoformat(),
-                "example_pathname_clean": g.example_pathname_clean,
             }
             for g in groups
         ]

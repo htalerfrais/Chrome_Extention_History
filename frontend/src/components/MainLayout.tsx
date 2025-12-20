@@ -10,7 +10,7 @@ interface MainLayoutProps {
 
 export default function MainLayout({ children, chatComponent }: MainLayoutProps) {
   return (
-    <div className="flex h-[calc(100vh-120px)] bg-black">
+    <div className="flex h-[calc(100vh-64px)] bg-black">
       {/* Main content area - 70% */}
       <div className="flex-1 overflow-y-auto thin-scrollbar">
         {children}

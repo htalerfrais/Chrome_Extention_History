@@ -12064,12 +12064,6 @@ function Header({
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "text-white/70 hover:text-white", onClick: onSettings, children: "Settings" }) })
   ] }) });
 }
-function StatusBar({ status }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-black text-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full px-6 py-2 flex items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/70", children: status }) }) });
-}
-function LoadingSpinner() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full py-16 flex flex-col items-center justify-center text-white/40 uppercase tracking-[0.35em] text-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Analyzing Session" }) });
-}
 function ErrorDisplay({ message, onRetry }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "error-container", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "error-icon", children: "❌" }),
@@ -12206,14 +12200,15 @@ function ClusterCard({ cluster }) {
 }
 function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
   const clusters = (sessionData == null ? void 0 : sessionData.clusters) || [];
-  if (!isAnalyzing && (!sessionData || clusters.length === 0)) {
+  const isLoading = isAnalyzing || isReanalyzing;
+  if (!isLoading && (!sessionData || clusters.length === 0)) {
     return null;
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-black text-white w-full", children: sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black text-white w-full", children: [
+    (sessionData || isReanalyzing) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.4em] text-white/70", children: "Topics" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-4 md:justify-end", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
+        sessionData && /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
         onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
@@ -12225,8 +12220,12 @@ function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isRean
         )
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: clusters.map((cluster, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index2}`)) })
-  ] }) });
+    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "col-span-full flex flex-col items-center justify-center py-16", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "loading-spinner" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 uppercase tracking-[0.35em] text-xs mt-6", children: isReanalyzing ? "Re-analyzing Session" : "Analyzing Session" })
+    ] }) }),
+    !isLoading && sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: clusters.map((cluster, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index2}`)) })
+  ] });
 }
 function SessionTabs({
   currentSessionResults,
@@ -12295,12 +12294,13 @@ function Dashboard({
   activeSessionId,
   onReanalyze,
   isReanalyzing,
+  activeIsLoading = false,
   availableSessions,
   sessionAnalysisStates,
   onSessionChange
 }) {
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
-  const isAnalyzing = !currentSessionData;
+  const isAnalyzing = !currentSessionData || activeIsLoading;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full space-y-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       SessionTabs,
@@ -12316,7 +12316,7 @@ function Dashboard({
   ] });
 }
 function MainLayout({ children, chatComponent }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-[calc(100vh-120px)] bg-black", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-[calc(100vh-64px)] bg-black", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto thin-scrollbar", children }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[32%] min-w-[300px] border-l border-white/10 bg-[#080808]", children: chatComponent })
   ] });
@@ -22220,9 +22220,7 @@ function ChatWindow() {
   ] });
 }
 function App() {
-  const [isLoading, setIsLoading] = reactExports.useState(false);
   const [error, setError] = reactExports.useState(null);
-  const [status, setStatus] = reactExports.useState("Waiting for extension services...");
   const [currentSessionResults, setCurrentSessionResults] = reactExports.useState({});
   const [activeSessionId, setActiveSessionId] = reactExports.useState(null);
   const [availableSessions, setAvailableSessions] = reactExports.useState([]);
@@ -22232,23 +22230,19 @@ function App() {
     const initializeServices = async () => {
       try {
         await extensionBridge.waitForExtensionServices();
-        setStatus("Analyzing most recent session...");
         console.log("Extension services are ready");
         await loadDashboard();
       } catch (error2) {
         console.error("Failed to initialize extension services:", error2);
         setError("Failed to load extension services");
-        setStatus("Service initialization failed");
       }
     };
     initializeServices();
   }, []);
   const loadDashboard = async () => {
     try {
-      setIsLoading(true);
       setError(null);
       const constants = extensionBridge.getConstants();
-      setStatus("Analyzing most recent session...");
       const healthCheck = await extensionBridge.checkApiHealth();
       if (!healthCheck.success) {
         throw new Error(`API not available: ${healthCheck.error}`);
@@ -22277,7 +22271,6 @@ function App() {
       if (sessionsWithId.length > 0) {
         const firstSessionId = sessionsWithId[0].session_identifier;
         setActiveSessionId(firstSessionId);
-        setStatus("Analyzing most recent session...");
         const firstSession = sessionsWithId[0];
         setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
           [firstSession.session_identifier]: "loading"
@@ -22292,14 +22285,10 @@ function App() {
         setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
           [firstSession.session_identifier]: "completed"
         }));
-        setStatus(`Session ${firstSession.session_identifier} analyzed successfully`);
       }
     } catch (error2) {
       console.error("Dashboard loading failed:", error2);
       setError(error2 instanceof Error ? error2.message : "Unknown error");
-      setStatus(extensionBridge.getConstants().STATUS_ANALYSIS_FAILED);
-    } finally {
-      setIsLoading(false);
     }
   };
   const analyzeSession = async (sessionId) => {
@@ -22315,7 +22304,6 @@ function App() {
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [sessionId]: "loading"
       }));
-      setStatus(`Analyzing session ${sessionId}...`);
       const clusterResult = await extensionBridge.clusterSession(session);
       if (!clusterResult.success) {
         throw new Error(`Clustering failed: ${clusterResult.error}`);
@@ -22326,13 +22314,11 @@ function App() {
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [sessionId]: "completed"
       }));
-      setStatus(`Session ${sessionId} analyzed successfully`);
     } catch (error2) {
       console.error(`Session analysis failed for ${sessionId}:`, error2);
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [sessionId]: "error"
       }));
-      setStatus(`Session ${sessionId} analysis failed`);
     }
   };
   const reanalyzeActiveSession = async () => {
@@ -22341,7 +22327,6 @@ function App() {
     if (!session) return;
     try {
       setIsReanalyzing(true);
-      setStatus(`Re-analyzing session ${activeSessionId}...`);
       const result = await extensionBridge.clusterSession(session, { force: true });
       if (!result.success) {
         throw new Error(`Clustering failed: ${result.error}`);
@@ -22352,10 +22337,8 @@ function App() {
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [activeSessionId]: "completed"
       }));
-      setStatus(`Session ${activeSessionId} re-analyzed successfully`);
     } catch (error2) {
       console.error("Re-analysis failed:", error2);
-      setStatus("Re-analysis failed");
     } finally {
       setIsReanalyzing(false);
     }
@@ -22388,12 +22371,10 @@ To switch environments, modify extension/api/config.js`);
         onSettings: openSettings
       }
     ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBar, { status }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       MainLayout,
       {
         children: /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "w-full", children: [
-          (isLoading || activeIsLoading) && /* @__PURE__ */ jsxRuntimeExports.jsx(LoadingSpinner, {}),
           error && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: loadDashboard }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Dashboard,
@@ -22402,6 +22383,7 @@ To switch environments, modify extension/api/config.js`);
               activeSessionId,
               onReanalyze: reanalyzeActiveSession,
               isReanalyzing,
+              activeIsLoading,
               availableSessions,
               sessionAnalysisStates,
               onSessionChange: handleSessionChange
