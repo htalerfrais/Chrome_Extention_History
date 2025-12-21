@@ -18,11 +18,10 @@
     <div id="root"></div>
 
     <!-- Extension Services (loaded first) -->
-    <script src="scripts/constants.js"></script>
-    <script src="api/config.js"></script>
-    <script src="api/api_client.js"></script>
-    <script src="utils/preprocess_history.js"></script>
-    <script src="utils/session_management.js"></script>
+    <!-- Only load config and bridge - services run in background.js -->
+    <script src="config/constants.js"></script>
+    <script src="config/api.config.js"></script>
+    <script src="bridge/extension.bridge.js"></script>
     
     <!-- React Bundle (loaded after extension services) -->
     <!-- This will be built from frontend/ and copied here -->

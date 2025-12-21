@@ -1,12 +1,18 @@
-// API Client for Chrome Extension History Backend
-// Handles all communication with the clustering API
+// API Service - Communication with backend
+// Handles all HTTP requests to the FastAPI backend
 
-class ApiClient {
-    constructor(config) {
+class ApiService {
+    constructor(config, authService) {
         this.config = config;
+        this.authService = authService;
     }
     
-    // Generic API request method with retry logic
+    /**
+     * Generic API request method with retry logic
+     * @param {string} endpoint - Endpoint name (e.g., 'health', 'cluster-session')
+     * @param {Object} options - Request options (method, body, query, headers)
+     * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+     */
     async makeRequest(endpoint, options = {}) {
         const query = options.query || null;
         const urlBase = this.config.getEndpointUrl(endpoint);
@@ -40,7 +46,8 @@ class ApiClient {
                 console.warn(`API Request failed (attempt ${attempt}):`, error.message);
                 
                 if (attempt < this.config.REQUEST_CONFIG.retries) {
-                    await this.delay(this.config.REQUEST_CONFIG.retryDelay * attempt);
+                    const delayMs = this.config.REQUEST_CONFIG.retryDelay * attempt;
+                    await this.delay(delayMs);
                 }
             }
         }
@@ -49,36 +56,53 @@ class ApiClient {
         return { success: false, error: lastError.message };
     }
     
-    // Utility method for delays
+    /**
+     * Utility method for delays
+     * @param {number} ms - Milliseconds to delay
+     * @returns {Promise<void>}
+     */
     delay(ms) {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
     
-    // Check API health
+    /**
+     * Check API health
+     * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+     */
     async checkHealth() {
         return await this.makeRequest('health');
     }
     
-    // Send single session for clustering
-    async clusterSession(session, opts = {}) {
+    /**
+     * Authenticate with backend using Google token
+     * @param {string} token - Google OAuth token
+     * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+     */
+    async authenticate(token) {
+        return await this.makeRequest('authenticate', {
+            method: 'POST',
+            body: JSON.stringify({ token })
+        });
+    }
+    
+    /**
+     * Send single session for clustering
+     * @param {Object} session - Session object (formatted for API)
+     * @param {Object} opts - Options (force: boolean)
+     * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+     */
+    async analyzeSession(session, opts = {}) {
         if (!session || !session.items || session.items.length === 0) {
             return { success: false, error: 'No valid session provided' };
         }
         
-        // Get user token from chrome.storage (token is the only auth needed)
-        let userToken;
-        try {
-            const stored = await chrome.storage.local.get(['userToken']);
-            userToken = stored.userToken;
-        } catch (e) {
-            console.error('Failed to get user token from storage:', e);
-        }
-        
+        // Get user token from auth service
+        const userToken = await this.authService.getToken();
         if (!userToken) {
             return { success: false, error: 'User not authenticated' };
         }
         
-        // Add user_token to session object (server validates token to get user identity)
+        // Add user_token to session object
         const sessionWithUser = {
             ...session,
             user_token: userToken
@@ -99,20 +123,20 @@ class ApiClient {
         return result;
     }
     
-    // Send chat message
+    /**
+     * Send chat message
+     * @param {string} message - User message
+     * @param {string|null} conversationId - Optional conversation ID
+     * @param {Array} history - Optional conversation history
+     * @returns {Promise<{success: boolean, data?: any, error?: string}>}
+     */
     async sendChatMessage(message, conversationId = null, history = []) {
         if (!message || message.trim().length === 0) {
             return { success: false, error: 'Message cannot be empty' };
         }
         
-        // Get user token from chrome.storage for history search
-        let userToken;
-        try {
-            const stored = await chrome.storage.local.get(['userToken']);
-            userToken = stored.userToken;
-        } catch (e) {
-            console.error('Failed to get user token from storage:', e);
-        }
+        // Get user token from auth service
+        const userToken = await this.authService.getToken();
         
         console.log(`Sending chat message${conversationId ? ` for conversation ${conversationId}` : ''}`);
         
@@ -135,38 +159,4 @@ class ApiClient {
         
         return result;
     }
-
-    // Authenticate with Google (server validates token and extracts user identity)
-    async authenticateWithGoogle(token) {
-        const result = await this.makeRequest('authenticate', {
-            method: 'POST',
-            body: JSON.stringify({ token })
-        });
-        return result;
-    }
-}
-
-// Create and export API client instance
-const apiClient = new ApiClient(
-    (typeof window !== 'undefined' ? window.ExtensionConfig : 
-     typeof self !== 'undefined' ? self.ExtensionConfig : 
-     new Config())
-);
-
-
-// Make available globally
-if (typeof window !== 'undefined') {
-    window.ApiClient = apiClient;
-}
-
-// For service workers (background scripts)
-if (typeof self !== 'undefined') {
-    self.ApiClient = apiClient;
-    // Expose authenticateWithGoogle function directly for convenience
-    self.authenticateWithGoogle = apiClient.authenticateWithGoogle.bind(apiClient);
-}
-
-// For Node.js/module environments
-if (typeof module !== 'undefined' && module.exports) {
-    module.exports = ApiClient;
 }

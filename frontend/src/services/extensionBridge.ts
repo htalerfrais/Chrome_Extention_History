@@ -1,12 +1,11 @@
 // ExtensionBridge - Service layer to connect React with Chrome Extension services
-// This provides a clean interface for React to use existing extension functionality
+// This provides a clean interface for React to use the new ExtensionAPI
 
 /// <reference types="chrome"/>
 
 declare global {
   interface Window {
-    SessionManager: any;
-    ApiClient: any;
+    ExtensionAPI: any;
     ExtensionConstants: any;
     ExtensionConfig: any;
   }
@@ -14,8 +13,28 @@ declare global {
 
 class ExtensionBridge {
   /**
+   * Get all sessions using ExtensionAPI
+   * Returns completedSessions[] + currentSession (if exists)
+   */
+  async getAllSessions(): Promise<any[]> {
+    if (!window.ExtensionAPI) {
+      throw new Error('ExtensionAPI not available. Extension services not loaded.');
+    }
+
+    try {
+      await window.ExtensionAPI.waitForReady();
+      const sessions = await window.ExtensionAPI.getAllSessions();
+      console.log(`Retrieved ${sessions.length} sessions from ExtensionAPI`);
+      return sessions;
+    } catch (error) {
+      console.error('Error getting all sessions:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get preprocessed history items from Chrome storage
-   * Uses the data already processed by background.js
+   * Kept for backward compatibility (fallback)
    */
   async getProcessedHistory(): Promise<any[]> {
     return new Promise((resolve, reject) => {
@@ -36,53 +55,44 @@ class ExtensionBridge {
   }
 
   /**
-   * Process history items into sessions using extension's SessionManager
-   * This uses the existing session_management.js logic
+   * Process history items into sessions
+   * Kept for backward compatibility (fallback)
    */
   async processHistoryIntoSessions(historyItems: any[]): Promise<any[]> {
-    if (!window.SessionManager) {
-      throw new Error('SessionManager not available. Extension services not loaded.');
-    }
-
-    try {
-      const sessions = window.SessionManager.processHistory(historyItems);
-      console.log(`Processed ${historyItems.length} items into ${sessions.length} sessions`);
-      return sessions;
-    } catch (error) {
-      console.error('Error processing history into sessions:', error);
-      throw error;
-    }
+    // Fallback: use getAllSessions instead
+    return await this.getAllSessions();
   }
 
   /**
-   * Send single session to backend for clustering using extension's ApiClient
-   * This uses the existing api_client.js logic
+   * Send single session to backend for clustering using ExtensionAPI
    */
   async clusterSession(session: any, options?: { force?: boolean }): Promise<any> {
-    if (!window.ApiClient) {
-      throw new Error('ApiClient not available. Extension services not loaded.');
+    if (!window.ExtensionAPI) {
+      throw new Error('ExtensionAPI not available. Extension services not loaded.');
     }
 
     try {
-      const result = await window.ApiClient.clusterSession(session, { force: options?.force === true });
-      console.log('Single session clustering result:', result);
+      await window.ExtensionAPI.waitForReady();
+      const result = await window.ExtensionAPI.analyzeSession(session, options);
+      console.log('Session clustering result:', result);
       return result;
     } catch (error) {
-      console.error('Error clustering single session:', error);
+      console.error('Error clustering session:', error);
       throw error;
     }
   }
 
   /**
-   * Check API health using extension's ApiClient
+   * Check API health using ExtensionAPI
    */
   async checkApiHealth(): Promise<any> {
-    if (!window.ApiClient) {
-      throw new Error('ApiClient not available. Extension services not loaded.');
+    if (!window.ExtensionAPI) {
+      throw new Error('ExtensionAPI not available. Extension services not loaded.');
     }
 
     try {
-      const result = await window.ApiClient.checkHealth();
+      await window.ExtensionAPI.waitForReady();
+      const result = await window.ExtensionAPI.checkApiHealth();
       console.log('API health check:', result);
       return result;
     } catch (error) {
@@ -92,12 +102,11 @@ class ExtensionBridge {
   }
 
   /**
-   * Send chat message using extension's ApiClient
-   * This uses the existing api_client.js logic
+   * Send chat message using ExtensionAPI
    */
   async sendChatMessage(message: string, conversationId?: string, history?: any[]): Promise<any> {
-    if (!window.ApiClient) {
-      throw new Error('ApiClient not available. Extension services not loaded.');
+    if (!window.ExtensionAPI) {
+      throw new Error('ExtensionAPI not available. Extension services not loaded.');
     }
 
     if (!message || message.trim().length === 0) {
@@ -105,7 +114,8 @@ class ExtensionBridge {
     }
 
     try {
-      const result = await window.ApiClient.sendChatMessage(message, conversationId, history || []);
+      await window.ExtensionAPI.waitForReady();
+      const result = await window.ExtensionAPI.sendChatMessage(message, conversationId, history || []);
       console.log('Chat message result:', result);
       return result;
     } catch (error) {
@@ -158,8 +168,7 @@ class ExtensionBridge {
    */
   areExtensionServicesReady(): boolean {
     return !!(
-      window.SessionManager && 
-      window.ApiClient && 
+      window.ExtensionAPI && 
       window.ExtensionConstants && 
       window.ExtensionConfig &&
       chrome?.storage?.local
@@ -170,6 +179,16 @@ class ExtensionBridge {
    * Wait for extension services to be ready
    */
   async waitForExtensionServices(timeoutMs: number = 5000): Promise<void> {
+    if (window.ExtensionAPI) {
+      try {
+        await window.ExtensionAPI.waitForReady(timeoutMs);
+        return;
+      } catch (error) {
+        // Fall through to legacy check
+      }
+    }
+
+    // Legacy fallback check
     return new Promise((resolve, reject) => {
       const startTime = Date.now();
       

@@ -52,14 +52,8 @@ function App() {
         throw new Error(`API not available: ${healthCheck.error}`)
       }
       
-      // Get preprocessed Chrome history from extension
-      const history = await extensionBridge.getProcessedHistory()
-      if (!history || history.length === 0) {
-        throw new Error(constants.ERROR_NO_HISTORY)
-      }
-      
-      // Process history into sessions using extension service
-      const sessions = await extensionBridge.processHistoryIntoSessions(history)
+      // Get all sessions using ExtensionAPI (unified method)
+      const sessions = await extensionBridge.getAllSessions()
       console.log('Sessions:', sessions)
       if (sessions.length === 0) {
         throw new Error(constants.ERROR_NO_SESSIONS)
