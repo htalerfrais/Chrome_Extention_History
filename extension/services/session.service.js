@@ -46,6 +46,19 @@ class SessionService {
                 await this.closeCurrentSession();
             }
             
+            // Generate sessionId for currentSession if it doesn't have one
+            // This fixes the issue where currentSession is loaded from storage with sessionId: null
+            if (this.currentSession && !this.currentSession.sessionId) {
+                console.log('Generating sessionId for current session...');
+                this.currentSession.sessionId = generateSessionId(
+                    this.currentSession.startTime,
+                    this.currentSession.endTime,
+                    this.currentSession.items
+                );
+                // Save updated session to storage
+                await this.saveCurrentSession();
+            }
+            
             console.log('Session service initialized');
             
         } catch (error) {
@@ -226,6 +239,8 @@ class SessionService {
                 clearTimeout(this.gapTimer);
                 this.gapTimer = null;
             }
+            // Save updated state (remove currentSession from storage)
+            await this.saveCurrentSession();
             return;
         }
         
@@ -242,6 +257,8 @@ class SessionService {
             if (!formattedSession) {
                 console.error('Failed to format session for API');
                 this.currentSession = null;
+                // Save updated state (remove currentSession from storage)
+                await this.saveCurrentSession();
                 return;
             }
             
@@ -254,6 +271,8 @@ class SessionService {
                     clearTimeout(this.gapTimer);
                     this.gapTimer = null;
                 }
+                // Save updated state (remove currentSession from storage)
+                await this.saveCurrentSession();
                 return;
             }
             
@@ -289,6 +308,9 @@ class SessionService {
                 clearTimeout(this.gapTimer);
                 this.gapTimer = null;
             }
+            
+            // Save updated state (remove currentSession from storage)
+            await this.saveCurrentSession();
             
         } catch (error) {
             console.error('Error closing session:', error);
