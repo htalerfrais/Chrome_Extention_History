@@ -46,10 +46,10 @@ class SessionService {
                 await this.closeCurrentSession();
             }
             
-            // Generate sessionId for currentSession if it doesn't have one
-            // This fixes the issue where currentSession is loaded from storage with sessionId: null
+            // Generate sessionId for currentSession if it doesn't have one (legacy fix for old sessions)
+            // New sessions will have sessionId generated immediately in startNewSession()
             if (this.currentSession && !this.currentSession.sessionId) {
-                console.log('Generating sessionId for current session...');
+                console.log('Generating sessionId for current session (legacy fix)...');
                 this.currentSession.sessionId = generateSessionId(
                     this.currentSession.startTime,
                     this.currentSession.endTime,
@@ -190,15 +190,23 @@ class SessionService {
     startNewSession(firstItem) {
         const itemTime = firstItem.lastVisitTime || firstItem.visitTime || Date.now();
         
+        // Generate sessionId immediately (uses startTime + firstUrl, which are available now)
+        // This ensures currentSession always has a sessionId, avoiding issues in getAllSessions()
+        const sessionId = generateSessionId(
+            itemTime,  // startTime
+            itemTime,  // endTime (will be updated, but not used in hash)
+            [firstItem] // items (only firstUrl is used)
+        );
+        
         this.currentSession = {
-            sessionId: null, // Will be generated on close
+            sessionId: sessionId, // Generated immediately
             startTime: itemTime,
             endTime: itemTime,
             items: [firstItem]
         };
         
         this.resetGapTimer();
-        console.log('Started new session');
+        console.log(`Started new session: ${sessionId}`);
     }
     
     /**
@@ -245,12 +253,15 @@ class SessionService {
         }
         
         try {
-            // Generate session ID
-            this.currentSession.sessionId = generateSessionId(
-                this.currentSession.startTime,
-                this.currentSession.endTime,
-                this.currentSession.items
-            );
+            // Ensure sessionId exists (should already be generated in startNewSession(), but check for legacy sessions)
+            if (!this.currentSession.sessionId) {
+                console.warn('Session missing sessionId, generating now (should not happen with new sessions)');
+                this.currentSession.sessionId = generateSessionId(
+                    this.currentSession.startTime,
+                    this.currentSession.endTime,
+                    this.currentSession.items
+                );
+            }
             
             // Format for API
             const formattedSession = formatSessionForApi(this.currentSession);
@@ -338,6 +349,19 @@ class SessionService {
         
         // Add current session if exists
         if (this.currentSession) {
+            // Generate sessionId if missing (legacy fix for old sessions)
+            // New sessions will have sessionId generated immediately in startNewSession()
+            if (!this.currentSession.sessionId) {
+                console.log('Generating sessionId for current session in getAllSessions (legacy fix)...');
+                this.currentSession.sessionId = generateSessionId(
+                    this.currentSession.startTime,
+                    this.currentSession.endTime,
+                    this.currentSession.items
+                );
+                // Save updated session to storage
+                await this.saveCurrentSession();
+            }
+            
             const formatted = formatSessionForApi(this.currentSession);
             if (formatted) {
                 allSessions.push(formatted);
