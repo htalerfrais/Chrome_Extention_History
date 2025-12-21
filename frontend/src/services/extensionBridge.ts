@@ -16,9 +16,9 @@ class ExtensionBridge {
 
   /**
    * Wait for services to be ready
-   * @param timeout - Timeout in milliseconds
+   * @param timeout - Timeout in milliseconds (default: 10 seconds to allow for service initialization)
    */
-  async waitForReady(timeout: number = 5000): Promise<void> {
+  async waitForReady(timeout: number = 10000): Promise<void> {
     if (this.isReady) {
       return;
     }
@@ -29,32 +29,50 @@ class ExtensionBridge {
 
     this.readyPromise = new Promise((resolve, reject) => {
       const startTime = Date.now();
+      const retryDelay = 200; // Wait 200ms between retries
 
       const checkReady = () => {
+        const elapsed = Date.now() - startTime;
+        
+        // Check timeout before attempting ping
+        if (elapsed > timeout) {
+          reject(new Error('Timeout waiting for extension services'));
+          return;
+        }
+
         // Try to ping the service worker
         if (typeof chrome !== 'undefined' && chrome.runtime) {
           chrome.runtime.sendMessage({ action: 'ping' }, (pingResponse) => {
-            if (!chrome.runtime.lastError && pingResponse?.success) {
+            // Check for Chrome runtime errors (connection issues)
+            if (chrome.runtime.lastError) {
+              // If it's a connection error, retry
+              if (Date.now() - startTime > timeout) {
+                reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
+                return;
+              }
+              setTimeout(checkReady, retryDelay);
+              return;
+            }
+
+            // Check if service worker responded successfully
+            if (pingResponse?.success) {
               this.isReady = true;
               resolve();
               return;
             }
-            
-            // If ping failed, retry after delay
+
+            // If service worker responded but services not ready yet, retry
+            // This handles the case where service worker says "Services not initialized"
             if (Date.now() - startTime > timeout) {
-              reject(new Error('Timeout waiting for extension services'));
+              reject(new Error('Service worker responded but services not ready'));
               return;
             }
             
-            setTimeout(checkReady, 100);
+            setTimeout(checkReady, retryDelay);
           });
         } else {
           // Chrome runtime not available
-          if (Date.now() - startTime > timeout) {
-            reject(new Error('Chrome runtime not available'));
-            return;
-          }
-          setTimeout(checkReady, 100);
+          reject(new Error('Chrome runtime not available'));
         }
       };
 
@@ -239,8 +257,9 @@ class ExtensionBridge {
 
   /**
    * Wait for extension services to be ready
+   * @param timeoutMs - Timeout in milliseconds (default: 10 seconds)
    */
-  async waitForExtensionServices(timeoutMs: number = 5000): Promise<void> {
+  async waitForExtensionServices(timeoutMs: number = 10000): Promise<void> {
     return this.waitForReady(timeoutMs);
   }
 }
