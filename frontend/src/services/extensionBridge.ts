@@ -1,31 +1,96 @@
 // ExtensionBridge - Service layer to connect React with Chrome Extension services
-// This provides a clean interface for React to use the new ExtensionAPI
+// Communicates directly with the background service worker via chrome.runtime.sendMessage
 
 /// <reference types="chrome"/>
 
 declare global {
   interface Window {
-    ExtensionAPI: any;
     ExtensionConstants: any;
     ExtensionConfig: any;
   }
 }
 
 class ExtensionBridge {
+  private isReady: boolean = false;
+  private readyPromise: Promise<void> | null = null;
+
   /**
-   * Get all sessions using ExtensionAPI
+   * Wait for services to be ready
+   * @param timeout - Timeout in milliseconds
+   */
+  async waitForReady(timeout: number = 5000): Promise<void> {
+    if (this.isReady) {
+      return;
+    }
+
+    if (this.readyPromise) {
+      return this.readyPromise;
+    }
+
+    this.readyPromise = new Promise((resolve, reject) => {
+      const startTime = Date.now();
+
+      const checkReady = () => {
+        // Try to ping the service worker
+        if (typeof chrome !== 'undefined' && chrome.runtime) {
+          chrome.runtime.sendMessage({ action: 'ping' }, (pingResponse) => {
+            if (!chrome.runtime.lastError && pingResponse?.success) {
+              this.isReady = true;
+              resolve();
+              return;
+            }
+            
+            // If ping failed, retry after delay
+            if (Date.now() - startTime > timeout) {
+              reject(new Error('Timeout waiting for extension services'));
+              return;
+            }
+            
+            setTimeout(checkReady, 100);
+          });
+        } else {
+          // Chrome runtime not available
+          if (Date.now() - startTime > timeout) {
+            reject(new Error('Chrome runtime not available'));
+            return;
+          }
+          setTimeout(checkReady, 100);
+        }
+      };
+
+      checkReady();
+    });
+
+    return this.readyPromise;
+  }
+
+  /**
+   * Send message to service worker and wait for response
+   */
+  private sendMessage<T>(message: any): Promise<T> {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+
+  /**
+   * Get all sessions (completed + current)
    * Returns completedSessions[] + currentSession (if exists)
    */
   async getAllSessions(): Promise<any[]> {
-    if (!window.ExtensionAPI) {
-      throw new Error('ExtensionAPI not available. Extension services not loaded.');
-    }
-
     try {
-      await window.ExtensionAPI.waitForReady();
-      const sessions = await window.ExtensionAPI.getAllSessions();
-      console.log(`Retrieved ${sessions.length} sessions from ExtensionAPI`);
-      return sessions;
+      await this.waitForReady();
+      const response = await this.sendMessage<{ sessions: any[] }>({ action: 'getAllSessions' });
+      console.log(`Retrieved ${response.sessions.length} sessions from service worker`);
+      return response.sessions || [];
     } catch (error) {
       console.error('Error getting all sessions:', error);
       throw error;
@@ -58,22 +123,22 @@ class ExtensionBridge {
    * Process history items into sessions
    * Kept for backward compatibility (fallback)
    */
-  async processHistoryIntoSessions(historyItems: any[]): Promise<any[]> {
+  async processHistoryIntoSessions(_historyItems: any[]): Promise<any[]> {
     // Fallback: use getAllSessions instead
     return await this.getAllSessions();
   }
 
   /**
-   * Send single session to backend for clustering using ExtensionAPI
+   * Send single session to backend for clustering
    */
   async clusterSession(session: any, options?: { force?: boolean }): Promise<any> {
-    if (!window.ExtensionAPI) {
-      throw new Error('ExtensionAPI not available. Extension services not loaded.');
-    }
-
     try {
-      await window.ExtensionAPI.waitForReady();
-      const result = await window.ExtensionAPI.analyzeSession(session, options);
+      await this.waitForReady();
+      const result = await this.sendMessage({ 
+        action: 'analyzeSession', 
+        session, 
+        options 
+      });
       console.log('Session clustering result:', result);
       return result;
     } catch (error) {
@@ -83,16 +148,12 @@ class ExtensionBridge {
   }
 
   /**
-   * Check API health using ExtensionAPI
+   * Check API health
    */
   async checkApiHealth(): Promise<any> {
-    if (!window.ExtensionAPI) {
-      throw new Error('ExtensionAPI not available. Extension services not loaded.');
-    }
-
     try {
-      await window.ExtensionAPI.waitForReady();
-      const result = await window.ExtensionAPI.checkApiHealth();
+      await this.waitForReady();
+      const result = await this.sendMessage({ action: 'checkApiHealth' });
       console.log('API health check:', result);
       return result;
     } catch (error) {
@@ -102,20 +163,21 @@ class ExtensionBridge {
   }
 
   /**
-   * Send chat message using ExtensionAPI
+   * Send chat message
    */
   async sendChatMessage(message: string, conversationId?: string, history?: any[]): Promise<any> {
-    if (!window.ExtensionAPI) {
-      throw new Error('ExtensionAPI not available. Extension services not loaded.');
-    }
-
     if (!message || message.trim().length === 0) {
       throw new Error('Message cannot be empty');
     }
 
     try {
-      await window.ExtensionAPI.waitForReady();
-      const result = await window.ExtensionAPI.sendChatMessage(message, conversationId, history || []);
+      await this.waitForReady();
+      const result = await this.sendMessage({
+        action: 'sendChatMessage',
+        message,
+        conversationId: conversationId || null,
+        history: history || []
+      });
       console.log('Chat message result:', result);
       return result;
     } catch (error) {
@@ -168,7 +230,7 @@ class ExtensionBridge {
    */
   areExtensionServicesReady(): boolean {
     return !!(
-      window.ExtensionAPI && 
+      chrome?.runtime &&
       window.ExtensionConstants && 
       window.ExtensionConfig &&
       chrome?.storage?.local
@@ -179,35 +241,7 @@ class ExtensionBridge {
    * Wait for extension services to be ready
    */
   async waitForExtensionServices(timeoutMs: number = 5000): Promise<void> {
-    if (window.ExtensionAPI) {
-      try {
-        await window.ExtensionAPI.waitForReady(timeoutMs);
-        return;
-      } catch (error) {
-        // Fall through to legacy check
-      }
-    }
-
-    // Legacy fallback check
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      
-      const checkServices = () => {
-        if (this.areExtensionServicesReady()) {
-          resolve();
-          return;
-        }
-        
-        if (Date.now() - startTime > timeoutMs) {
-          reject(new Error('Timeout waiting for extension services to load'));
-          return;
-        }
-        
-        setTimeout(checkServices, 100);
-      };
-      
-      checkServices();
-    });
+    return this.waitForReady(timeoutMs);
   }
 }
 
