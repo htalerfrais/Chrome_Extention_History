@@ -34,7 +34,21 @@ class ApiService {
                 const response = await fetch(url, requestOptions);
                 
                 if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                    // Try to get error details from response body
+                    let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
+                    try {
+                        const errorData = await response.json();
+                        if (errorData.detail) {
+                            errorMessage += ` - ${JSON.stringify(errorData.detail)}`;
+                        } else if (errorData.message) {
+                            errorMessage += ` - ${errorData.message}`;
+                        } else {
+                            errorMessage += ` - ${JSON.stringify(errorData)}`;
+                        }
+                    } catch (e) {
+                        // If we can't parse error body, use status text
+                    }
+                    throw new Error(errorMessage);
                 }
                 
                 const data = await response.json();
@@ -96,6 +110,25 @@ class ApiService {
             return { success: false, error: 'No valid session provided' };
         }
         
+        // Validate session structure
+        if (!session.session_identifier) {
+            return { success: false, error: 'Session missing session_identifier' };
+        }
+        if (!session.start_time || !session.end_time) {
+            return { success: false, error: 'Session missing start_time or end_time' };
+        }
+        
+        // Validate items
+        const invalidItems = session.items.filter(item => !item.url || !item.title || !item.visit_time);
+        if (invalidItems.length > 0) {
+            console.warn(`Session has ${invalidItems.length} invalid items:`, invalidItems);
+            // Filter out invalid items
+            session.items = session.items.filter(item => item.url && item.title && item.visit_time);
+            if (session.items.length === 0) {
+                return { success: false, error: 'Session has no valid items after filtering' };
+            }
+        }
+        
         // Get user token from auth service
         const userToken = await this.authService.getToken();
         if (!userToken) {
@@ -108,7 +141,25 @@ class ApiService {
             user_token: userToken
         };
         
+        // Log first item for debugging
+        if (session.items.length > 0) {
+            console.log('First item sample:', {
+                url: session.items[0].url,
+                title: session.items[0].title,
+                visit_time: session.items[0].visit_time,
+                url_hostname: session.items[0].url_hostname
+            });
+        }
+        
         console.log(`Sending session ${session.session_identifier} with ${session.items.length} items for clustering`);
+        console.log('Session payload preview:', JSON.stringify({
+            session_identifier: sessionWithUser.session_identifier,
+            start_time: sessionWithUser.start_time,
+            end_time: sessionWithUser.end_time,
+            items_count: sessionWithUser.items.length,
+            first_item: sessionWithUser.items[0],
+            has_user_token: !!sessionWithUser.user_token
+        }, null, 2));
         
         const result = await this.makeRequest('cluster-session', {
             method: 'POST',
@@ -118,6 +169,8 @@ class ApiService {
         
         if (result.success) {
             console.log(`Received clustering result for session ${session.session_identifier} with ${result.data.clusters?.length || 0} clusters`);
+        } else {
+            console.error(`Failed to cluster session ${session.session_identifier}:`, result.error);
         }
         
         return result;

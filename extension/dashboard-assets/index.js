@@ -29,6 +29,7 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 (function polyfill() {
   const relList = document.createElement("link").relList;
   if (relList && relList.supports && relList.supports("modulepreload")) return;
@@ -21965,9 +21966,93 @@ function ChatBubble({ message }) {
   ] }) });
 }
 class ExtensionBridge {
+  constructor() {
+    __publicField(this, "isReady", false);
+    __publicField(this, "readyPromise", null);
+  }
+  /**
+   * Wait for services to be ready
+   * @param timeout - Timeout in milliseconds (default: 10 seconds to allow for service initialization)
+   */
+  async waitForReady(timeout = 1e4) {
+    if (this.isReady) {
+      return;
+    }
+    if (this.readyPromise) {
+      return this.readyPromise;
+    }
+    this.readyPromise = new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      const retryDelay = 200;
+      const checkReady = () => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > timeout) {
+          reject(new Error("Timeout waiting for extension services"));
+          return;
+        }
+        if (typeof chrome !== "undefined" && chrome.runtime) {
+          chrome.runtime.sendMessage({ action: "ping" }, (pingResponse) => {
+            if (chrome.runtime.lastError) {
+              if (Date.now() - startTime > timeout) {
+                reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
+                return;
+              }
+              setTimeout(checkReady, retryDelay);
+              return;
+            }
+            if (pingResponse == null ? void 0 : pingResponse.success) {
+              this.isReady = true;
+              resolve();
+              return;
+            }
+            if (Date.now() - startTime > timeout) {
+              reject(new Error("Service worker responded but services not ready"));
+              return;
+            }
+            setTimeout(checkReady, retryDelay);
+          });
+        } else {
+          reject(new Error("Chrome runtime not available"));
+        }
+      };
+      checkReady();
+    });
+    return this.readyPromise;
+  }
+  /**
+   * Send message to service worker and wait for response
+   */
+  sendMessage(message) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+  /**
+   * Get all sessions (completed + current)
+   * Returns completedSessions[] + currentSession (if exists)
+   */
+  async getAllSessions() {
+    try {
+      await this.waitForReady();
+      const response = await this.sendMessage({ action: "getAllSessions" });
+      console.log(`Retrieved ${response.sessions.length} sessions from service worker`);
+      return response.sessions || [];
+    } catch (error) {
+      console.error("Error getting all sessions:", error);
+      throw error;
+    }
+  }
   /**
    * Get preprocessed history items from Chrome storage
-   * Uses the data already processed by background.js
+   * Kept for backward compatibility (fallback)
    */
   async getProcessedHistory() {
     return new Promise((resolve, reject) => {
@@ -21987,48 +22072,37 @@ class ExtensionBridge {
     });
   }
   /**
-   * Process history items into sessions using extension's SessionManager
-   * This uses the existing session_management.js logic
+   * Process history items into sessions
+   * Kept for backward compatibility (fallback)
    */
-  async processHistoryIntoSessions(historyItems) {
-    if (!window.SessionManager) {
-      throw new Error("SessionManager not available. Extension services not loaded.");
-    }
-    try {
-      const sessions = window.SessionManager.processHistory(historyItems);
-      console.log(`Processed ${historyItems.length} items into ${sessions.length} sessions`);
-      return sessions;
-    } catch (error) {
-      console.error("Error processing history into sessions:", error);
-      throw error;
-    }
+  async processHistoryIntoSessions(_historyItems) {
+    return await this.getAllSessions();
   }
   /**
-   * Send single session to backend for clustering using extension's ApiClient
-   * This uses the existing api_client.js logic
+   * Send single session to backend for clustering
    */
   async clusterSession(session, options) {
-    if (!window.ApiClient) {
-      throw new Error("ApiClient not available. Extension services not loaded.");
-    }
     try {
-      const result = await window.ApiClient.clusterSession(session, { force: (options == null ? void 0 : options.force) === true });
-      console.log("Single session clustering result:", result);
+      await this.waitForReady();
+      const result = await this.sendMessage({
+        action: "analyzeSession",
+        session,
+        options
+      });
+      console.log("Session clustering result:", result);
       return result;
     } catch (error) {
-      console.error("Error clustering single session:", error);
+      console.error("Error clustering session:", error);
       throw error;
     }
   }
   /**
-   * Check API health using extension's ApiClient
+   * Check API health
    */
   async checkApiHealth() {
-    if (!window.ApiClient) {
-      throw new Error("ApiClient not available. Extension services not loaded.");
-    }
     try {
-      const result = await window.ApiClient.checkHealth();
+      await this.waitForReady();
+      const result = await this.sendMessage({ action: "checkApiHealth" });
       console.log("API health check:", result);
       return result;
     } catch (error) {
@@ -22037,18 +22111,20 @@ class ExtensionBridge {
     }
   }
   /**
-   * Send chat message using extension's ApiClient
-   * This uses the existing api_client.js logic
+   * Send chat message
    */
   async sendChatMessage(message, conversationId, history) {
-    if (!window.ApiClient) {
-      throw new Error("ApiClient not available. Extension services not loaded.");
-    }
     if (!message || message.trim().length === 0) {
       throw new Error("Message cannot be empty");
     }
     try {
-      const result = await window.ApiClient.sendChatMessage(message, conversationId, history || []);
+      await this.waitForReady();
+      const result = await this.sendMessage({
+        action: "sendChatMessage",
+        message,
+        conversationId: conversationId || null,
+        history: history || []
+      });
       console.log("Chat message result:", result);
       return result;
     } catch (error) {
@@ -22098,27 +22174,14 @@ class ExtensionBridge {
    */
   areExtensionServicesReady() {
     var _a;
-    return !!(window.SessionManager && window.ApiClient && window.ExtensionConstants && window.ExtensionConfig && ((_a = chrome == null ? void 0 : chrome.storage) == null ? void 0 : _a.local));
+    return !!((chrome == null ? void 0 : chrome.runtime) && window.ExtensionConstants && window.ExtensionConfig && ((_a = chrome == null ? void 0 : chrome.storage) == null ? void 0 : _a.local));
   }
   /**
    * Wait for extension services to be ready
+   * @param timeoutMs - Timeout in milliseconds (default: 10 seconds)
    */
-  async waitForExtensionServices(timeoutMs = 5e3) {
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      const checkServices = () => {
-        if (this.areExtensionServicesReady()) {
-          resolve();
-          return;
-        }
-        if (Date.now() - startTime > timeoutMs) {
-          reject(new Error("Timeout waiting for extension services to load"));
-          return;
-        }
-        setTimeout(checkServices, 100);
-      };
-      checkServices();
-    });
+  async waitForExtensionServices(timeoutMs = 1e4) {
+    return this.waitForReady(timeoutMs);
   }
 }
 const extensionBridge = new ExtensionBridge();
@@ -22247,11 +22310,7 @@ function App() {
       if (!healthCheck.success) {
         throw new Error(`API not available: ${healthCheck.error}`);
       }
-      const history = await extensionBridge.getProcessedHistory();
-      if (!history || history.length === 0) {
-        throw new Error(constants.ERROR_NO_HISTORY);
-      }
-      const sessions = await extensionBridge.processHistoryIntoSessions(history);
+      const sessions = await extensionBridge.getAllSessions();
       console.log("Sessions:", sessions);
       if (sessions.length === 0) {
         throw new Error(constants.ERROR_NO_SESSIONS);
