@@ -16,9 +16,17 @@ class AuthService {
             // Try to get existing token from storage first
             const stored = await chrome.storage.local.get(['userToken']);
             if (stored.userToken) {
-                console.log('Found existing token in storage');
-                // Optionally validate it's still valid
-                return;
+                console.log('Found existing token in storage, validating...');
+                // Validate token is still valid with backend
+                const validationResult = await this.apiService.authenticate(stored.userToken);
+                if (validationResult.success) {
+                    console.log('Existing token is still valid');
+                    return;
+                } else {
+                    console.log('Existing token is invalid, getting new token...');
+                    // Token is invalid, remove it and get a new one
+                    await chrome.storage.local.remove(['userToken']);
+                }
             }
             
             // Get new token from Google
