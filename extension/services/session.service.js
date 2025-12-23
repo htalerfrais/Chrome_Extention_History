@@ -42,8 +42,8 @@ class SessionService {
             
             // Check if currentSession is still valid (not too old)
             if (this.currentSession && !this.isSessionStillValid(this.currentSession)) {
-                console.log('Current session is too old, closing it...');
-                await this.closeCurrentSession();
+                console.log('[SESSION] Current session is too old, closing it...');
+                await this.closeCurrentSession('too_old');
             }
             
             // Generate sessionId for currentSession if it doesn't have one (legacy fix for old sessions)
@@ -134,20 +134,43 @@ class SessionService {
     async addItem(item) {
         try {
             const itemTime = item.lastVisitTime || item.visitTime || Date.now();
+            const itemTimeStr = new Date(itemTime).toISOString();
+            
+            console.log(`[SESSION] Item arrived: ${item.url || 'unknown'} at ${itemTimeStr}`);
+            
+            if (!this.currentSession) {
+                console.log(`[SESSION] No current session, starting new session`);
+                this.startNewSession(item);
+                await this.saveCurrentSession();
+                return;
+            }
+            
+            // Log current session state
+            const sessionStartStr = new Date(this.currentSession.startTime).toISOString();
+            const sessionEndStr = new Date(this.currentSession.endTime).toISOString();
+            console.log(`[SESSION] Current session: ${this.currentSession.sessionId}`);
+            console.log(`[SESSION]   Start: ${sessionStartStr}, End: ${sessionEndStr}, Items: ${this.currentSession.items.length}`);
             
             // Check if we need to close current session (duration max)
-            if (this.currentSession && this.shouldCloseSessionByDuration(itemTime)) {
-                await this.closeCurrentSession();
+            if (this.shouldCloseSessionByDuration(itemTime)) {
+                const duration = itemTime - this.currentSession.startTime;
+                const durationMinutes = Math.round(duration / (60 * 1000));
+                console.log(`[SESSION] ⚠️ CLOSING SESSION: Duration max reached (${durationMinutes} min >= ${this.MAX_SESSION_DURATION_MS / (60 * 1000)} min)`);
+                await this.closeCurrentSession('duration_max');
                 this.startNewSession(item);
             }
             // Check if we need to create new session (gap detected)
-            else if (!this.currentSession || this.shouldStartNewSession(itemTime)) {
-                if (this.currentSession) {
-                    await this.closeCurrentSession();
-                }
+            else if (this.shouldStartNewSession(itemTime)) {
+                const gap = itemTime - this.currentSession.endTime;
+                const gapMinutes = Math.round(gap / (60 * 1000));
+                console.log(`[SESSION] ⚠️ CLOSING SESSION: Gap detected (${gapMinutes} min > ${this.SESSION_GAP_MS / (60 * 1000)} min)`);
+                await this.closeCurrentSession('gap_detected');
                 this.startNewSession(item);
             } else {
                 // Add to current session
+                const gap = itemTime - this.currentSession.endTime;
+                const gapMinutes = Math.round(gap / (60 * 1000));
+                console.log(`[SESSION] ✓ Adding to current session (gap: ${gapMinutes} min, OK)`);
                 this.currentSession.items.push(item);
                 this.currentSession.endTime = itemTime;
                 this.resetGapTimer();
@@ -169,7 +192,17 @@ class SessionService {
     shouldCloseSessionByDuration(currentTime) {
         if (!this.currentSession) return false;
         const sessionDuration = currentTime - this.currentSession.startTime;
-        return sessionDuration >= this.MAX_SESSION_DURATION_MS;
+        const durationMinutes = Math.round(sessionDuration / (60 * 1000));
+        const maxMinutes = Math.round(this.MAX_SESSION_DURATION_MS / (60 * 1000));
+        const shouldClose = sessionDuration >= this.MAX_SESSION_DURATION_MS;
+        
+        if (shouldClose) {
+            console.log(`[SESSION] Duration check: ${durationMinutes} min >= ${maxMinutes} min → CLOSE`);
+        } else {
+            console.log(`[SESSION] Duration check: ${durationMinutes} min < ${maxMinutes} min → CONTINUE`);
+        }
+        
+        return shouldClose;
     }
     
     /**
@@ -178,9 +211,26 @@ class SessionService {
      * @returns {boolean}
      */
     shouldStartNewSession(itemTime) {
-        if (!this.currentSession) return true;
+        if (!this.currentSession) {
+            console.log(`[SESSION] Gap check: No current session → START NEW`);
+            return true;
+        }
         const gap = itemTime - this.currentSession.endTime;
-        return gap > this.SESSION_GAP_MS;
+        const gapMinutes = Math.round(gap / (60 * 1000));
+        const gapThresholdMinutes = Math.round(this.SESSION_GAP_MS / (60 * 1000));
+        const shouldStart = gap > this.SESSION_GAP_MS;
+        
+        const itemTimeStr = new Date(itemTime).toISOString();
+        const endTimeStr = new Date(this.currentSession.endTime).toISOString();
+        
+        if (shouldStart) {
+            console.log(`[SESSION] Gap check: ${gapMinutes} min > ${gapThresholdMinutes} min → START NEW`);
+            console.log(`[SESSION]   Item time: ${itemTimeStr}, Session end: ${endTimeStr}`);
+        } else {
+            console.log(`[SESSION] Gap check: ${gapMinutes} min <= ${gapThresholdMinutes} min → CONTINUE`);
+        }
+        
+        return shouldStart;
     }
     
     /**
@@ -206,7 +256,8 @@ class SessionService {
         };
         
         this.resetGapTimer();
-        console.log(`Started new session: ${sessionId}`);
+        const startTimeStr = new Date(itemTime).toISOString();
+        console.log(`[SESSION] ✓ Started new session: ${sessionId} at ${startTimeStr}`);
     }
     
     /**
@@ -216,11 +267,18 @@ class SessionService {
     resetGapTimer() {
         if (this.gapTimer) {
             clearTimeout(this.gapTimer);
+            console.log(`[SESSION] Timer: Cleared existing gap timer`);
         }
         
         if (!this.currentSession) return;
         
         // Schedule closure after SESSION_GAP_MS
+        const gapMinutes = Math.round(this.SESSION_GAP_MS / (60 * 1000));
+        const closureTime = Date.now() + this.SESSION_GAP_MS;
+        const closureTimeStr = new Date(closureTime).toISOString();
+        
+        console.log(`[SESSION] Timer: Scheduling closure in ${gapMinutes} min (at ${closureTimeStr})`);
+        
         this.gapTimer = setTimeout(() => {
             this.closeCurrentSessionByGap();
         }, this.SESSION_GAP_MS);
@@ -231,17 +289,32 @@ class SessionService {
      * @returns {Promise<void>}
      */
     async closeCurrentSessionByGap() {
-        if (!this.currentSession) return;
-        await this.closeCurrentSession();
+        if (!this.currentSession) {
+            console.log(`[SESSION] Timer triggered but no current session`);
+            return;
+        }
+        
+        const now = Date.now();
+        const lastActivity = this.currentSession.endTime;
+        const timeSinceLastActivity = now - lastActivity;
+        const minutesSinceLastActivity = Math.round(timeSinceLastActivity / (60 * 1000));
+        
+        console.log(`[SESSION] ⚠️ TIMER TRIGGERED: Closing session due to inactivity`);
+        console.log(`[SESSION]   Last activity: ${new Date(lastActivity).toISOString()}`);
+        console.log(`[SESSION]   Time since last activity: ${minutesSinceLastActivity} min`);
+        
+        await this.closeCurrentSession('timer_gap');
     }
     
     /**
      * Close current session and add to completedSessions
      * Sends to backend for analysis (async, non-blocking)
+     * @param {string} reason - Reason for closure ('duration_max', 'gap_detected', 'timer_gap', 'empty', 'format_failed', 'duplicate')
      * @returns {Promise<void>}
      */
-    async closeCurrentSession() {
+    async closeCurrentSession(reason = 'unknown') {
         if (!this.currentSession || this.currentSession.items.length === 0) {
+            console.log(`[SESSION] ⚠️ CLOSING SESSION: Empty session (reason: ${reason})`);
             this.currentSession = null;
             if (this.gapTimer) {
                 clearTimeout(this.gapTimer);
@@ -252,10 +325,22 @@ class SessionService {
             return;
         }
         
+        // Log session details before closing
+        const sessionDuration = this.currentSession.endTime - this.currentSession.startTime;
+        const durationMinutes = Math.round(sessionDuration / (60 * 1000));
+        const startTimeStr = new Date(this.currentSession.startTime).toISOString();
+        const endTimeStr = new Date(this.currentSession.endTime).toISOString();
+        
+        console.log(`[SESSION] ⚠️ CLOSING SESSION: ${this.currentSession.sessionId} (reason: ${reason})`);
+        console.log(`[SESSION]   Start: ${startTimeStr}`);
+        console.log(`[SESSION]   End: ${endTimeStr}`);
+        console.log(`[SESSION]   Duration: ${durationMinutes} min`);
+        console.log(`[SESSION]   Items: ${this.currentSession.items.length}`);
+        
         try {
             // Ensure sessionId exists (should already be generated in startNewSession(), but check for legacy sessions)
             if (!this.currentSession.sessionId) {
-                console.warn('Session missing sessionId, generating now (should not happen with new sessions)');
+                console.warn('[SESSION] Session missing sessionId, generating now (should not happen with new sessions)');
                 this.currentSession.sessionId = generateSessionId(
                     this.currentSession.startTime,
                     this.currentSession.endTime,
@@ -266,7 +351,7 @@ class SessionService {
             // Format for API
             const formattedSession = formatSessionForApi(this.currentSession);
             if (!formattedSession) {
-                console.error('Failed to format session for API');
+                console.error('[SESSION] Failed to format session for API');
                 this.currentSession = null;
                 // Save updated state (remove currentSession from storage)
                 await this.saveCurrentSession();
@@ -276,7 +361,7 @@ class SessionService {
             // Check for duplicates before adding
             const existingIds = new Set(this.completedSessions.map(s => s.session_identifier));
             if (existingIds.has(formattedSession.session_identifier)) {
-                console.log(`Session ${formattedSession.session_identifier} already exists, skipping`);
+                console.log(`[SESSION] Session ${formattedSession.session_identifier} already exists, skipping duplicate`);
                 this.currentSession = null;
                 if (this.gapTimer) {
                     clearTimeout(this.gapTimer);
@@ -298,7 +383,8 @@ class SessionService {
             // Save to storage
             await chrome.storage.local.set({ completedSessions: this.completedSessions });
             
-            console.log(`Session closed: ${formattedSession.session_identifier} with ${formattedSession.items.length} items`);
+            console.log(`[SESSION] ✓ Session closed successfully: ${formattedSession.session_identifier}`);
+            console.log(`[SESSION]   Added to completedSessions (total: ${this.completedSessions.length})`);
             
             // Send to backend for analysis (async, non-blocking)
             this.apiService.analyzeSession(formattedSession, { force: false })

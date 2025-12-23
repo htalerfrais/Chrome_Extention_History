@@ -2,7 +2,7 @@
 // Static values that define application behavior
 
 // Define constants as regular variables (not ES6 exports)
-const SESSION_GAP_MINUTES = 60;
+const SESSION_GAP_MINUTES = 30; // 
 const MAX_SESSION_DURATION_MINUTES = 90; // Maximum session duration before auto-closure
 const HISTORY_DAYS_BACK = 7;
 const DAY_MS = 24 * 60 * 60 * 1000;
