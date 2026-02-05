@@ -84,11 +84,34 @@ class HistoryService {
     /**
      * Add a new item to history
      * Preprocesses and stores it
+     * If title is missing, waits and re-fetches from Chrome history
      * @param {Object} rawItem - Raw Chrome history item
      * @returns {Promise<Object|null>} Preprocessed item or null if filtered out
      */
     async addItem(rawItem) {
         try {
+            // Check if title is missing or empty
+            const titleMissing = !rawItem.title || 
+                                 rawItem.title.trim() === '' || 
+                                 rawItem.title === 'Untitled';
+            
+            if (titleMissing) {
+                console.log(`[HISTORY] Title missing for ${rawItem.url}, waiting for page load...`);
+                
+                // Wait for page to load and title to be available
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                
+                // Re-query Chrome history for updated title
+                const updatedTitle = await this.fetchTitleFromHistory(rawItem.url);
+                
+                if (updatedTitle && updatedTitle.trim() !== '') {
+                    rawItem.title = updatedTitle;
+                    console.log(`[HISTORY] Title fetched: "${updatedTitle}"`);
+                } else {
+                    console.log(`[HISTORY] Title still unavailable for ${rawItem.url}`);
+                }
+            }
+            
             // Preprocess the single item
             const processed = this.preprocessItems([rawItem]);
             
@@ -114,13 +137,34 @@ class HistoryService {
             // Save back to storage
             await chrome.storage.local.set({ historyItems });
             
-            console.log(`Added new history item: ${processedItem.url}`);
+            console.log(`Added new history item: ${processedItem.title || 'Untitled'} - ${processedItem.url}`);
             return processedItem;
             
         } catch (error) {
             console.error('Error adding history item:', error);
             return null;
         }
+    }
+    
+    /**
+     * Fetch title from Chrome history for a given URL
+     * @param {string} url - URL to search for
+     * @returns {Promise<string|null>} Title or null if not found
+     */
+    async fetchTitleFromHistory(url) {
+        return new Promise((resolve) => {
+            chrome.history.search({ text: url, maxResults: 5 }, (results) => {
+                if (chrome.runtime.lastError) {
+                    console.error('Error fetching title from history:', chrome.runtime.lastError);
+                    resolve(null);
+                    return;
+                }
+                
+                // Find exact URL match
+                const match = results.find(r => r.url === url);
+                resolve(match?.title || null);
+            });
+        });
     }
     
     /**
