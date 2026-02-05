@@ -70,6 +70,11 @@ class ApiService {
         return { success: false, error: lastError.message };
     }
     
+
+
+
+
+
     /**
      * Utility method for delays
      * @param {number} ms - Milliseconds to delay
@@ -79,6 +84,13 @@ class ApiService {
         return new Promise(resolve => setTimeout(resolve, ms));
     }
     
+
+
+
+
+
+
+
     /**
      * Check API health
      * @returns {Promise<{success: boolean, data?: any, error?: string}>}
@@ -129,6 +141,9 @@ class ApiService {
             }
         }
         
+
+        // add the user token to the session objec to match the backend model
+        
         // Get user token from auth service
         const userToken = await this.authService.getToken();
         if (!userToken) {
@@ -176,6 +191,9 @@ class ApiService {
         return result;
     }
     
+
+
+
     /**
      * Send chat message
      * @param {string} message - User message
@@ -188,6 +206,7 @@ class ApiService {
             return { success: false, error: 'Message cannot be empty' };
         }
         
+        // same here we want to get user token to match the backend model
         // Get user token from auth service
         const userToken = await this.authService.getToken();
         

@@ -338,16 +338,6 @@ class SessionService {
         console.log(`[SESSION]   Items: ${this.currentSession.items.length}`);
         
         try {
-            // Ensure sessionId exists (should already be generated in startNewSession(), but check for legacy sessions)
-            if (!this.currentSession.sessionId) {
-                console.warn('[SESSION] Session missing sessionId, generating now (should not happen with new sessions)');
-                this.currentSession.sessionId = generateSessionId(
-                    this.currentSession.startTime,
-                    this.currentSession.endTime,
-                    this.currentSession.items
-                );
-            }
-            
             // Format for API
             const formattedSession = formatSessionForApi(this.currentSession);
             if (!formattedSession) {
@@ -435,19 +425,6 @@ class SessionService {
         
         // Add current session if exists
         if (this.currentSession) {
-            // Generate sessionId if missing (legacy fix for old sessions)
-            // New sessions will have sessionId generated immediately in startNewSession()
-            if (!this.currentSession.sessionId) {
-                console.log('Generating sessionId for current session in getAllSessions (legacy fix)...');
-                this.currentSession.sessionId = generateSessionId(
-                    this.currentSession.startTime,
-                    this.currentSession.endTime,
-                    this.currentSession.items
-                );
-                // Save updated session to storage
-                await this.saveCurrentSession();
-            }
-            
             const formatted = formatSessionForApi(this.currentSession);
             if (formatted) {
                 allSessions.push(formatted);
