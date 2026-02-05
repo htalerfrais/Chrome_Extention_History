@@ -10,6 +10,7 @@ interface DashboardProps {
   activeSessionId: string | null;
   onReanalyze?: () => void;
   isReanalyzing?: boolean;
+  activeIsLoading?: boolean;
   availableSessions: any[];
   sessionAnalysisStates: SessionAnalysisStates;
   onSessionChange: (sessionId: string) => void;
@@ -20,13 +21,14 @@ export default function Dashboard({
   activeSessionId,
   onReanalyze,
   isReanalyzing,
+  activeIsLoading = false,
   availableSessions,
   sessionAnalysisStates,
   onSessionChange
 }: DashboardProps) {
   // Get the current session data
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
-  const isAnalyzing = !currentSessionData;
+  const isAnalyzing = !currentSessionData || activeIsLoading;
 
   return (
     <div className="w-full space-y-6">

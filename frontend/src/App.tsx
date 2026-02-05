@@ -1,8 +1,6 @@
 import { useState, useEffect } from 'react'
 import './App.css'
 import Header from './components/Header'
-import StatusBar from './components/StatusBar'
-import LoadingSpinner from './components/LoadingSpinner'
 import ErrorDisplay from './components/ErrorDisplay'
 import Dashboard from './components/Dashboard'
 import MainLayout from './components/MainLayout'
@@ -12,9 +10,7 @@ import type { SessionResults, SessionAnalysisStates } from './types/session'
 
 function App() {
   // State management
-  const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [status, setStatus] = useState('Waiting for extension services...')
   
   const [currentSessionResults, setCurrentSessionResults] = useState<SessionResults>({})
   const [activeSessionId, setActiveSessionId] = useState<string | null>(null)
@@ -27,7 +23,6 @@ function App() {
     const initializeServices = async () => {
       try {
         await extensionBridge.waitForExtensionServices();
-        setStatus('Analyzing most recent session...');
         
         console.log('Extension services are ready');
         
@@ -36,7 +31,6 @@ function App() {
       } catch (error) {
         console.error('Failed to initialize extension services:', error);
         setError('Failed to load extension services');
-        setStatus('Service initialization failed');
         
       }
     };
@@ -47,11 +41,9 @@ function App() {
   // Load Dashboard function - loads sessions and auto-analyzes most recent
   const loadDashboard = async () => {
     try {
-      setIsLoading(true)
       setError(null)
       
       const constants = extensionBridge.getConstants();
-      setStatus('Analyzing most recent session...')
       
       
       // Check API health using extension service
@@ -60,14 +52,8 @@ function App() {
         throw new Error(`API not available: ${healthCheck.error}`)
       }
       
-      // Get preprocessed Chrome history from extension
-      const history = await extensionBridge.getProcessedHistory()
-      if (!history || history.length === 0) {
-        throw new Error(constants.ERROR_NO_HISTORY)
-      }
-      
-      // Process history into sessions using extension service
-      const sessions = await extensionBridge.processHistoryIntoSessions(history)
+      // Get all sessions using ExtensionAPI (unified method)
+      const sessions = await extensionBridge.getAllSessions()
       console.log('Sessions:', sessions)
       if (sessions.length === 0) {
         throw new Error(constants.ERROR_NO_SESSIONS)
@@ -98,7 +84,6 @@ function App() {
         setActiveSessionId(firstSessionId)
         
         // Auto-analyze the first session
-        setStatus('Analyzing most recent session...')
         // Call with immediate session object to avoid pending state depending on setState order
         const firstSession = sessionsWithId[0]
         setSessionAnalysisStates(prev => ({
@@ -117,7 +102,6 @@ function App() {
           ...prev,
           [firstSession.session_identifier]: 'completed'
         }))
-        setStatus(`Session ${firstSession.session_identifier} analyzed successfully`)
         
       }
       
@@ -125,10 +109,6 @@ function App() {
     } catch (error) {
       console.error('Dashboard loading failed:', error)
       setError(error instanceof Error ? error.message : 'Unknown error')
-      setStatus(extensionBridge.getConstants().STATUS_ANALYSIS_FAILED)
-      
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -152,7 +132,6 @@ function App() {
         [sessionId]: 'loading'
       }))
 
-      setStatus(`Analyzing session ${sessionId}...`)
       
 
       // Cluster single session using extension service
@@ -174,7 +153,6 @@ function App() {
         [sessionId]: 'completed'
       }))
 
-      setStatus(`Session ${sessionId} analyzed successfully`)
       
       
     } catch (error) {
@@ -186,7 +164,6 @@ function App() {
         [sessionId]: 'error'
       }))
 
-      setStatus(`Session ${sessionId} analysis failed`)
       
     }
   }
@@ -199,7 +176,6 @@ function App() {
 
     try {
       setIsReanalyzing(true)
-      setStatus(`Re-analyzing session ${activeSessionId}...`)
       
 
       const result = await extensionBridge.clusterSession(session, { force: true })
@@ -215,11 +191,9 @@ function App() {
         ...prev,
         [activeSessionId]: 'completed'
       }))
-      setStatus(`Session ${activeSessionId} re-analyzed successfully`)
       
     } catch (error) {
       console.error('Re-analysis failed:', error)
-      setStatus('Re-analysis failed')
       
     } finally {
       setIsReanalyzing(false)
@@ -257,18 +231,16 @@ function App() {
       <Header 
         onSettings={openSettings}
       />
-      <StatusBar status={status} />
-      
       <MainLayout 
         children={
           <main className="w-full">
-            {(isLoading || activeIsLoading) && <LoadingSpinner />}
             {error && <ErrorDisplay message={error} onRetry={loadDashboard} />}
             <Dashboard 
               currentSessionResults={currentSessionResults}
               activeSessionId={activeSessionId}
               onReanalyze={reanalyzeActiveSession}
               isReanalyzing={isReanalyzing}
+              activeIsLoading={activeIsLoading}
               availableSessions={availableSessions}
               sessionAnalysisStates={sessionAnalysisStates}
               onSessionChange={handleSessionChange}

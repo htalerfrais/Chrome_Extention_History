@@ -18,11 +18,9 @@
     <div id="root"></div>
 
     <!-- Extension Services (loaded first) -->
-    <script src="scripts/constants.js"></script>
-    <script src="api/config.js"></script>
-    <script src="api/api_client.js"></script>
-    <script src="utils/preprocess_history.js"></script>
-    <script src="utils/session_management.js"></script>
+    <!-- Load config - React bridge communicates directly with service worker -->
+    <script src="config/constants.js"></script>
+    <script src="config/api.config.js"></script>
     
     <!-- React Bundle (loaded after extension services) -->
     <!-- This will be built from frontend/ and copied here -->

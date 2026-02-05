@@ -7,6 +7,9 @@ from app.config import settings
 
 logger = logging.getLogger(__name__)
 
+# Google batch API limit
+BATCH_SIZE = 100
+
 
 class EmbeddingService:
     """Minimal embedding client using Google Generative Language API."""
@@ -23,6 +26,12 @@ class EmbeddingService:
         self.timeout = settings.api_timeout
 
     async def embed_texts(self, texts: List[str]) -> List[List[float]]:
+        """
+        Embed multiple texts using Google's batch API.
+        
+        Interface unchanged - ClusteringService doesn't need to know about batching.
+        Internally uses batchEmbedContents for efficiency.
+        """
         if not texts:
             return []
 
@@ -30,47 +39,13 @@ class EmbeddingService:
             logger.warning("EmbeddingService: missing API key, returning empty vectors.")
             return [[] for _ in texts]
 
-        # Google Generative Language API: embedContent endpoint
-        # Official format: POST /v1beta/models/{model}:embedContent
-        # Request: {"content": {"parts": [{"text": "..."}]}}
-        url = f"{self.base_url}/models/{self.model}:embedContent"
-        params = {"key": self.api_key}
-        
         vectors: List[List[float]] = []
         
-        async with httpx.AsyncClient(timeout=self.timeout) as client:
-            for text in texts:
-                try:
-                    payload = {"content": {"parts": [{"text": text}]}}
-                    response = await client.post(url, params=params, json=payload)
-                    
-                    if response.status_code != 200:
-                        error_body = response.text
-                        logger.error(f"EmbeddingService: API returned {response.status_code} - {error_body}")
-                        
-                    response.raise_for_status()
-                    data = response.json()
-                    
-                    # Google API returns: {"embedding": {"values": [...]}}
-                    embedding_data = data.get("embedding", {})
-                    values = embedding_data.get("values", [])
-                    
-                    if isinstance(values, list) and len(values) > 0:
-                        vectors.append([float(x) for x in values])
-                        logger.debug(f"EmbeddingService: generated embedding with {len(values)} dimensions")
-                    else:
-                        logger.warning(f"EmbeddingService: invalid embedding format for text: {text[:50]}...")
-                        vectors.append([])
-                        
-                except Exception as exc:
-                    logger.error(f"EmbeddingService request failed for text '{text[:50]}...': {exc}")
-                    if hasattr(exc, 'response') and exc.response is not None:
-                        try:
-                            error_body = exc.response.text
-                            logger.error(f"EmbeddingService: Error response body: {error_body}")
-                        except:
-                            pass
-                    vectors.append([])
+        # Process in batches of BATCH_SIZE (Google limit: 100)
+        for batch_start in range(0, len(texts), BATCH_SIZE):
+            batch_texts = texts[batch_start:batch_start + BATCH_SIZE]
+            batch_vectors = await self._embed_batch(batch_texts)
+            vectors.extend(batch_vectors)
 
         # Ensure result length matches input length
         if len(vectors) != len(texts):
@@ -81,7 +56,58 @@ class EmbeddingService:
             )
             while len(vectors) < len(texts):
                 vectors.append([])
-            vectors = vectors[: len(texts)]
+            vectors = vectors[:len(texts)]
 
         return vectors
 
+    async def _embed_batch(self, texts: List[str]) -> List[List[float]]:
+        """
+        Internal method: embed a batch of texts in a single API call.
+        Uses Google's batchEmbedContents endpoint.
+        """
+        # Build batch request
+        # Format: {"requests": [{"model": "...", "content": {"parts": [{"text": "..."}]}}]}
+        url = f"{self.base_url}/models/{self.model}:batchEmbedContents"
+        params = {"key": self.api_key}
+        
+        requests_payload = [
+            {
+                "model": f"models/{self.model}",
+                "content": {"parts": [{"text": text}]}
+            }
+            for text in texts
+        ]
+        payload = {"requests": requests_payload}
+        
+        logger.info(f"📤 Batch embedding {len(texts)} texts in single request")
+        
+        try:
+            async with httpx.AsyncClient(timeout=self.timeout) as client:
+                response = await client.post(url, params=params, json=payload)
+                
+                if response.status_code != 200:
+                    error_body = response.text
+                    logger.error(f"EmbeddingService: API returned {response.status_code} - {error_body}")
+                    return [[] for _ in texts]
+                
+                response.raise_for_status()
+                data = response.json()
+                
+                # Response format: {"embeddings": [{"values": [...]}, ...]}
+                embeddings = data.get("embeddings", [])
+                
+                vectors: List[List[float]] = []
+                for i, emb in enumerate(embeddings):
+                    values = emb.get("values", [])
+                    if isinstance(values, list) and len(values) > 0:
+                        vectors.append([float(x) for x in values])
+                    else:
+                        logger.warning(f"EmbeddingService: invalid embedding at index {i}")
+                        vectors.append([])
+                
+                logger.info(f"✅ Received {len(vectors)} embeddings from batch request")
+                return vectors
+                
+        except Exception as exc:
+            logger.error(f"EmbeddingService batch request failed: {exc}")
+            return [[] for _ in texts]

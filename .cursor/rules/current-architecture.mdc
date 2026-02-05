@@ -4,30 +4,37 @@ alwaysApply: true
 # Current Architecture - Chrome Extension History Project
 
 ## Overview
-A Chrome Extension + React dashboard + FastAPI backend + PostgreSQL system that analyzes browsing history into thematic sessions using LLMs. Results are persisted; repeated analyses return cached results.
+A Chrome Extension + React dashboard + FastAPI backend + PostgreSQL system that analyzes browsing history into thematic sessions using LLMs. Sessions are automatically tracked and analyzed in the background when closed. Results are persisted; repeated analyses return cached results.
 
 ## High-Level Diagram
 ```
 Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──► PostgreSQL
          ▲                         │                   │
          │                         ▼                   │
-      React UI  ◄── ExtensionBridge / ApiClient ──► Services  ──► ORM
+      React UI  ◄── ExtensionBridge (chrome.runtime.sendMessage) ──► Services  ──► ORM
 ```
 
 ## Components
 
 ### Chrome Extension
 - Background worker (`extension/background.js`)
-  - Collects and preprocesses history; stores in `chrome.storage.local`
-  - Authenticates with Google (`chrome.identity`) and stores `userToken`
-  - Preprocessing pipeline: `datesFormating` → `addUrlFeatures` → `filterHistoryURL`
-    - URL similarity threshold configurable via `ExtensionConstants.URL_SIMILARITY_THRESHOLD` (default 0.8)
+  - Orchestrates service initialization and Chrome API event handling
+  - Listens to `chrome.history.onVisited` for real-time history collection
+  - Handles messages from frontend via `chrome.runtime.onMessage`
+  - Exposes services globally via `self.Services` for message handlers
 - React dashboard (`extension/dashboard.html` + `dashboard-assets/`)
   - Session exploration, on-demand analysis, chat sidebar
-- Services
-  - Session manager (`extension/utils/session_management.js`): groups items; deterministic `session_identifier` (stable for current sessions using `startTime + firstUrl`) and API formatting
-  - API client (`extension/api/api_client.js`): injects `user_token` from storage; calls `/cluster-session`, `/chat`, `/authenticate` (supports `?force=true` for reanalysis)
-  - ExtensionBridge (`frontend/src/services/extensionBridge.ts`): facade for React to use extension services
+- Extension Services (`extension/services/`)
+  - **ApiService** (`api.service.js`): HTTP communication with FastAPI backend; handles retry logic, error parsing, token injection
+  - **AuthService** (`auth.service.js`): Google OAuth token management; validates existing tokens on initialization
+  - **HistoryService** (`history.service.js`): History collection and preprocessing via pipeline `formatDates` → `addUrlFeatures` → `filterHistoryURL`; stores in `chrome.storage.local` (max 5000 items)
+  - **SessionService** (`session.service.js`): Event-sourcing architecture; derives sessions on-demand from historyItems with intelligent caching; automatically closes sessions on gap (30 min) or max duration (90 min); automatically analyzes closed sessions via `chrome.alarms`; generates deterministic `session_identifier` using `startTime + firstUrl` hash
+- Utilities (`extension/utils/`)
+  - **preprocess.js**: Pure functions for history preprocessing
+  - **session.utils.js**: Session utilities (generateSessionId, formatSessionForApi, groupItemsIntoSessions)
+- ExtensionBridge (`frontend/src/services/extensionBridge.ts`)
+  - Facade for React to communicate with extension services via `chrome.runtime.sendMessage`
+  - Implements `waitForReady()` with retry logic for service initialization
 
 ### Backend (FastAPI)
 - API (`backend/app/main.py`)
@@ -65,24 +72,41 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
 ## Critical Flows
 
 ### Authentication
-1. Extension obtains Google token via `chrome.identity.getAuthToken`
-2. Sends token to `/authenticate` (stored as `User.token`)
-3. Token stored as `userToken` in `chrome.storage.local`
+1. `AuthService` validates existing token on initialization (if present)
+2. If invalid/missing, obtains Google token via `chrome.identity.getAuthToken`
+3. Sends token to `/authenticate` (stored as `User.token`)
+4. Token stored as `userToken` in `chrome.storage.local`
+
+### Real-Time Session Tracking (Event-Sourcing)
+1. `chrome.history.onVisited` triggers → `HistoryService.addItem()` (preprocesses and appends to storage)
+2. `SessionService.onNewItem()` reprograms `chrome.alarms` for session check
+3. Sessions are derived on-demand from historyItems when `getAllSessions()` is called
+4. Closed sessions detected via gap > `SESSION_GAP_MINUTES` (30 min) or duration > `MAX_SESSION_DURATION_MINUTES` (90 min)
+5. `chrome.alarms` triggers automatic analysis of closed sessions in background
 
 ### Analyze One Session
-1. Extension builds session with deterministic `session_identifier` + `user_token`
-2. Backend: get/create user → decide `force` (explicit or heuristic)
-3. If `force=True`: delete existing session (cascade) and re-create with same canonical id; else check cache via MappingService
-4. If cached and not forced: return DB result; otherwise run LLM clustering → persist via MappingService → return
+1. `SessionService` builds session with deterministic `session_identifier` + `user_token`
+2. `ApiService.analyzeSession()` sends to backend
+3. Backend: get/create user → decide `force` (explicit or heuristic based on recency)
+4. If `force=True`: delete existing session (cascade) and re-create with same canonical id; else check cache via MappingService
+5. If cached and not forced: return DB result; otherwise run LLM clustering → persist via MappingService → return
+
+### Frontend Communication
+1. React calls `ExtensionBridge.getAllSessions()` or `analyzeSession()`
+2. `ExtensionBridge` sends message via `chrome.runtime.sendMessage({ action: '...' })`
+3. Background worker handles message, calls appropriate service method
+4. Response sent back via `sendResponse()`
 
 ### Deterministic IDs
-- Client `session_identifier` computed in `SessionManager` (stable for current sessions using `startTime + firstUrl`)
+- Client `session_identifier` computed in `SessionService` using `generateSessionId(startTime, endTime, items)` → hash of `startTime + firstUrl`
 - Server canonicalizes to `u{user_id}:{client_session_identifier}` to avoid cross-user collisions and ensure idempotency
 
 ## Design Principles
 - Separation of concerns (UI / extension services / API / persistence)
+- Service-oriented architecture in extension (dependency injection, single responsibility)
 - Repository pattern for DB access, mapping service for conversions
 - Idempotent session processing via unique session_identifier
+- Automatic background analysis of completed sessions
 - Provider abstraction for LLMs; stateless chat
 
 ## Dev Quickstart
@@ -91,5 +115,5 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
 - Load extension: Chrome → `chrome://extensions/` → Load unpacked → `extension/`
 - Health: `http://localhost:8000/health`
 
-Last Updated: December 2025 (ClusteringService embedding-based assignment)
+Last Updated: December 2025 (Service-oriented extension architecture, automatic session analysis)
 

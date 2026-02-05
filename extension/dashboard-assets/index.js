@@ -29,6 +29,7 @@ var __objRest = (source, exclude) => {
     }
   return target;
 };
+var __publicField = (obj, key, value) => __defNormalProp(obj, typeof key !== "symbol" ? key + "" : key, value);
 (function polyfill() {
   const relList = document.createElement("link").relList;
   if (relList && relList.supports && relList.supports("modulepreload")) return;
@@ -12064,12 +12065,6 @@ function Header({
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "text-white/70 hover:text-white", onClick: onSettings, children: "Settings" }) })
   ] }) });
 }
-function StatusBar({ status }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-black text-white", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full px-6 py-2 flex items-center justify-between", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/70", children: status }) }) });
-}
-function LoadingSpinner() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full py-16 flex flex-col items-center justify-center text-white/40 uppercase tracking-[0.35em] text-xs", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Analyzing Session" }) });
-}
 function ErrorDisplay({ message, onRetry }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "error-container", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "error-icon", children: "❌" }),
@@ -12206,14 +12201,15 @@ function ClusterCard({ cluster }) {
 }
 function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
   const clusters = (sessionData == null ? void 0 : sessionData.clusters) || [];
-  if (!isAnalyzing && (!sessionData || clusters.length === 0)) {
+  const isLoading = isAnalyzing || isReanalyzing;
+  if (!isLoading && (!sessionData || clusters.length === 0)) {
     return null;
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "bg-black text-white w-full", children: sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs(jsxRuntimeExports.Fragment, { children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black text-white w-full", children: [
+    (sessionData || isReanalyzing) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.4em] text-white/70", children: "Topics" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-4 md:justify-end", children: [
-        /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
+        sessionData && /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
         onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
@@ -12225,8 +12221,12 @@ function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isRean
         )
       ] })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: clusters.map((cluster, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index2}`)) })
-  ] }) });
+    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "col-span-full flex flex-col items-center justify-center py-16", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "loading-spinner" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 uppercase tracking-[0.35em] text-xs mt-6", children: isReanalyzing ? "Re-analyzing Session" : "Analyzing Session" })
+    ] }) }),
+    !isLoading && sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: clusters.map((cluster, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index2}`)) })
+  ] });
 }
 function SessionTabs({
   currentSessionResults,
@@ -12295,12 +12295,13 @@ function Dashboard({
   activeSessionId,
   onReanalyze,
   isReanalyzing,
+  activeIsLoading = false,
   availableSessions,
   sessionAnalysisStates,
   onSessionChange
 }) {
   const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
-  const isAnalyzing = !currentSessionData;
+  const isAnalyzing = !currentSessionData || activeIsLoading;
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full space-y-6", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       SessionTabs,
@@ -12316,7 +12317,7 @@ function Dashboard({
   ] });
 }
 function MainLayout({ children, chatComponent }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-[calc(100vh-120px)] bg-black", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-[calc(100vh-64px)] bg-black", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto thin-scrollbar", children }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[32%] min-w-[300px] border-l border-white/10 bg-[#080808]", children: chatComponent })
   ] });
@@ -21965,9 +21966,93 @@ function ChatBubble({ message }) {
   ] }) });
 }
 class ExtensionBridge {
+  constructor() {
+    __publicField(this, "isReady", false);
+    __publicField(this, "readyPromise", null);
+  }
+  /**
+   * Wait for services to be ready
+   * @param timeout - Timeout in milliseconds (default: 10 seconds to allow for service initialization)
+   */
+  async waitForReady(timeout = 1e4) {
+    if (this.isReady) {
+      return;
+    }
+    if (this.readyPromise) {
+      return this.readyPromise;
+    }
+    this.readyPromise = new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      const retryDelay = 200;
+      const checkReady = () => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > timeout) {
+          reject(new Error("Timeout waiting for extension services"));
+          return;
+        }
+        if (typeof chrome !== "undefined" && chrome.runtime) {
+          chrome.runtime.sendMessage({ action: "ping" }, (pingResponse) => {
+            if (chrome.runtime.lastError) {
+              if (Date.now() - startTime > timeout) {
+                reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
+                return;
+              }
+              setTimeout(checkReady, retryDelay);
+              return;
+            }
+            if (pingResponse == null ? void 0 : pingResponse.success) {
+              this.isReady = true;
+              resolve();
+              return;
+            }
+            if (Date.now() - startTime > timeout) {
+              reject(new Error("Service worker responded but services not ready"));
+              return;
+            }
+            setTimeout(checkReady, retryDelay);
+          });
+        } else {
+          reject(new Error("Chrome runtime not available"));
+        }
+      };
+      checkReady();
+    });
+    return this.readyPromise;
+  }
+  /**
+   * Send message to service worker and wait for response
+   */
+  sendMessage(message) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+  /**
+   * Get all sessions (completed + current)
+   * Returns completedSessions[] + currentSession (if exists)
+   */
+  async getAllSessions() {
+    try {
+      await this.waitForReady();
+      const response = await this.sendMessage({ action: "getAllSessions" });
+      console.log(`Retrieved ${response.sessions.length} sessions from service worker`);
+      return response.sessions || [];
+    } catch (error) {
+      console.error("Error getting all sessions:", error);
+      throw error;
+    }
+  }
   /**
    * Get preprocessed history items from Chrome storage
-   * Uses the data already processed by background.js
+   * Kept for backward compatibility (fallback)
    */
   async getProcessedHistory() {
     return new Promise((resolve, reject) => {
@@ -21987,48 +22072,37 @@ class ExtensionBridge {
     });
   }
   /**
-   * Process history items into sessions using extension's SessionManager
-   * This uses the existing session_management.js logic
+   * Process history items into sessions
+   * Kept for backward compatibility (fallback)
    */
-  async processHistoryIntoSessions(historyItems) {
-    if (!window.SessionManager) {
-      throw new Error("SessionManager not available. Extension services not loaded.");
-    }
-    try {
-      const sessions = window.SessionManager.processHistory(historyItems);
-      console.log(`Processed ${historyItems.length} items into ${sessions.length} sessions`);
-      return sessions;
-    } catch (error) {
-      console.error("Error processing history into sessions:", error);
-      throw error;
-    }
+  async processHistoryIntoSessions(_historyItems) {
+    return await this.getAllSessions();
   }
   /**
-   * Send single session to backend for clustering using extension's ApiClient
-   * This uses the existing api_client.js logic
+   * Send single session to backend for clustering
    */
   async clusterSession(session, options) {
-    if (!window.ApiClient) {
-      throw new Error("ApiClient not available. Extension services not loaded.");
-    }
     try {
-      const result = await window.ApiClient.clusterSession(session, { force: (options == null ? void 0 : options.force) === true });
-      console.log("Single session clustering result:", result);
+      await this.waitForReady();
+      const result = await this.sendMessage({
+        action: "analyzeSession",
+        session,
+        options
+      });
+      console.log("Session clustering result:", result);
       return result;
     } catch (error) {
-      console.error("Error clustering single session:", error);
+      console.error("Error clustering session:", error);
       throw error;
     }
   }
   /**
-   * Check API health using extension's ApiClient
+   * Check API health
    */
   async checkApiHealth() {
-    if (!window.ApiClient) {
-      throw new Error("ApiClient not available. Extension services not loaded.");
-    }
     try {
-      const result = await window.ApiClient.checkHealth();
+      await this.waitForReady();
+      const result = await this.sendMessage({ action: "checkApiHealth" });
       console.log("API health check:", result);
       return result;
     } catch (error) {
@@ -22037,18 +22111,20 @@ class ExtensionBridge {
     }
   }
   /**
-   * Send chat message using extension's ApiClient
-   * This uses the existing api_client.js logic
+   * Send chat message
    */
   async sendChatMessage(message, conversationId, history) {
-    if (!window.ApiClient) {
-      throw new Error("ApiClient not available. Extension services not loaded.");
-    }
     if (!message || message.trim().length === 0) {
       throw new Error("Message cannot be empty");
     }
     try {
-      const result = await window.ApiClient.sendChatMessage(message, conversationId, history || []);
+      await this.waitForReady();
+      const result = await this.sendMessage({
+        action: "sendChatMessage",
+        message,
+        conversationId: conversationId || null,
+        history: history || []
+      });
       console.log("Chat message result:", result);
       return result;
     } catch (error) {
@@ -22098,27 +22174,14 @@ class ExtensionBridge {
    */
   areExtensionServicesReady() {
     var _a;
-    return !!(window.SessionManager && window.ApiClient && window.ExtensionConstants && window.ExtensionConfig && ((_a = chrome == null ? void 0 : chrome.storage) == null ? void 0 : _a.local));
+    return !!((chrome == null ? void 0 : chrome.runtime) && window.ExtensionConstants && window.ExtensionConfig && ((_a = chrome == null ? void 0 : chrome.storage) == null ? void 0 : _a.local));
   }
   /**
    * Wait for extension services to be ready
+   * @param timeoutMs - Timeout in milliseconds (default: 10 seconds)
    */
-  async waitForExtensionServices(timeoutMs = 5e3) {
-    return new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      const checkServices = () => {
-        if (this.areExtensionServicesReady()) {
-          resolve();
-          return;
-        }
-        if (Date.now() - startTime > timeoutMs) {
-          reject(new Error("Timeout waiting for extension services to load"));
-          return;
-        }
-        setTimeout(checkServices, 100);
-      };
-      checkServices();
-    });
+  async waitForExtensionServices(timeoutMs = 1e4) {
+    return this.waitForReady(timeoutMs);
   }
 }
 const extensionBridge = new ExtensionBridge();
@@ -22220,9 +22283,7 @@ function ChatWindow() {
   ] });
 }
 function App() {
-  const [isLoading, setIsLoading] = reactExports.useState(false);
   const [error, setError] = reactExports.useState(null);
-  const [status, setStatus] = reactExports.useState("Waiting for extension services...");
   const [currentSessionResults, setCurrentSessionResults] = reactExports.useState({});
   const [activeSessionId, setActiveSessionId] = reactExports.useState(null);
   const [availableSessions, setAvailableSessions] = reactExports.useState([]);
@@ -22232,32 +22293,24 @@ function App() {
     const initializeServices = async () => {
       try {
         await extensionBridge.waitForExtensionServices();
-        setStatus("Analyzing most recent session...");
         console.log("Extension services are ready");
         await loadDashboard();
       } catch (error2) {
         console.error("Failed to initialize extension services:", error2);
         setError("Failed to load extension services");
-        setStatus("Service initialization failed");
       }
     };
     initializeServices();
   }, []);
   const loadDashboard = async () => {
     try {
-      setIsLoading(true);
       setError(null);
       const constants = extensionBridge.getConstants();
-      setStatus("Analyzing most recent session...");
       const healthCheck = await extensionBridge.checkApiHealth();
       if (!healthCheck.success) {
         throw new Error(`API not available: ${healthCheck.error}`);
       }
-      const history = await extensionBridge.getProcessedHistory();
-      if (!history || history.length === 0) {
-        throw new Error(constants.ERROR_NO_HISTORY);
-      }
-      const sessions = await extensionBridge.processHistoryIntoSessions(history);
+      const sessions = await extensionBridge.getAllSessions();
       console.log("Sessions:", sessions);
       if (sessions.length === 0) {
         throw new Error(constants.ERROR_NO_SESSIONS);
@@ -22277,7 +22330,6 @@ function App() {
       if (sessionsWithId.length > 0) {
         const firstSessionId = sessionsWithId[0].session_identifier;
         setActiveSessionId(firstSessionId);
-        setStatus("Analyzing most recent session...");
         const firstSession = sessionsWithId[0];
         setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
           [firstSession.session_identifier]: "loading"
@@ -22292,14 +22344,10 @@ function App() {
         setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
           [firstSession.session_identifier]: "completed"
         }));
-        setStatus(`Session ${firstSession.session_identifier} analyzed successfully`);
       }
     } catch (error2) {
       console.error("Dashboard loading failed:", error2);
       setError(error2 instanceof Error ? error2.message : "Unknown error");
-      setStatus(extensionBridge.getConstants().STATUS_ANALYSIS_FAILED);
-    } finally {
-      setIsLoading(false);
     }
   };
   const analyzeSession = async (sessionId) => {
@@ -22315,7 +22363,6 @@ function App() {
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [sessionId]: "loading"
       }));
-      setStatus(`Analyzing session ${sessionId}...`);
       const clusterResult = await extensionBridge.clusterSession(session);
       if (!clusterResult.success) {
         throw new Error(`Clustering failed: ${clusterResult.error}`);
@@ -22326,13 +22373,11 @@ function App() {
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [sessionId]: "completed"
       }));
-      setStatus(`Session ${sessionId} analyzed successfully`);
     } catch (error2) {
       console.error(`Session analysis failed for ${sessionId}:`, error2);
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [sessionId]: "error"
       }));
-      setStatus(`Session ${sessionId} analysis failed`);
     }
   };
   const reanalyzeActiveSession = async () => {
@@ -22341,7 +22386,6 @@ function App() {
     if (!session) return;
     try {
       setIsReanalyzing(true);
-      setStatus(`Re-analyzing session ${activeSessionId}...`);
       const result = await extensionBridge.clusterSession(session, { force: true });
       if (!result.success) {
         throw new Error(`Clustering failed: ${result.error}`);
@@ -22352,10 +22396,8 @@ function App() {
       setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
         [activeSessionId]: "completed"
       }));
-      setStatus(`Session ${activeSessionId} re-analyzed successfully`);
     } catch (error2) {
       console.error("Re-analysis failed:", error2);
-      setStatus("Re-analysis failed");
     } finally {
       setIsReanalyzing(false);
     }
@@ -22388,12 +22430,10 @@ To switch environments, modify extension/api/config.js`);
         onSettings: openSettings
       }
     ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(StatusBar, { status }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       MainLayout,
       {
         children: /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "w-full", children: [
-          (isLoading || activeIsLoading) && /* @__PURE__ */ jsxRuntimeExports.jsx(LoadingSpinner, {}),
           error && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: loadDashboard }),
           /* @__PURE__ */ jsxRuntimeExports.jsx(
             Dashboard,
@@ -22402,6 +22442,7 @@ To switch environments, modify extension/api/config.js`);
               activeSessionId,
               onReanalyze: reanalyzeActiveSession,
               isReanalyzing,
+              activeIsLoading,
               availableSessions,
               sessionAnalysisStates,
               onSessionChange: handleSessionChange
