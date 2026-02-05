@@ -28,7 +28,7 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
   - **ApiService** (`api.service.js`): HTTP communication with FastAPI backend; handles retry logic, error parsing, token injection
   - **AuthService** (`auth.service.js`): Google OAuth token management; validates existing tokens on initialization
   - **HistoryService** (`history.service.js`): History collection and preprocessing via pipeline `formatDates` → `addUrlFeatures` → `filterHistoryURL`; stores in `chrome.storage.local` (max 5000 items)
-  - **SessionService** (`session.service.js`): Real-time session management; tracks `currentSession` and `completedSessions[]`; automatically closes sessions on gap (30 min) or max duration (90 min); automatically analyzes closed sessions in background; generates deterministic `session_identifier` using `startTime + firstUrl` hash
+  - **SessionService** (`session.service.js`): Event-sourcing architecture; derives sessions on-demand from historyItems with intelligent caching; automatically closes sessions on gap (30 min) or max duration (90 min); automatically analyzes closed sessions via `chrome.alarms`; generates deterministic `session_identifier` using `startTime + firstUrl` hash
 - Utilities (`extension/utils/`)
   - **preprocess.js**: Pure functions for history preprocessing
   - **session.utils.js**: Session utilities (generateSessionId, formatSessionForApi, groupItemsIntoSessions)
@@ -77,11 +77,12 @@ Chrome Extension (UI + BG) ── Extension Services ──► FastAPI ──►
 3. Sends token to `/authenticate` (stored as `User.token`)
 4. Token stored as `userToken` in `chrome.storage.local`
 
-### Real-Time Session Tracking
-1. `chrome.history.onVisited` triggers → `HistoryService.addItem()` (preprocesses)
-2. `SessionService.addItem()` adds to `currentSession` or creates new session
-3. Session closes automatically if gap > `SESSION_GAP_MINUTES` (30 min) or duration > `MAX_SESSION_DURATION_MINUTES` (90 min)
-4. On closure: session added to `completedSessions[]`, automatically sent to backend for analysis
+### Real-Time Session Tracking (Event-Sourcing)
+1. `chrome.history.onVisited` triggers → `HistoryService.addItem()` (preprocesses and appends to storage)
+2. `SessionService.onNewItem()` reprograms `chrome.alarms` for session check
+3. Sessions are derived on-demand from historyItems when `getAllSessions()` is called
+4. Closed sessions detected via gap > `SESSION_GAP_MINUTES` (30 min) or duration > `MAX_SESSION_DURATION_MINUTES` (90 min)
+5. `chrome.alarms` triggers automatic analysis of closed sessions in background
 
 ### Analyze One Session
 1. `SessionService` builds session with deterministic `session_identifier` + `user_token`

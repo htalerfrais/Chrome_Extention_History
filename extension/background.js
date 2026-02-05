@@ -55,9 +55,6 @@ async function initialize() {
         console.log('Initializing session service...');
         await sessionService.initialize();
         
-        // Step 3: Start session tracking
-        sessionService.startTracking();
-        
         console.log('All services initialized successfully');
         
         // Expose services globally for bridge
@@ -73,6 +70,10 @@ async function initialize() {
     }
 }
 
+
+
+
+
 // Handle new history item (real-time)
 chrome.history.onVisited.addListener(async (rawItem) => {
     try {
@@ -86,23 +87,32 @@ chrome.history.onVisited.addListener(async (rawItem) => {
         const processedItem = await historyService.addItem(rawItem);
         
         if (processedItem) {
-            // Add to session service (manages current session)
-            await sessionService.addItem(processedItem);
+            // Notify session service to reprogram alarm
+            await sessionService.onNewItem();
         }
     } catch (error) {
         console.error('Error handling new history item:', error);
     }
 });
 
+
+
+
+
+
 // Handle messages from frontend (for window context)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
         try {
-            // Wait for services to be initialized
+            // Wait for services to be initialized with retry
             if (!self.Services) {
-                // Wait a bit for initialization
-                await new Promise(resolve => setTimeout(resolve, 500));
+                // Wait up to 5 seconds with 200ms intervals
+                for (let i = 0; i < 25; i++) {
+                    await new Promise(resolve => setTimeout(resolve, 200));
+                    if (self.Services) break;
+                }
                 if (!self.Services) {
+                    console.error('[BACKGROUND] Services still not initialized after 5s');
                     sendResponse({ error: 'Services not initialized' });
                     return;
                 }
@@ -150,6 +160,10 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     
     return true; // Indicates we will send a response asynchronously
 });
+
+
+
+
 
 // Start initialization
 initialize();
