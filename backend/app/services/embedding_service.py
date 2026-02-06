@@ -24,6 +24,7 @@ class EmbeddingService:
         self.base_url = (base_url or settings.google_base_url).rstrip("/")
         self.model = model or settings.embedding_model
         self.timeout = settings.api_timeout
+        self.embedding_dim = settings.embedding_dim
 
     async def embed_texts(self, texts: List[str]) -> List[List[float]]:
         """
@@ -73,7 +74,8 @@ class EmbeddingService:
         requests_payload = [
             {
                 "model": f"models/{self.model}",
-                "content": {"parts": [{"text": text}]}
+                "content": {"parts": [{"text": text}]},
+                "outputDimensionality": self.embedding_dim
             }
             for text in texts
         ]

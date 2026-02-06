@@ -64,8 +64,8 @@ class Settings(BaseSettings):
     
     # Embeddings
     embedding_provider: str = "google"
-    embedding_model: str = "text-embedding-004"  # Returns 768 dimensions
-    embedding_dim: int = 768  # text-embedding-004 outputs 768 dimensions
+    embedding_model: str = "gemini-embedding-001"  # Returns 768 dimensions
+    embedding_dim: int = 768  # make sure gemini-embedding-001 outputs 768 dimensions (fixed by database schema)
 
     # Provider URLs
     openai_base_url: str = "https://api.openai.com/v1"
