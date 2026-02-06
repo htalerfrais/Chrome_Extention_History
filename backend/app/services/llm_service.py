@@ -55,10 +55,7 @@ class LLMService:
             logger.info(f"Generating text with {request.provider} provider")
             response = await provider.generate_text(request)
             
-            # Log complete LLMResponse payload
-            logger.info(f"✅ LLMResponse payload: {response.model_dump()}")
-            
-            logger.info(f"Successfully generated text with {request.provider}")
+            logger.info(f"✅ LLMResponse: tokens={response.usage}")
             return response
         except Exception as e:
             logger.error(f"Error generating text with {request.provider}: {e}")

@@ -1,10 +1,3 @@
-"""
-Google Auth Service - Validates Google OAuth tokens
-
-This service validates tokens against Google's tokeninfo endpoint
-and extracts the stable google_user_id from the token itself.
-"""
-
 import httpx
 import logging
 from typing import Optional
@@ -43,7 +36,6 @@ class GoogleAuthService:
                 
                 data = response.json()
                 
-                # "sub" is the stable Google user ID
                 google_user_id = data.get("sub")
                 if not google_user_id:
                     logger.warning("Token valid but missing 'sub' field")

@@ -15,14 +15,6 @@ from .user_service import UserService
 logger = logging.getLogger(__name__)
 
 class ChatService:
-    """
-    Service for managing chat conversations with tool calling support
-    
-    Tool calling: Single-pass detection with [SEARCH: query | filter:value | filter:value] tag
-    - 1 LLM call for simple questions
-    - 2 LLM calls when history search is needed
-    """
-    
     SEARCH_TAG_PATTERN = r'\[SEARCH:\s*(.+?)\]'
     
     def __init__(
@@ -36,11 +28,9 @@ class ChatService:
         self.user_service = user_service
     
     def _generate_conversation_id(self) -> str:
-        """Generate a unique conversation ID"""
         return str(uuid.uuid4())
     
     def _build_system_prompt(self, with_tool_instructions: bool = True) -> str:
-        """Build system prompt with or without tool instructions"""
         now = datetime.now()
         current_date = now.strftime("%Y-%m-%d")
         current_time = now.strftime("%H:%M:%S")
@@ -55,15 +45,15 @@ class ChatService:
         if with_tool_instructions:
             return (
                 f"{base_prompt}\n\n"
-                "TOOL AVAILABLE - History Search:\n"
+                "TOOL AVAILABLE History Search:\n"
                 "If the user's question would benefit from searching their browsing history, "
                 "start your response ONLY with [SEARCH: your search query] on a single line.\n"
                 "You can add optional filters using: [SEARCH: query | filter:value | filter:value]\n"
                 "Available filters:\n"
-                "- after:YYYY-MM-DD - only items visited after this date\n"
-                "- before:YYYY-MM-DD - only items visited before this date\n"
-                "- title:keyword - only items with keyword in title\n"
-                "- domain:keyword - only items from domains containing keyword\n"
+                "after:YYYY-MM-DD only items visited after this date\n"
+                "before:YYYY-MM-DD only items visited before this date\n"
+                "title:keyword only items with keyword in title\n"
+                "domain:keyword only items from domains containing keyword\n"
                 "Examples:\n"
                 "- 'What articles did I read about AI?' → [SEARCH: AI articles]\n"
                 "- 'Show me my shopping history' → [SEARCH: shopping purchases]\n"
@@ -80,16 +70,13 @@ class ChatService:
         with_tool_instructions: bool = True,
         search_context: Optional[str] = None
     ) -> str:
-        """Build conversation prompt with optional search context"""
         system_prompt = self._build_system_prompt(with_tool_instructions)
         
         context_lines = []
         
-        # Add search context if provided
         if search_context:
             context_lines.append(f"[Browsing History Context]\n{search_context}\n")
         
-        # Add recent conversation history
         recent_history = history[-settings.chat_history_limit:] if history else []
         for msg in recent_history:
             role_prefix = "User" if msg.role == "user" else "Assistant"
@@ -106,7 +93,6 @@ class ChatService:
         clusters: List[ClusterResult], 
         items: List[ClusterItem]
     ) -> str:
-        """Format search results as context for the LLM"""
         if not clusters and not items:
             return "No relevant browsing history found."
         
@@ -129,7 +115,6 @@ class ChatService:
         return "\n".join(parts)
     
     def _parse_search_request(self, response_text: str) -> Optional[SearchFilters]:
-        """Extract search query and filters from LLM response if present"""
         match = re.search(self.SEARCH_TAG_PATTERN, response_text, re.IGNORECASE)
         if not match:
             return None
@@ -138,7 +123,6 @@ class ChatService:
         if not content:
             return None
         
-        # Parse query and filters: "query | filter:value | filter:value"
         parts = [p.strip() for p in content.split('|')]
         query_text = parts[0] if parts else None
         
@@ -148,7 +132,6 @@ class ChatService:
         title_contains = None
         domain_contains = None
         
-        # Parse filter parts
         for part in parts[1:]:
             if ':' not in part:
                 continue
@@ -185,14 +168,6 @@ class ChatService:
         return re.sub(self.SEARCH_TAG_PATTERN, '', response_text, flags=re.IGNORECASE).strip()
     
     async def process_message(self, request: ChatRequest) -> ChatResponse:
-        """
-        Process user message with optional tool calling
-        
-        Flow:
-        1. First LLM call with tool instructions
-        2. If [SEARCH: query] detected → search history → second LLM call with context
-        3. Return final response
-        """
         try:
             logger.info(f"💬 ChatRequest payload: {request.model_dump()}")
             
@@ -216,9 +191,8 @@ class ChatService:
             
             first_response = await self.llm_service.generate_text(llm_request)
             response_text = first_response.generated_text
-            response_metadata = first_response  # Track which response we're using
+            response_metadata = first_response
             
-            # Step 2: Check for search tool call
             search_filters = self._parse_search_request(response_text)
             
             if search_filters:
@@ -234,7 +208,6 @@ class ChatService:
                     if user_dict:
                         user_id = user_dict["id"]
                         
-                        # Execute search
                         clusters, items = await self.search_service.search(
                             user_id=user_id,
                             filters=search_filters
@@ -254,7 +227,6 @@ class ChatService:
                             for item in items
                         ]
                         
-                        # Step 3: Second LLM call with context (no tool instructions)
                         context_prompt = self._build_conversation_prompt(
                             request.message,
                             history,
@@ -271,7 +243,7 @@ class ChatService:
                         
                         final_response = await self.llm_service.generate_text(llm_request_with_context)
                         response_text = final_response.generated_text
-                        response_metadata = final_response  # Use metadata from the actual response
+                        response_metadata = final_response
                     else:
                         logger.warning("User not found for token - stripping tag from response")
                         response_text = self._strip_search_tag(response_text)

@@ -1,18 +1,9 @@
-// API Service - Communication with backend
-// Handles all HTTP requests to the FastAPI backend
-
 class ApiService {
     constructor(config, authService) {
         this.config = config;
         this.authService = authService;
     }
     
-    /**
-     * Generic API request method with retry logic
-     * @param {string} endpoint - Endpoint name (e.g., 'health', 'cluster-session')
-     * @param {Object} options - Request options (method, body, query, headers)
-     * @returns {Promise<{success: boolean, data?: any, error?: string}>}
-     */
     async makeRequest(endpoint, options = {}) {
         const query = options.query || null;
         const urlBase = this.config.getEndpointUrl(endpoint);
@@ -34,7 +25,6 @@ class ApiService {
                 const response = await fetch(url, requestOptions);
                 
                 if (!response.ok) {
-                    // Try to get error details from response body
                     let errorMessage = `HTTP ${response.status}: ${response.statusText}`;
                     try {
                         const errorData = await response.json();
@@ -45,9 +35,8 @@ class ApiService {
                         } else {
                             errorMessage += ` - ${JSON.stringify(errorData)}`;
                         }
-                    } catch (e) {
-                        // If we can't parse error body, use status text
-                    }
+                    } catch (e) {}
+
                     throw new Error(errorMessage);
                 }
                 
@@ -99,11 +88,6 @@ class ApiService {
         return await this.makeRequest('health');
     }
     
-    /**
-     * Authenticate with backend using Google token
-     * @param {string} token - Google OAuth token
-     * @returns {Promise<{success: boolean, data?: any, error?: string}>}
-     */
     async authenticate(token) {
         return await this.makeRequest('authenticate', {
             method: 'POST',
@@ -130,7 +114,6 @@ class ApiService {
             return { success: false, error: 'Session missing start_time or end_time' };
         }
         
-        // Validate items
         const invalidItems = session.items.filter(item => !item.url || !item.title || !item.visit_time);
         if (invalidItems.length > 0) {
             console.warn(`Session has ${invalidItems.length} invalid items:`, invalidItems);
@@ -150,7 +133,6 @@ class ApiService {
             return { success: false, error: 'User not authenticated' };
         }
         
-        // Add user_token to session object
         const sessionWithUser = {
             ...session,
             user_token: userToken

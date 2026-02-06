@@ -1,43 +1,20 @@
-// Session utility functions
-// Pure functions for session management operations
-
-/**
- * Generate a deterministic session identifier based on session content
- * @param {number} startTime - Session start timestamp
- * @param {number} endTime - Session end timestamp
- * @param {Array} items - Session items
- * @returns {string} Deterministic session identifier
- */
 function generateSessionId(startTime, endTime, items) {
-    // Create a stable string from session characteristics
-    // Keep it stable for the current session by only using startTime and firstUrl
     const urls = items.map(item => item.url || '').filter(url => url.length > 0);
     const firstUrl = urls[0] || '';
-    
-    // Create a stable hash string combining key session attributes
     const hashInput = `${startTime}_${firstUrl}`;
     
-    // Generate a deterministic hash using a simple string hashing algorithm
     let hash = 0;
     for (let i = 0; i < hashInput.length; i++) {
         const char = hashInput.charCodeAt(i);
         hash = ((hash << 5) - hash) + char;
-        hash = hash & hash; // Convert to 32-bit integer
+        hash = hash & hash;
     }
     
-    // Convert to positive hex string
     const hashString = Math.abs(hash).toString(16).padStart(8, '0');
     
     return `session_${hashString}`;
 }
 
-/**
- * Groups history items into time-based sessions
- * @param {Array} historyItems - Preprocessed history items
- * @param {number} sessionGapMinutes - Gap between sessions in minutes
- * @param {number} minItems - Minimum items per session
- * @returns {Array} Array of session objects with sessionId
- */
 function groupItemsIntoSessions(historyItems, sessionGapMinutes = 60, minItems = 2) {
     if (!historyItems || historyItems.length === 0) {
         return [];
@@ -45,7 +22,6 @@ function groupItemsIntoSessions(historyItems, sessionGapMinutes = 60, minItems =
     
     console.log(`Grouping ${historyItems.length} history items into sessions with gap: ${sessionGapMinutes} minutes`);
     
-    // Sort by visit time
     const sortedItems = [...historyItems].sort((a, b) => {
         const timeA = a.lastVisitTime || a.visitTime || 0;
         const timeB = b.lastVisitTime || b.visitTime || 0;
@@ -60,7 +36,6 @@ function groupItemsIntoSessions(historyItems, sessionGapMinutes = 60, minItems =
         const itemTime = item.lastVisitTime || item.visitTime || Date.now();
         
         if (!currentSession || (itemTime - currentSession.endTime) > sessionGapMs) {
-            // Start new session
             if (currentSession) {
                 sessions.push(currentSession);
             }
@@ -78,7 +53,6 @@ function groupItemsIntoSessions(historyItems, sessionGapMinutes = 60, minItems =
         }
     }
     
-    // Add the last session
     if (currentSession) {
         sessions.push(currentSession);
     }
@@ -92,7 +66,6 @@ function groupItemsIntoSessions(historyItems, sessionGapMinutes = 60, minItems =
         );
     }
     
-    // Filter out sessions with too few items
     const validSessions = sessions.filter(session => session.items.length >= minItems);
     
     console.log(`Created ${validSessions.length} valid sessions (filtered ${sessions.length - validSessions.length} small sessions)`);
@@ -126,11 +99,6 @@ function formatSessionForApi(session) {
     };
 }
 
-/**
- * Utility to safely extract hostname from URL
- * @param {string} rawUrl - Raw URL string
- * @returns {string} Hostname or empty string
- */
 function safeGetHostname(rawUrl) {
     if (typeof rawUrl !== 'string' || rawUrl.length === 0) return '';
     try {

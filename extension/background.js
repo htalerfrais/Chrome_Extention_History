@@ -1,6 +1,3 @@
-// Background Service Worker - Main entry point
-// Orchestrates all services and handles Chrome API events
-
 // Import utilities and configs
 importScripts('config/constants.js');
 importScripts('config/api.config.js');
@@ -13,21 +10,15 @@ importScripts('services/auth.service.js');
 importScripts('services/history.service.js');
 importScripts('services/session.service.js');
 
-// Create service instances
-// Note: Resolve circular dependency by creating ApiService with temporary authService,
-// then updating authService reference after both are created
+// Create service instances with temporary authService to resolve circular dependency
 let authService;
 let apiService;
 let historyService;
 let sessionService;
-
-// Initialize all services
 async function initialize() {
     try {
         console.log('Initializing extension services...');
         
-        // Step 1: Create services (resolve circular dependency)
-        // Create temporary authService for ApiService
         const tempAuthService = {
             getToken: async () => {
                 const stored = await chrome.storage.local.get(['userToken']);
@@ -37,15 +28,11 @@ async function initialize() {
         
         apiService = new ApiService(config, tempAuthService);
         authService = new AuthService(apiService);
-        
-        // Update ApiService with real authService
         apiService.authService = authService;
         
-        // Create other services
         historyService = new HistoryService();
         sessionService = new SessionService(historyService, apiService);
         
-        // Step 2: Initialize services in order
         console.log('Initializing auth service...');
         await authService.initialize();
         
@@ -57,7 +44,6 @@ async function initialize() {
         
         console.log('All services initialized successfully');
         
-        // Expose services globally for bridge
         self.Services = {
             historyService,
             sessionService,
@@ -70,24 +56,16 @@ async function initialize() {
     }
 }
 
-
-
-
-
-// Handle new history item (real-time)
 chrome.history.onVisited.addListener(async (rawItem) => {
     try {
-        // Wait for services to be initialized
         if (!historyService || !sessionService) {
             console.log('Services not yet initialized, skipping history item');
             return;
         }
         
-        // Add to history service (preprocesses and stores)
         const processedItem = await historyService.addItem(rawItem);
         
         if (processedItem) {
-            // Notify session service to reprogram alarm
             await sessionService.onNewItem();
         }
     } catch (error) {
@@ -95,18 +73,10 @@ chrome.history.onVisited.addListener(async (rawItem) => {
     }
 });
 
-
-
-
-
-
-// Handle messages from frontend (for window context)
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     (async () => {
         try {
-            // Wait for services to be initialized with retry
             if (!self.Services) {
-                // Wait up to 5 seconds with 200ms intervals
                 for (let i = 0; i < 25; i++) {
                     await new Promise(resolve => setTimeout(resolve, 200));
                     if (self.Services) break;
@@ -158,12 +128,7 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         }
     })();
     
-    return true; // Indicates we will send a response asynchronously
+    return true;
 });
 
-
-
-
-
-// Start initialization
 initialize();

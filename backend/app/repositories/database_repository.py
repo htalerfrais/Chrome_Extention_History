@@ -1,10 +1,3 @@
-"""
-Database Repository - Simple CRUD operations
-
-This repository handles basic database operations for all models.
-Returns dictionaries to avoid SQLAlchemy session dependencies.
-"""
-
 from typing import Optional, Callable, Any, Dict, List
 from datetime import datetime
 import logging
@@ -17,11 +10,9 @@ logger = logging.getLogger(__name__)
 
 
 class DatabaseRepository:
-    """Repository for database CRUD operations"""
     
     @contextmanager
     def _get_session(self):
-        """Context manager for database sessions"""
         db = SessionLocal()
         try:
             yield db
@@ -44,7 +35,6 @@ class DatabaseRepository:
                 if result is None:
                     return None
                 
-                # Handle primitive types (bool, int, str, etc.) - return as-is
                 if isinstance(result, (bool, int, str, float)):
                     return result
                 
@@ -52,7 +42,6 @@ class DatabaseRepository:
                 if isinstance(result, list):
                     return [self._to_dict(obj) if hasattr(obj, '__table__') else obj for obj in result]
                 
-                # Handle single SQLAlchemy object
                 return self._to_dict(result) if hasattr(result, '__table__') else result
             
         except Exception as e:
@@ -67,7 +56,6 @@ class DatabaseRepository:
         result = {}
         for column in obj.__table__.columns:
             value = getattr(obj, column.name)
-            # Convert datetime to ISO string for JSON serialization
             if isinstance(value, datetime):
                 value = value.isoformat()
             result[column.name] = value
@@ -83,7 +71,6 @@ class DatabaseRepository:
         return self._execute(operation, "Get user by google_user_id failed")
 
     def get_or_create_user_by_google_id(self, google_user_id: str, token: Optional[str] = None) -> Optional[Dict]:
-        """Get existing user by google_user_id or create new one; update token if provided."""
         def operation(db):
             user = db.query(User).filter(User.google_user_id == google_user_id).first()
             if user:
@@ -100,10 +87,7 @@ class DatabaseRepository:
             return user
         return self._execute(operation, "User operation failed")
     
-    # Session operations
-    
     def get_session_by_identifier(self, session_identifier: str) -> Optional[Dict]:
-        """Get a session by its unique identifier"""
         def operation(db):
             session = db.query(Session).filter(Session.session_identifier == session_identifier).first()
             return session
@@ -133,8 +117,6 @@ class DatabaseRepository:
         
         return self._execute(operation, "Failed to create session")
     
-    # Cluster operations
-    
     def create_cluster(
         self,
         session_id: int,
@@ -142,7 +124,6 @@ class DatabaseRepository:
         description: Optional[str] = None,
         embedding: Optional[list] = None
     ) -> Optional[Dict]:
-        """Create a new cluster within a session"""
         def operation(db):
             cluster = Cluster(
                 session_id=session_id,
@@ -167,7 +148,6 @@ class DatabaseRepository:
         return result if isinstance(result, list) else []
     
     def get_history_items_by_cluster_id(self, cluster_id: int) -> List[Dict]:
-        """Get all history items for a cluster"""
         def operation(db):
             return db.query(HistoryItem).filter(HistoryItem.cluster_id == cluster_id).all()
         
@@ -194,10 +174,6 @@ class DatabaseRepository:
                 .filter(Session.user_id == user_id)
             )
             
-            # Apply date filters on session (check for overlap, not containment)
-            # Two intervals [a, b] and [c, d] overlap if: b >= c AND a <= d
-            # For session [start_time, end_time] to overlap with [date_from, date_to]:
-            # end_time >= date_from AND start_time <= date_to
             if date_from:
                 query = query.filter(Session.end_time >= date_from)
             if date_to:
@@ -227,7 +203,6 @@ class DatabaseRepository:
         title_contains: Optional[str] = None,
         domain_contains: Optional[str] = None,
     ) -> List[Dict]:
-        """Semantic search history items for a user using cosine distance with optional filters."""
         def operation(db):
             query = (
                 db.query(HistoryItem)
@@ -240,7 +215,6 @@ class DatabaseRepository:
             if query_embedding:
                 query = query.filter(HistoryItem.embedding.isnot(None))
 
-            # Apply cluster filter
             if cluster_ids:
                 query = query.filter(HistoryItem.cluster_id.in_(cluster_ids))
 
@@ -250,7 +224,6 @@ class DatabaseRepository:
             if date_to:
                 query = query.filter(HistoryItem.visit_time <= date_to)
 
-            # Apply title filter
             if title_contains:
                 query = query.filter(HistoryItem.title.ilike(f'%{title_contains}%'))
 
@@ -258,7 +231,6 @@ class DatabaseRepository:
             if domain_contains:
                 query = query.filter(HistoryItem.domain.ilike(f'%{domain_contains}%'))
 
-            # Order by embedding similarity if embedding provided, otherwise by visit_time desc
             if query_embedding:
                 query = query.order_by(HistoryItem.embedding.cosine_distance(query_embedding))
             else:
@@ -285,12 +257,6 @@ class DatabaseRepository:
         return self._execute(operation, "Failed to get session with relations")
     
     def delete_session_by_identifier(self, session_identifier: str) -> bool:
-        """
-        Delete a session (and cascaded relations) by its unique identifier
-        
-        Returns:
-            True if deleted, False if not found
-        """
         def operation(db):
             session = db.query(Session).filter(Session.session_identifier == session_identifier).first()
             if not session:
@@ -313,7 +279,6 @@ class DatabaseRepository:
         raw_semantics: Optional[dict] = None,
         embedding: Optional[list] = None
     ) -> Optional[Dict]:
-        """Create a new history item within a cluster"""
         def operation(db):
             item = HistoryItem(
                 cluster_id=cluster_id,

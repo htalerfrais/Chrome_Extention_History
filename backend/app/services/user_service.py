@@ -1,10 +1,3 @@
-"""
-User Service - Business logic for user operations
-
-This service handles user-related business logic and orchestrates
-database operations through the repository layer.
-"""
-
 from typing import Optional, Dict
 import logging
 
@@ -23,13 +16,6 @@ class UserService:
         self.google_auth_service = google_auth_service
 
     async def authenticate(self, request: AuthenticateRequest) -> Optional[Dict]:
-        """
-        Authenticate user by validating token with Google.
-        
-        The google_user_id is extracted from the validated token,
-        NOT trusted from the client request.
-        """
-        # Validate token with Google and get the real google_user_id
         token_info = await self.google_auth_service.validate_token(request.token)
         
         if not token_info:
@@ -43,10 +29,6 @@ class UserService:
         )
     
     async def get_user_from_token(self, token: str) -> Optional[Dict]:
-        """
-        Get user from a validated token.
-        Used by endpoints that need user context.
-        """
         token_info = await self.google_auth_service.validate_token(token)
         
         if not token_info:

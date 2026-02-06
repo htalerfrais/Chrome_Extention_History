@@ -1,23 +1,14 @@
-// Session Service - Event-Sourcing Architecture
-// Derives sessions on-demand from history items with intelligent caching
-
 class SessionService {
     constructor(historyService, apiService) {
         this.historyService = historyService;
         this.apiService = apiService;
         
-        // Cache for performance optimization
-        this.completedSessionsCache = null;  // Immutable completed sessions
-        this.currentSessionCache = null;      // Volatile current session
-        this.lastProcessedItemCount = 0;     // Detect item changes
-        
-        // Track analyzed sessions
-        this.analyzedSessionIds = new Set(); // session_identifiers already sent to backend
-        
-        // Alarm for background session checking
+        this.completedSessionsCache = null;
+        this.currentSessionCache = null;
+        this.lastProcessedItemCount = 0;
+        this.analyzedSessionIds = new Set();
         this.CHECK_ALARM_NAME = 'checkClosedSessions';
         
-        // Get constants
         const constants = (typeof self !== 'undefined' ? self.ExtensionConstants : 
                           typeof window !== 'undefined' ? window.ExtensionConstants : {});
         this.SESSION_GAP_MS = (constants.SESSION_GAP_MINUTES || 30) * 60 * 1000;
@@ -25,20 +16,13 @@ class SessionService {
         this.MIN_SESSION_ITEMS = constants.MIN_SESSION_ITEMS || 2;
     }
     
-    /**
-     * Initialize session service
-     * Loads analyzed session IDs and sets up alarm listener
-     * @returns {Promise<void>}
-     */
     async initialize() {
         try {
-            console.log('[SESSION] Initializing session service (event-sourcing mode)...');
+            console.log('[SESSION] Initializing session service...');
             
-            // Load analyzed session IDs from storage
             const stored = await chrome.storage.local.get(['analyzedSessionIds']);
             this.analyzedSessionIds = new Set(stored.analyzedSessionIds || []);
             
-            // Limit to 200 most recent IDs to prevent unbounded growth
             if (this.analyzedSessionIds.size > 200) {
                 const arr = [...this.analyzedSessionIds];
                 this.analyzedSessionIds = new Set(arr.slice(-200));
@@ -47,7 +31,6 @@ class SessionService {
             
             console.log(`[SESSION] Loaded ${this.analyzedSessionIds.size} analyzed session IDs`);
             
-            // Register alarm listener
             chrome.alarms.onAlarm.addListener((alarm) => {
                 if (alarm.name === this.CHECK_ALARM_NAME) {
                     console.log('[SESSION] Alarm triggered: checking closed sessions');
@@ -57,8 +40,6 @@ class SessionService {
             
             console.log('[SESSION] Session service initialized');
             
-            // Check for closed sessions after a short delay (non-blocking)
-            // This handles sessions that closed while the service worker was idle
             setTimeout(() => {
                 console.log('[SESSION] Running deferred check for closed sessions...');
                 this.checkAndAnalyzeClosedSessions();
@@ -69,14 +50,8 @@ class SessionService {
         }
     }
     
-    /**
-     * Called when a new history item is added
-     * Reprograms the alarm to check for closed sessions
-     * @returns {Promise<void>}
-     */
     async onNewItem() {
         try {
-            // Reprogram alarm: check after gap + 1 minute margin
             const delayMinutes = Math.ceil((this.SESSION_GAP_MS / 60000) + 1);
             
             await chrome.alarms.clear(this.CHECK_ALARM_NAME);
@@ -91,17 +66,11 @@ class SessionService {
         }
     }
     
-    /**
-     * Derive all sessions from history items (event-sourcing projection)
-     * @param {Array} items - History items
-     * @returns {Object} { completed: Array, current: Object|null }
-     */
     deriveAllSessions(items) {
         if (!items || items.length === 0) {
             return { completed: [], current: null };
         }
         
-        // Sort by timestamp
         const sorted = [...items].sort((a, b) => {
             const timeA = a.visitTime || a.lastVisitTime || 0;
             const timeB = b.visitTime || b.lastVisitTime || 0;
@@ -115,7 +84,6 @@ class SessionService {
             const itemTime = item.visitTime || item.lastVisitTime;
             
             if (!session) {
-                // Start first session
                 session = {
                     startTime: itemTime,
                     endTime: itemTime,
@@ -125,9 +93,7 @@ class SessionService {
                 const gap = itemTime - session.endTime;
                 const duration = itemTime - session.startTime;
                 
-                // Check if we should close current session
                 if (gap > this.SESSION_GAP_MS || duration > this.MAX_SESSION_DURATION_MS) {
-                    // Generate sessionId and add to completed
                     session.sessionId = generateSessionId(
                         session.startTime,
                         session.endTime,
@@ -135,7 +101,6 @@ class SessionService {
                     );
                     sessions.push(session);
                     
-                    // Start new session
                     session = {
                         startTime: itemTime,
                         endTime: itemTime,
@@ -149,13 +114,11 @@ class SessionService {
             }
         }
         
-        // Handle last session
         if (session) {
             const now = Date.now();
             const timeSinceLastActivity = now - session.endTime;
             
             if (timeSinceLastActivity > this.SESSION_GAP_MS) {
-                // Session is closed
                 session.sessionId = generateSessionId(
                     session.startTime,
                     session.endTime,
@@ -164,7 +127,6 @@ class SessionService {
                 sessions.push(session);
                 return { completed: sessions, current: null };
             } else {
-                // Session is still active
                 session.sessionId = generateSessionId(
                     session.startTime,
                     session.endTime,
@@ -177,12 +139,6 @@ class SessionService {
         return { completed: sessions, current: null };
     }
     
-    /**
-     * Incremental session derivation (optimization for new items)
-     * @param {Array} newItems - Newly added items since last derivation
-     * @param {Object|null} existingCurrent - Previous current session
-     * @returns {Object} { newCompleted: Array, current: Object|null }
-     */
     deriveSessionsIncremental(newItems, existingCurrent) {
         const newCompleted = [];
         let session = existingCurrent;
@@ -191,7 +147,6 @@ class SessionService {
             const itemTime = item.visitTime || item.lastVisitTime;
             
             if (!session) {
-                // No current session, start new one
                 session = {
                     startTime: itemTime,
                     endTime: itemTime,
@@ -202,7 +157,6 @@ class SessionService {
                 const duration = itemTime - session.startTime;
                 
                 if (gap > this.SESSION_GAP_MS || duration > this.MAX_SESSION_DURATION_MS) {
-                    // Close current session
                     session.sessionId = generateSessionId(
                         session.startTime,
                         session.endTime,
@@ -210,7 +164,6 @@ class SessionService {
                     );
                     newCompleted.push(session);
                     
-                    // Start new session
                     session = {
                         startTime: itemTime,
                         endTime: itemTime,
@@ -236,10 +189,6 @@ class SessionService {
         return { newCompleted, current: session };
     }
     
-    /**
-     * Get all sessions with intelligent caching
-     * @returns {Promise<Array>} Array of formatted sessions for API
-     */
     async getAllSessions() {
         try {
             const items = await this.historyService.getAllItems();
@@ -250,7 +199,6 @@ class SessionService {
                 return [];
             }
             
-            // Case 2: Same number of items - use cache, check if current session closed by timeout
             if (items.length === this.lastProcessedItemCount && this.completedSessionsCache !== null) {
                 console.log('[SESSION] Item count unchanged, using cache');
                 
@@ -269,7 +217,6 @@ class SessionService {
                     }
                 }
                 
-                // Return cached results
                 const result = [...this.completedSessionsCache];
                 if (this.currentSessionCache) {
                     const formatted = formatSessionForApi(this.currentSessionCache);
@@ -290,7 +237,6 @@ class SessionService {
                     this.currentSessionCache
                 );
                 
-                // Add newly completed sessions to cache
                 for (const session of newCompleted) {
                     const formatted = formatSessionForApi(session);
                     if (formatted) {
@@ -312,7 +258,6 @@ class SessionService {
                 return result;
             }
             
-            // Case 4: Full recalculation (first call or items decreased)
             console.log('[SESSION] Full derivation of sessions');
             
             const { completed, current } = this.deriveAllSessions(items);
@@ -329,7 +274,6 @@ class SessionService {
             this.currentSessionCache = current;
             this.lastProcessedItemCount = items.length;
             
-            // Return all sessions
             const result = [...this.completedSessionsCache];
             if (this.currentSessionCache) {
                 const formatted = formatSessionForApi(this.currentSessionCache);
@@ -356,8 +300,6 @@ class SessionService {
             
             const allSessions = await this.getAllSessions();
             
-            // All sessions except potentially the last one (which might be current)
-            // We need to check if the last session is actually completed
             const now = Date.now();
             const completedSessions = allSessions.filter(session => {
                 if (!session.end_time) return false;
@@ -377,7 +319,6 @@ class SessionService {
                     continue;
                 }
                 
-                // Skip sessions with too few items
                 if (!session.items || session.items.length < this.MIN_SESSION_ITEMS) {
                     console.log(`[SESSION] Skipping session ${sessionId} (too few items: ${session.items?.length || 0})`);
                     continue;
@@ -414,10 +355,6 @@ class SessionService {
         }
     }
     
-    /**
-     * Save analyzed session IDs to storage
-     * @returns {Promise<void>}
-     */
     async saveAnalyzedIds() {
         try {
             // Limit to 200 most recent
@@ -434,12 +371,7 @@ class SessionService {
         }
     }
     
-    /**
-     * Get current session (for compatibility)
-     * @returns {Object|null} Current session or null
-     */
     getCurrentSession() {
-        // Derive from cache if available
         if (this.currentSessionCache) {
             return this.currentSessionCache;
         }

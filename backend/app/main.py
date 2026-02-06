@@ -50,7 +50,6 @@ chat_service = ChatService(llm_service, search_service, user_service)
 
 @app.get("/")
 async def root():
-    """Health check endpoint"""
     return {
         "message": settings.app_name,
         "version": settings.app_version,
@@ -60,7 +59,6 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    """Detailed health check"""
     return {
         "status": "healthy",
         "services": {
@@ -83,7 +81,7 @@ async def cluster_session(session: HistorySession, force: bool = False):
         SessionClusteringResponse with clusters for the session
     """
     try:
-        logger.info(f"Received session {session.session_identifier} with {len(session.items)} items for clustering")
+        logger.info(f"📥 Received session {session.session_identifier} with {len(session.items)} items")
         
         if not session.items:
             raise HTTPException(status_code=400, detail="Session has no items to cluster")
@@ -97,9 +95,8 @@ async def cluster_session(session: HistorySession, force: bool = False):
             raise HTTPException(status_code=401, detail="Invalid or expired token")
         
         user_id = user_dict["id"]
-        logger.info(f"Authenticated user_id: {user_id}")
+        logger.info(f"👤 Authenticated user_id: {user_id}")
         
-        # Decide force if not explicitly provided: treat very recent sessions as current
         if not force:
             try:
                 gap_minutes = settings.current_session_gap_minutes
@@ -127,12 +124,6 @@ async def cluster_session(session: HistorySession, force: bool = False):
 
 @app.post("/chat", response_model=ChatResponse)
 async def chat(request: ChatRequest):
-    """
-    Chat endpoint for conversational interaction
-    
-    Phase 1: Simple LLM chat with conversation context
-    Phase 2: Will integrate with history data and tool calling
-    """
     try:
         logger.info(f"Received chat message: {request.message[:50]}...")
         
@@ -152,12 +143,6 @@ async def chat(request: ChatRequest):
 
 @app.post("/authenticate", response_model=AuthenticateResponse)
 async def authenticate(request: AuthenticateRequest):
-    """
-    Authenticate with Google OAuth token.
-    
-    The token is validated against Google's servers and the google_user_id
-    is extracted from the validated token (not trusted from client).
-    """
     try:
         logger.info("Received authenticate request")
         user = await user_service.authenticate(request)

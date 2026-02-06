@@ -12,7 +12,6 @@ BATCH_SIZE = 100
 
 
 class EmbeddingService:
-    """Minimal embedding client using Google Generative Language API."""
 
     def __init__(
         self,
@@ -27,12 +26,6 @@ class EmbeddingService:
         self.embedding_dim = settings.embedding_dim
 
     async def embed_texts(self, texts: List[str]) -> List[List[float]]:
-        """
-        Embed multiple texts using Google's batch API.
-        
-        Interface unchanged - ClusteringService doesn't need to know about batching.
-        Internally uses batchEmbedContents for efficiency.
-        """
         if not texts:
             return []
 
@@ -48,7 +41,6 @@ class EmbeddingService:
             batch_vectors = await self._embed_batch(batch_texts)
             vectors.extend(batch_vectors)
 
-        # Ensure result length matches input length
         if len(vectors) != len(texts):
             logger.warning(
                 "EmbeddingService: vector count mismatch (expected %s, got %s)",
@@ -95,7 +87,6 @@ class EmbeddingService:
                 response.raise_for_status()
                 data = response.json()
                 
-                # Response format: {"embeddings": [{"values": [...]}, ...]}
                 embeddings = data.get("embeddings", [])
                 
                 vectors: List[List[float]] = []

@@ -1,7 +1,3 @@
-// Preprocessing utilities for history items
-// Pure functions for enriching and filtering history data
-
-// Enrich history items with convenient date fields derived from lastVisitTime (Unix ms)
 function formatDates(items) {
     if (!Array.isArray(items)) return [];
     return items.map((item) => {
@@ -13,8 +9,6 @@ function formatDates(items) {
     });
 }
 
-// --- URL feature extraction for NLP-friendly fields ---
-// Adds: urlHostname, urlPathnameClean, and optionally urlSearchQuery (for useful search params)
 function addUrlFeatures(items) {
     if (!Array.isArray(items)) return [];
     return items.map((item) => {
@@ -39,7 +33,6 @@ function extractUrlFeatures(raw) {
         }
     }
 
-    // Hostname in lowercase
     const hostname = (u.hostname || '').toLowerCase();
     result.urlHostname = hostname;
 
@@ -79,7 +72,6 @@ function extractUsefulSearchQuery(search, hostname, pathname) {
     const host = (hostname || '').toLowerCase();
     const path = (pathname || '/').toLowerCase();
 
-    // Host/path-specific priority keys
     const hostKeyMap = [
         { match: /youtube\.com$/, keys: path.startsWith('/results') ? ['search_query', 'q', 'query'] : ['search_query', 'q', 'query'] },
         { match: /google\.[a-z.]+$/, keys: ['q'] },
@@ -105,7 +97,6 @@ function extractUsefulSearchQuery(search, hostname, pathname) {
         }
     }
 
-    // Generic fallback keys (ordered by commonality)
     const genericKeys = ['q', 'query', 'text', 'search', 'keyword', 's'];
     const tryKeys = prioritizedKeys.length > 0 ? prioritizedKeys.concat(genericKeys) : genericKeys;
 
@@ -144,7 +135,6 @@ function isNoiseSegment(seg) {
 }
 
 function isNumericId(seg) {
-    // Purely numeric with length >= 4
     return /^\d{4,}$/.test(seg);
 }
 
@@ -158,7 +148,6 @@ function isHexLong(seg) {
 }
 
 function isLongSlug(seg) {
-    // Very long slugs with only lowercase letters, digits, and hyphens
     return /^[a-z0-9-]{16,}$/.test(seg);
 }
 
@@ -168,7 +157,6 @@ function isLongSlug(seg) {
 function filterHistoryURL(items, threshold) {
     if (!Array.isArray(items)) return [];
     
-    // Récupérer le seuil depuis constants ou utiliser celui fourni, sinon fallback
     const constants = (typeof window !== 'undefined' ? window.ExtensionConstants : 
                       typeof self !== 'undefined' ? self.ExtensionConstants : null);
     const defaultThreshold = constants?.URL_SIMILARITY_THRESHOLD || 0.6;
@@ -197,7 +185,6 @@ function filterHistoryURL(items, threshold) {
             continue;
         }
 
-        // Titles match → compare normalized URLs
         const urlA = normalizeUrl(lastKept.url || '');
         const urlB = normalizeUrl(current.url || '');
         const sim = diceCoefficient(urlA, urlB);
@@ -214,8 +201,6 @@ function filterHistoryURL(items, threshold) {
     return kept;
 }
 
-// Normalize URLs for stable similarity: lowercase host, strip protocol/hash,
-// remove tracking params, sort remaining query keys, trim trailing slashes
 function normalizeUrl(raw) {
     if (typeof raw !== 'string' || raw.length === 0) return '';
     let u;
@@ -232,7 +217,6 @@ function normalizeUrl(raw) {
 
     u.hash = '';
 
-    // Clean search params
     const toRemove = new Set([
         'gclid','fbclid','igshid','ref','ref_src','mc_cid','mc_eid'
     ]);
@@ -243,7 +227,6 @@ function normalizeUrl(raw) {
             params.delete(key);
         }
     }
-    // Rebuild sorted query string
     const entries = Array.from(params.entries()).sort((a, b) => a[0].localeCompare(b[0]));
     const sorted = new URLSearchParams();
     for (const [k, v] of entries) sorted.append(k, v);
@@ -259,7 +242,6 @@ function normalizeUrl(raw) {
     return query ? base + '?' + query : base;
 }
 
-// Dice coefficient over character bigrams; fast and effective for similarity
 function diceCoefficient(a, b) {
     if (a === b) return 1;
     if (!a || !b) return 0;

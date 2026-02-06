@@ -1,6 +1,3 @@
-// Auth Service - Google OAuth authentication
-// Handles token management and validation
-
 class AuthService {
     constructor(apiService) {
         this.apiService = apiService;
@@ -13,7 +10,6 @@ class AuthService {
      */
     async initialize() {
         try {
-            // Try to get existing token from storage first
             const stored = await chrome.storage.local.get(['userToken']);
             if (stored.userToken) {
                 console.log('Found existing token in storage, validating...');
@@ -24,7 +20,6 @@ class AuthService {
                     return;
                 } else {
                     console.log('Existing token is invalid, getting new token...');
-                    // Token is invalid, remove it and get a new one
                     await chrome.storage.local.remove(['userToken']);
                 }
             }
@@ -69,10 +64,6 @@ class AuthService {
         });
     }
     
-    /**
-     * Get stored user token
-     * @returns {Promise<string|null>}
-     */
     async getToken() {
         try {
             const stored = await chrome.storage.local.get(['userToken']);
@@ -89,10 +80,8 @@ class AuthService {
      */
     async refreshToken() {
         try {
-            // Remove old token
             await chrome.storage.local.remove(['userToken']);
             
-            // Get new token
             const token = await this.getGoogleToken();
             if (!token) {
                 console.error('Failed to refresh token');
@@ -106,7 +95,6 @@ class AuthService {
                 return;
             }
             
-            // Store new token
             await chrome.storage.local.set({ userToken: token });
             console.log('Token refreshed successfully');
             

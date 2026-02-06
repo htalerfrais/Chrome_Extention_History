@@ -32,29 +32,13 @@ def _cosine_similarity(vec_a: List[float], vec_b: List[float]) -> float:
 
 
 class ClusteringService:
-    """LLM-driven clustering service: identifies clusters and assigns items per session."""
-
     def __init__(self, mapping_service=None, embedding_service: Optional[EmbeddingService] = None):
-        self.llm_service = LLMService()  # TODO: should inject via constructor
+        self.llm_service = LLMService()
         self.max_tokens = settings.clustering_max_tokens
         self.mapping_service = mapping_service
         self.embedding_service = embedding_service or EmbeddingService()
 
     async def cluster_session(self, session: HistorySession, user_id: int, force: bool = False) -> SessionClusteringResponse:
-        """
-        Cluster session using SemanticGroup compression and embedding-based similarity.
-        
-        Workflow:
-        1. Check cache - return if already analyzed
-        2. Create SemanticGroups (compression by title+hostname)
-        3. Embed SemanticGroups (fewer API calls)
-        4. LLM generates thematic clusters from groups
-        5. Embed clusters
-        6. Assign groups to clusters via cosine similarity
-        7. Decompress groups back to items
-        8. Build response, save to DB, return
-        """
-        # Canonicalize identifier with user scope to avoid cross-user collisions
         session.session_identifier = f"u{user_id}:{session.session_identifier}"
         logger.info(f"📊 Processing session {session.session_identifier} with {len(session.items)} items (force={force})")
         
@@ -66,7 +50,6 @@ class ClusteringService:
                 return cached_result
             logger.info(f"🆕 No cached result found, proceeding with clustering")
 
-        # Step 2: Create SemanticGroups (compression)
         groups = self._create_semantic_groups(session)
         logger.info(f"📦 Compressed {len(session.items)} items into {len(groups)} semantic groups")
 
@@ -77,19 +60,14 @@ class ClusteringService:
         clusters_meta = await self.identify_clusters_from_groups(groups)
         logger.info(f"🎯 LLM identified {len(clusters_meta)} thematic clusters")
 
-        # Step 5: Embed clusters based on theme + summary
         clusters_meta = await self._embed_clusters(clusters_meta)
 
-        # Step 6: Assign groups to clusters via cosine similarity
         cluster_id_to_groups = self._assign_groups_by_similarity(groups, clusters_meta)
 
-        # Step 7: Decompress groups back to items
         cluster_id_to_items = self._decompress_groups_to_items(cluster_id_to_groups)
 
-        # Step 8: Build ClusterResult objects
         cluster_results: List[ClusterResult] = []
         
-        # Add thematic clusters from LLM
         for meta in clusters_meta:
             cluster_id: str = meta.get("cluster_id") or f"cluster_{len(cluster_results)}"
             theme: str = meta.get("theme") or "Miscellaneous"
@@ -109,7 +87,6 @@ class ClusteringService:
                 embedding=embedding if embedding else None
             ))
 
-        # Add hardcoded Generic cluster if it has items
         generic_items = cluster_id_to_items.get(GENERIC_CLUSTER["cluster_id"], [])
         if generic_items:
             # Embed the generic cluster
@@ -127,7 +104,6 @@ class ClusteringService:
                 embedding=generic_embedding
             ))
 
-        # Create session response
         response = SessionClusteringResponse(
             session_identifier=session.session_identifier,
             session_start_time=session.start_time,
@@ -135,7 +111,6 @@ class ClusteringService:
             clusters=cluster_results
         )
 
-        # Log ClusterResult models
         for cluster_result in cluster_results:
             log_payload = cluster_result.model_dump()
             log_payload.pop("embedding", None)
@@ -150,7 +125,6 @@ class ClusteringService:
                 logger.info(f"💾 Saved clustering result to database with session_id: {session_id}")
             except Exception as e:
                 logger.error(f"❌ Failed to save clustering result to database: {e}")
-                # Don't fail the request, just log the error
 
         return response
 
@@ -173,7 +147,6 @@ class ClusteringService:
         return text[:1200]
 
     def _build_cluster_meta_embedding_text(self, cluster_meta: Dict[str, Any]) -> str:
-        """Build embedding text from cluster metadata (theme + summary)."""
         theme = cluster_meta.get("theme", "")
         summary = cluster_meta.get("summary", "")
         text = f"{theme} - {summary}" if summary else theme
@@ -191,7 +164,6 @@ class ClusteringService:
             title = item.title.strip() if item.title else ""
             hostname = item.url_hostname or ""
             
-            # Items with empty title become individual groups
             if not title:
                 group_key = f"__notitle__{no_title_counter}::{hostname}"
                 no_title_counter += 1
@@ -205,7 +177,6 @@ class ClusteringService:
         # Convert to SemanticGroup objects
         semantic_groups: List[SemanticGroup] = []
         for group_key, items in groups_dict.items():
-            # Use first item as representative example
             first_item = items[0]
             title = first_item.title.strip() if first_item.title else ""
             hostname = first_item.url_hostname or ""
@@ -231,7 +202,6 @@ class ClusteringService:
         if not self.embedding_service or not groups:
             return groups
 
-        # Build embedding text for each group
         group_texts: List[str] = []
         group_indices: List[int] = []
         
@@ -264,10 +234,6 @@ class ClusteringService:
         return groups
 
     async def _embed_clusters(self, clusters_meta: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """
-        Embed clusters based on their theme and summary.
-        Returns clusters_meta with 'embedding' field added.
-        """
         if not self.embedding_service or not clusters_meta:
             return clusters_meta
 
@@ -288,19 +254,8 @@ class ClusteringService:
         groups: List[SemanticGroup],
         clusters_with_embeddings: List[Dict[str, Any]]
     ) -> Dict[str, List[SemanticGroup]]:
-        """
-        Assign SemanticGroups to clusters based on cosine similarity between embeddings.
-        
-        Args:
-            groups: List of SemanticGroups with embeddings
-            clusters_with_embeddings: List of cluster metadata with 'embedding' field
-        
-        Returns:
-            Dict mapping cluster_id to list of SemanticGroups assigned to it
-        """
         threshold = settings.clustering_similarity_threshold
         
-        # Initialize cluster map (including generic cluster)
         cluster_map: Dict[str, List[SemanticGroup]] = {
             c["cluster_id"]: [] for c in clusters_with_embeddings
         }
@@ -315,7 +270,6 @@ class ClusteringService:
         for group in groups:
             group_embedding = group.embedding
             
-            # If group has no embedding, assign to generic
             if not group_embedding:
                 cluster_map[GENERIC_CLUSTER["cluster_id"]].append(group)
                 continue
@@ -332,7 +286,6 @@ class ClusteringService:
                     best_similarity = similarity
                     best_cluster_id = cluster["cluster_id"]
             
-            # Assign to best cluster if above threshold, otherwise to generic
             if best_similarity >= threshold:
                 cluster_map[best_cluster_id].append(group)
                 logger.debug(f"Group '{group.title[:30]}...' ({group.item_count} items) assigned to '{best_cluster_id}' (similarity: {best_similarity:.3f})")
@@ -362,7 +315,6 @@ class ClusteringService:
             items: List[ClusterItem] = []
             
             for group in groups:
-                # Each item in the group gets the group's embedding
                 group_embedding = group.embedding
                 
                 for history_item in group.items:
@@ -382,15 +334,6 @@ class ClusteringService:
         return cluster_id_to_items
 
     async def identify_clusters_from_groups(self, groups: List[SemanticGroup]) -> List[Dict[str, Any]]:
-        """
-        Use LLM to propose thematic clusters from SemanticGroups.
-        
-        This method receives compressed groups (title+hostname+pathname)
-        instead of individual items, reducing LLM input tokens significantly.
-        
-        Note: This method only returns thematic clusters identified by the LLM.
-        The generic/fallback cluster is hardcoded and handled separately in cluster_session.
-        """
         simplified_groups = self._prepare_groups_for_llm(groups)
 
         example = [
@@ -438,7 +381,6 @@ class ClusteringService:
             
             data = self._extract_json(raw)
             if isinstance(data, list):
-                # Basic schema cleanup - only keep thematic clusters
                 cleaned: List[Dict[str, Any]] = []
                 
                 for idx, c in enumerate(data):
@@ -448,7 +390,6 @@ class ClusteringService:
                     theme = str(c.get("theme") or "Miscellaneous")
                     summary = str(c.get("summary") or "")
                     
-                    # Skip if LLM generated a generic cluster (we handle that separately)
                     if cid == "cluster_generic":
                         continue
                     
@@ -472,9 +413,7 @@ class ClusteringService:
         ]
 
     def _extract_json(self, text: str) -> Any:
-        """Extract JSON array/object from raw LLM text output."""
         text = text.strip()
-        # Direct parse
         try:
             return json.loads(text)
         except Exception:
@@ -483,7 +422,6 @@ class ClusteringService:
         start_idx = min([i for i in [text.find('['), text.find('{')] if i != -1] or [-1])
         if start_idx == -1:
             raise ValueError("No JSON start found in LLM response")
-        # Heuristic: find last closing bracket
         end_idx = max(text.rfind(']'), text.rfind('}'))
         if end_idx == -1 or end_idx <= start_idx:
             raise ValueError("No JSON end found in LLM response")

@@ -12,7 +12,7 @@ logger = logging.getLogger(__name__)
 
 
 class SearchService:
-    """Two-stage semantic search over clusters and history items."""
+    # Two-stage semantic search over clusters and history items."""
 
     def __init__(
         self,

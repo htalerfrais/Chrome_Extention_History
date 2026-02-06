@@ -1,11 +1,6 @@
-// Configuration for Chrome Extension History
-// Handles API endpoints and environment settings
-
 class Config {
     constructor() {
-        // API Configuration
         this.API_ENDPOINTS = {
-            // Development (local Docker)
             development: {
                 baseUrl: 'http://localhost:8000',
                 'cluster-session': '/cluster-session',
@@ -13,7 +8,6 @@ class Config {
                 'authenticate': '/authenticate',
                 'health': '/health'
             },
-            // Production (to be updated when deployed)
             production: {
                 baseUrl: 'https://your-production-api.com',
                 'cluster-session': '/cluster-session',
@@ -23,21 +17,17 @@ class Config {
             }
         };
         
-        // Default to development
         this.currentEnvironment = 'development';
         
-        // Get constants from global scope (works in both window and self contexts)
         const constants = (typeof window !== 'undefined' ? window.ExtensionConstants : 
                           typeof self !== 'undefined' ? self.ExtensionConstants : {});
         
-        // Request configuration
         this.REQUEST_CONFIG = {
-            timeout: constants.API_REQUEST_TIMEOUT_MS || 30000, // 30 seconds
+            timeout: constants.API_REQUEST_TIMEOUT_MS || 30000,
             retries: constants.API_RETRIES || 3,
-            retryDelay: constants.API_RETRY_DELAY_MS || 1000 // 1 second
+            retryDelay: constants.API_RETRY_DELAY_MS || 1000
         };
         
-        // Clustering configuration
         this.CLUSTERING_CONFIG = {
             maxClusters: constants.MAX_CLUSTERS_DEFAULT || 10,
             minClusterSize: constants.MIN_CLUSTER_SIZE_DEFAULT || 2,
@@ -50,7 +40,6 @@ class Config {
         return this.API_ENDPOINTS[this.currentEnvironment].baseUrl;
     }
     
-    // Get full endpoint URL
     getEndpointUrl(endpoint) {
         const baseUrl = this.getApiBaseUrl();
         const path = this.API_ENDPOINTS[this.currentEnvironment][endpoint];
@@ -67,7 +56,6 @@ class Config {
         }
     }
     
-    // Check if API is available
     async checkApiHealth() {
         try {
             const response = await fetch(this.getEndpointUrl('health'), {
@@ -95,13 +83,9 @@ class Config {
     }
 }
 
-// Export singleton instance
 const config = new Config();
 
-// Auto-detect environment based on Chrome extension context
-// In development, you might want to manually set this
 if (typeof chrome !== 'undefined' && chrome.runtime) {
-    // Try to detect if we're in development by checking if localhost is accessible
     config.checkApiHealth().then(result => {
         if (!result.available) {
             console.warn('Development API not available, consider switching to production');
@@ -113,7 +97,6 @@ if (typeof chrome !== 'undefined' && chrome.runtime) {
     });
 }
 
-// Make available globally
 if (typeof window !== 'undefined') {
     window.ExtensionConfig = config;
 }
@@ -123,7 +106,6 @@ if (typeof self !== 'undefined') {
     self.ExtensionConfig = config;
 }
 
-// For Node.js/module environments
 if (typeof module !== 'undefined' && module.exports) {
     module.exports = config;
 }

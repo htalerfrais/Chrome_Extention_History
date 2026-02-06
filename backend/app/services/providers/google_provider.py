@@ -10,7 +10,6 @@ from app.models.llm_models import LLMRequest, LLMResponse
 logger = logging.getLogger(__name__)
 
 class GoogleProvider(LLMProviderInterface):
-    """Google Gemini provider implementation"""
     
     def __init__(self, api_key: Optional[str] = None, base_url: Optional[str] = None):
         super().__init__(api_key, base_url)
@@ -63,10 +62,8 @@ class GoogleProvider(LLMProviderInterface):
                 response.raise_for_status()
                 data = response.json()
                 
-                # Log raw API response for debugging
-                logger.info(f"🔍 Google API response: {data}")
+                logger.debug(f"🔍 Google API response: {data}")
                 
-                # Log token consumption if available
                 if "usageMetadata" in data:
                     usage = data["usageMetadata"]
                     logger.info(f"📊 Token usage - Prompt: {usage.get('promptTokenCount', 'N/A')}, Response: {usage.get('candidatesTokenCount', 'N/A')}")
@@ -81,7 +78,6 @@ class GoogleProvider(LLMProviderInterface):
                         content = candidate["content"]
                         finish_reason = candidate.get("finishReason", "UNKNOWN")
                         
-                        # Check if content was blocked or filtered
                         if finish_reason in ["SAFETY", "RECITATION", "OTHER"]:
                             generated_text = ""
                         elif finish_reason == "MAX_TOKENS":
@@ -90,12 +86,10 @@ class GoogleProvider(LLMProviderInterface):
                         elif finish_reason != "STOP":
                             generated_text = ""
                         
-                        # Look for parts array for all non-blocked cases
                         if "parts" in content and isinstance(content["parts"], list) and len(content["parts"]) > 0:
                             if "text" in content["parts"][0]:
                                 generated_text = content["parts"][0]["text"]
                 
-                # Extract usage information if available
                 usage = None
                 if "usageMetadata" in data:
                     usage = data["usageMetadata"]

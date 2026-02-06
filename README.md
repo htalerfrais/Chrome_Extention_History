@@ -19,8 +19,9 @@ Think of it as a smart memory for your browsing sessions—everything you've exp
 
 ## Demo
 
-<!-- Add screenshots here -->
 ![Dashboard](docs-asset/readme-demo-1.png)
+
+*The dashboard automatically clustered a browsing session into "AI Model Development" and "Productivity & Focus Management" themes. On the right, the chat interface retrieves forgotten context: the user asks "what was I working on?" and the assistant finds the exact GitHub PR, research articles, and email threads from that day — with direct links to each source.*
 
 ## Quick Start
 
@@ -122,4 +123,17 @@ Key environment variables (see `env.template` for full list):
 - **Frontend:** React, TypeScript, Vite, Tailwind CSS
 - **Backend:** FastAPI, SQLAlchemy, pgvector
 - **Database:** PostgreSQL with vector extensions
-- **AI:** Google Gemini (LLM), text-embedding-004 (embeddings)
+
+## Next improvements :
+
+### v2.0 
+- [ ] Improve tool calling in the Chat, allow multiple tool calls and multi steps reflexion 
+- [ ] Make the RAG retrieval more flexible, not only retrieving from closest clusters but also samples closest objects
+- [ ] Improve system prompts
+- [ ] Improve UX and session navigation
+
+### v2.0 — Learning Assistant
+- [ ] Smart reminders to revisit important topics
+- [ ] Spaced repetition integration
+- [ ] Auto-generated flashcards from browsing content
+- [ ] Knowledge retention tracking

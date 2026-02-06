@@ -1,10 +1,3 @@
-"""
-Mapping Service - Converts between Pydantic and SQLAlchemy models
-
-This service handles bidirectional mapping between API models and database models,
-including managing foreign key relationships and nested structures.
-"""
-
 from typing import Optional, List, Dict, Any
 from datetime import datetime
 import logging
@@ -27,19 +20,8 @@ class MappingService:
         response: SessionClusteringResponse,
         replace_if_exists: bool = False
     ) -> int:
-        """
-        Save clustering result to database
-        
-        Args:
-            user_id: ID of the user who owns this session
-            response: SessionClusteringResponse with clusters and items
-            
-        Returns:
-            session_id: ID of the created session record
-        """
         logger.info(f"💾 Saving clustering result for session {response.session_identifier}")
         
-        # Optionally replace existing session record
         if replace_if_exists:
             existing = self.db_repository.get_session_by_identifier(response.session_identifier)
             if existing:
@@ -59,7 +41,6 @@ class MappingService:
         session_id = session_dict["id"]
         logger.info(f"✅ Created session record ID: {session_id}")
         
-        # Create Cluster and HistoryItem records
         for cluster in response.clusters:
             cluster_dict = self.db_repository.create_cluster(
                 session_id=session_id,
@@ -99,15 +80,6 @@ class MappingService:
         self, 
         session_identifier: str
     ) -> Optional[SessionClusteringResponse]:
-        """
-        Retrieve clustering result from database
-        
-        Args:
-            session_identifier: Unique session identifier
-            
-        Returns:
-            SessionClusteringResponse if found, None otherwise
-        """
         logger.info(f"🔍 Retrieving clustering result for session {session_identifier}")
         
         # Get session with all relations
@@ -124,7 +96,6 @@ class MappingService:
             logger.info(f"❌ No clusters found for session {session_identifier}")
             return None
         
-        # Build ClusterResult objects
         cluster_results: List[ClusterResult] = []
         
         for cluster_dict in clusters_dict:
@@ -137,7 +108,6 @@ class MappingService:
                 logger.warning(f"No items found for cluster {cluster_id}")
                 continue
             
-            # Convert to ClusterItem objects
             cluster_items: List[ClusterItem] = []
             for item_dict in items_dict:
                 raw_semantics = item_dict.get("raw_semantics") or {}
@@ -167,7 +137,6 @@ class MappingService:
             logger.warning(f"⚠️ No valid clusters found for session {session_identifier}")
             return None
         
-        # Create SessionClusteringResponse
         response = SessionClusteringResponse(
             session_identifier=session_dict["session_identifier"],
             session_start_time=session_dict["start_time"],
