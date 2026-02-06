@@ -70,13 +70,16 @@ class ChatService:
         with_tool_instructions: bool = True,
         search_context: Optional[str] = None
     ) -> str:
+        """Build conversation prompt with optional search context"""
         system_prompt = self._build_system_prompt(with_tool_instructions)
         
         context_lines = []
         
+        # Add search context if provided
         if search_context:
             context_lines.append(f"[Browsing History Context]\n{search_context}\n")
         
+        # Add recent conversation history
         recent_history = history[-settings.chat_history_limit:] if history else []
         for msg in recent_history:
             role_prefix = "User" if msg.role == "user" else "Assistant"
@@ -93,6 +96,7 @@ class ChatService:
         clusters: List[ClusterResult], 
         items: List[ClusterItem]
     ) -> str:
+        """Format search results as context for the LLM"""
         if not clusters and not items:
             return "No relevant browsing history found."
         
@@ -132,6 +136,7 @@ class ChatService:
         title_contains = None
         domain_contains = None
         
+        # Parse filter parts
         for part in parts[1:]:
             if ':' not in part:
                 continue
@@ -173,9 +178,8 @@ class ChatService:
             
             conversation_id = request.conversation_id or self._generate_conversation_id()
             history = request.history or []
-            sources = None  # Will be populated if search is performed
+            sources = None
             
-            # Step 1: First LLM call with tool instructions
             prompt = self._build_conversation_prompt(
                 request.message, 
                 history, 
@@ -191,8 +195,9 @@ class ChatService:
             
             first_response = await self.llm_service.generate_text(llm_request)
             response_text = first_response.generated_text
-            response_metadata = first_response
+            response_metadata = first_response  # Track which response we're using
             
+            # Step 2: Check for search tool call
             search_filters = self._parse_search_request(response_text)
             
             if search_filters:
@@ -243,7 +248,7 @@ class ChatService:
                         
                         final_response = await self.llm_service.generate_text(llm_request_with_context)
                         response_text = final_response.generated_text
-                        response_metadata = final_response
+                        response_metadata = final_response  # Use metadata from the actual response
                     else:
                         logger.warning("User not found for token - stripping tag from response")
                         response_text = self._strip_search_tag(response_text)

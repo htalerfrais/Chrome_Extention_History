@@ -151,7 +151,6 @@ function isLongSlug(seg) {
     return /^[a-z0-9-]{16,}$/.test(seg);
 }
 
-// --- URL similarity-based collapsing for consecutive near-duplicates ---
 // Only collapses when titles match; otherwise always keeps the item.
 // threshold in [0,1] (e.g., 0.8)
 function filterHistoryURL(items, threshold) {

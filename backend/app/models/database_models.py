@@ -1,17 +1,3 @@
-"""
-SQLAlchemy models for database tables
-
-These models map Python classes to PostgreSQL tables and handle:
-- Table structure and relationships
-- Foreign key constraints
-- Vector columns for embeddings (pgvector)
-- Automatic timestamps
-
-Note: These are separate from Pydantic models (session_models.py)
-- Pydantic = API validation and serialization
-- SQLAlchemy = Database mapping and queries
-"""
-
 from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey, JSON
 from sqlalchemy.orm import declarative_base, relationship
 from sqlalchemy.sql import func
@@ -36,13 +22,6 @@ class User(Base):
 
 
 class Session(Base):
-    """
-    Session model - represents browsing sessions grouped by time
-    
-    Relationships:
-    - One session belongs to one user
-    - One session has many clusters (and one cluster has many history items)
-    """
     __tablename__ = "sessions"
     
     id = Column(Integer, primary_key=True, autoincrement=True)
@@ -82,12 +61,6 @@ class Cluster(Base):
 
 
 class HistoryItem(Base):
-    """
-    HistoryItem model - represents individual browsing history entries
-    
-    Relationships:
-    - One history item belongs to one cluster
-    """
     __tablename__ = "history_items"
     
     id = Column(Integer, primary_key=True, autoincrement=True)

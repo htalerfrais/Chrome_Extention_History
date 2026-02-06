@@ -1,6 +1,3 @@
-// SessionInfo component - displays session metadata
-// Shows duration, time range, and topic count for the current session
-
 interface SessionData {
   session_start_time: string;
   session_end_time: string;

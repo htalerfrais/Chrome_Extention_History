@@ -1,6 +1,3 @@
-// ChatWindow component - main chat interface
-// Handles conversation state and user interactions
-
 import { useState, useEffect, useRef } from 'react';
 import ChatBubble from './ChatBubble';
 import { extensionBridge } from '../services/extensionBridge';

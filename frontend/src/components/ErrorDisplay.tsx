@@ -1,6 +1,3 @@
-// ErrorDisplay component for showing error states
-// This will display error messages and retry button
-
 interface ErrorDisplayProps {
   message: string;
   onRetry: () => void;

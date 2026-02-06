@@ -1,6 +1,3 @@
-// ClustersSection component - displays thematic clusters
-// Main container for cluster display with header and session info
-
 import SessionInfo from './SessionInfo';
 import ClusterCard from './ClusterCard';
 

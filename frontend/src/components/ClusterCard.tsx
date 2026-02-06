@@ -1,6 +1,3 @@
-// ClusterCard component - displays individual clusters
-// Shows cluster theme and its associated history items
-
 import ClusterItem from './ClusterItem';
 
 interface HistoryItem {

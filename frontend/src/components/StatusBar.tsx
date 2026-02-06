@@ -1,6 +1,3 @@
-// StatusBar component for showing loading/success/error states
-// This will display the current status of the analysis
-
 interface StatusBarProps {
   status: string;
 }

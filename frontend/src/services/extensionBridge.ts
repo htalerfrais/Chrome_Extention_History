@@ -1,6 +1,3 @@
-// ExtensionBridge - Service layer to connect React with Chrome Extension services
-// Communicates directly with the background service worker via chrome.runtime.sendMessage
-
 /// <reference types="chrome"/>
 
 declare global {
@@ -14,10 +11,6 @@ class ExtensionBridge {
   private isReady: boolean = false;
   private readyPromise: Promise<void> | null = null;
 
-  /**
-   * Wait for services to be ready
-   * @param timeout - Timeout in milliseconds (default: 10 seconds to allow for service initialization)
-   */
   async waitForReady(timeout: number = 10000): Promise<void> {
     if (this.isReady) {
       return;
@@ -40,12 +33,9 @@ class ExtensionBridge {
           return;
         }
 
-        // Try to ping the service worker
         if (typeof chrome !== 'undefined' && chrome.runtime) {
           chrome.runtime.sendMessage({ action: 'ping' }, (pingResponse) => {
-            // Check for Chrome runtime errors (connection issues)
             if (chrome.runtime.lastError) {
-              // If it's a connection error, retry
               if (Date.now() - startTime > timeout) {
                 reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
                 return;
@@ -61,8 +51,6 @@ class ExtensionBridge {
               return;
             }
 
-            // If service worker responded but services not ready yet, retry
-            // This handles the case where service worker says "Services not initialized"
             if (Date.now() - startTime > timeout) {
               reject(new Error('Service worker responded but services not ready'));
               return;
@@ -82,9 +70,6 @@ class ExtensionBridge {
     return this.readyPromise;
   }
 
-  /**
-   * Send message to service worker and wait for response
-   */
   private sendMessage<T>(message: any): Promise<T> {
     return new Promise((resolve, reject) => {
       chrome.runtime.sendMessage(message, (response) => {
@@ -115,10 +100,6 @@ class ExtensionBridge {
     }
   }
 
-  /**
-   * Get preprocessed history items from Chrome storage
-   * Kept for backward compatibility (fallback)
-   */
   async getProcessedHistory(): Promise<any[]> {
     return new Promise((resolve, reject) => {
       if (!chrome?.storage?.local) {
@@ -146,9 +127,6 @@ class ExtensionBridge {
     return await this.getAllSessions();
   }
 
-  /**
-   * Send single session to backend for clustering
-   */
   async clusterSession(session: any, options?: { force?: boolean }): Promise<any> {
     try {
       await this.waitForReady();
@@ -180,9 +158,6 @@ class ExtensionBridge {
     }
   }
 
-  /**
-   * Send chat message
-   */
   async sendChatMessage(message: string, conversationId?: string, history?: any[]): Promise<any> {
     if (!message || message.trim().length === 0) {
       throw new Error('Message cannot be empty');
@@ -218,9 +193,6 @@ class ExtensionBridge {
     return window.ExtensionConfig;
   }
 
-  /**
-   * Get extension constants
-   */
   getConstants() {
     if (!window.ExtensionConstants) {
       console.warn('ExtensionConstants not available, using defaults');
@@ -243,9 +215,6 @@ class ExtensionBridge {
     return window.ExtensionConstants;
   }
 
-  /**
-   * Check if all extension services are loaded and ready
-   */
   areExtensionServicesReady(): boolean {
     return !!(
       chrome?.runtime &&
@@ -264,10 +233,8 @@ class ExtensionBridge {
   }
 }
 
-// Create and export singleton instance
 export const extensionBridge = new ExtensionBridge();
 
-// For debugging
 if (typeof window !== 'undefined') {
   (window as any).extensionBridge = extensionBridge;
 }

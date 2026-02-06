@@ -53,10 +53,7 @@ class ClusteringService:
         groups = self._create_semantic_groups(session)
         logger.info(f"📦 Compressed {len(session.items)} items into {len(groups)} semantic groups")
 
-        # Step 3: Embed SemanticGroups
         groups = await self._embed_semantic_groups(groups)
-
-        # Step 4: LLM generates thematic clusters from groups
         clusters_meta = await self.identify_clusters_from_groups(groups)
         logger.info(f"🎯 LLM identified {len(clusters_meta)} thematic clusters")
 
@@ -68,6 +65,7 @@ class ClusteringService:
 
         cluster_results: List[ClusterResult] = []
         
+        # Add thematic clusters from LLM
         for meta in clusters_meta:
             cluster_id: str = meta.get("cluster_id") or f"cluster_{len(cluster_results)}"
             theme: str = meta.get("theme") or "Miscellaneous"
@@ -129,7 +127,6 @@ class ClusteringService:
         return response
 
     def _build_item_embedding_text(self, item: Any) -> Optional[str]:
-        """Build embedding text from a HistoryItem or ClusterItem."""
         parts: List[str] = []
         if item.title:
             parts.append(item.title)
@@ -147,16 +144,13 @@ class ClusteringService:
         return text[:1200]
 
     def _build_cluster_meta_embedding_text(self, cluster_meta: Dict[str, Any]) -> str:
+        """Build embedding text from cluster metadata (theme + summary)."""
         theme = cluster_meta.get("theme", "")
         summary = cluster_meta.get("summary", "")
         text = f"{theme} - {summary}" if summary else theme
         return text.strip()[:1200]
 
     def _create_semantic_groups(self, session: HistorySession) -> List[SemanticGroup]:
-        """
-        Group session items by (title, hostname) to reduce redundant embeddings.
-        Items with empty/null title become individual groups (group of 1).
-        """
         groups_dict: Dict[str, List] = {}
         no_title_counter = 0
         
@@ -177,6 +171,7 @@ class ClusteringService:
         # Convert to SemanticGroup objects
         semantic_groups: List[SemanticGroup] = []
         for group_key, items in groups_dict.items():
+            # Use first item as representative example
             first_item = items[0]
             title = first_item.title.strip() if first_item.title else ""
             hostname = first_item.url_hostname or ""
@@ -202,6 +197,7 @@ class ClusteringService:
         if not self.embedding_service or not groups:
             return groups
 
+        # Build embedding text for each group
         group_texts: List[str] = []
         group_indices: List[int] = []
         
@@ -256,6 +252,7 @@ class ClusteringService:
     ) -> Dict[str, List[SemanticGroup]]:
         threshold = settings.clustering_similarity_threshold
         
+        # Initialize cluster map (including generic cluster)
         cluster_map: Dict[str, List[SemanticGroup]] = {
             c["cluster_id"]: [] for c in clusters_with_embeddings
         }

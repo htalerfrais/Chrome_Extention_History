@@ -1,6 +1,3 @@
-// Dashboard component - main content area
-// Displays clusters for the current session
-
 import ClustersSection from './ClustersSection';
 import SessionTabs from './SessionTabs';
 import type { SessionResults, SessionAnalysisStates } from '../types/session';

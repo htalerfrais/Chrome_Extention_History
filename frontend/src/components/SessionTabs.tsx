@@ -1,6 +1,3 @@
-// SessionTabs component - displays session navigation tabs
-// Shows different browsing sessions with metadata and allows switching between them
-
 interface SessionData {
   session_start_time: string;
   session_end_time: string;

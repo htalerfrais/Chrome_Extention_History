@@ -7,6 +7,7 @@ class HistoryService {
         try {
             console.log('Initializing history collection...');
             
+            // Check if we already have history in storage
             const stored = await chrome.storage.local.get(['historyItems']);
             if (stored.historyItems && stored.historyItems.length > 0) {
                 console.log(`Found ${stored.historyItems.length} existing history items in storage`);
@@ -95,6 +96,7 @@ class HistoryService {
             
             const processedItem = processed[0];
             
+            // Get existing items
             const stored = await chrome.storage.local.get({ historyItems: [] });
             let historyItems = stored.historyItems || [];
             

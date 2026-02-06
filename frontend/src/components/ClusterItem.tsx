@@ -1,6 +1,3 @@
-// ClusterItem component - displays individual history items
-// Shows favicon, title, URL, and visit time for each browsing history item
-
 import { useState } from 'react';
 
 interface HistoryItem {

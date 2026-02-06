@@ -1,6 +1,3 @@
-// ChatBubble component - displays individual chat messages
-// Shows message from user or assistant with appropriate styling
-
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
 import type { ChatMessage } from '../types/chat';

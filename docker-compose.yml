@@ -43,7 +43,7 @@ services:
       # Database configuration
       - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/chrome_history
     volumes:
-      # Mount source code for development (comment out for production)
+      # Mount source code for development 
       - ./backend/app:/app/app
     depends_on:
       postgres:

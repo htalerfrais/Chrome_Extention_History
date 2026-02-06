@@ -1,6 +1,3 @@
-// Header component for the dashboard
-// Contains logo, title, navigation controls, and action buttons
-
 interface HeaderProps {
   onSettings: () => void;
 }
