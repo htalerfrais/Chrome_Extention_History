@@ -12067,7 +12067,24 @@ function Header({
 }
 function ErrorDisplay({ message, onRetry }) {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "error-container", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "error-icon", children: "❌" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "error-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+      "svg",
+      {
+        width: "64",
+        height: "64",
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "1.5",
+        strokeLinecap: "round",
+        strokeLinejoin: "round",
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "15", y1: "9", x2: "9", y2: "15" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "9", y1: "9", x2: "15", y2: "15" })
+        ]
+      }
+    ) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { children: "Analysis Failed" }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: message }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-primary", onClick: onRetry, children: "Try Again" })
@@ -22256,7 +22273,7 @@ function ChatWindow() {
       messages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-full w-full flex items-center justify-center text-white/40 text-sm", children: "Start a conversation" }) : messages.map((message, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBubble, { message }, `${message.role}-${index2}-${message.timestamp.getTime()}`)),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: messagesEndRef })
     ] }),
-    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-4 py-2 text-xs text-red-400 text-center", children: error }),
+    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-error", children: error }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-3 flex items-center gap-2 border-t border-white/10 bg-[#080808]", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "input",

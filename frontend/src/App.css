@@ -344,9 +344,17 @@ body {
 }
 
 .error-icon {
-    font-size: 4rem;
     margin-bottom: 1.5rem;
-    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.5));
+    color: #ef4444;
+    filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.4));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.error-icon svg {
+    width: 64px;
+    height: 64px;
 }
 
 .error-container h3 {

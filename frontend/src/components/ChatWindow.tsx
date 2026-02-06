@@ -109,7 +109,7 @@ export default function ChatWindow() {
       </div>
 
       {error && (
-        <div className="px-4 py-2 text-xs text-red-400 text-center">{error}</div>
+        <div className="chat-error">{error}</div>
       )}
 
       <div className="px-4 py-3 flex items-center gap-2 border-t border-white/10 bg-[#080808]">

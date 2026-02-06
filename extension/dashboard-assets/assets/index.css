@@ -874,10 +874,6 @@ html, body, #root {
   text-align: left !important;
 }
 
-.text-center{
-  text-align: center !important;
-}
-
 .font-sans{
   font-family: Outfit, Inter, ui-sans-serif, system-ui, Segoe UI, Roboto, Helvetica Neue, Arial, Noto Sans, Apple Color Emoji, Segoe UI Emoji, Segoe UI Symbol !important;
 }
@@ -939,11 +935,6 @@ html, body, #root {
 .text-black{
   --tw-text-opacity: 1 !important;
   color: rgb(0 0 0 / var(--tw-text-opacity, 1)) !important;
-}
-
-.text-red-400{
-  --tw-text-opacity: 1 !important;
-  color: rgb(248 113 113 / var(--tw-text-opacity, 1)) !important;
 }
 
 .text-white{
@@ -1410,9 +1401,17 @@ body {
 }
 
 .error-icon {
-    font-size: 4rem;
     margin-bottom: 1.5rem;
-    filter: drop-shadow(0 0 10px rgba(239, 68, 68, 0.5));
+    color: #ef4444;
+    filter: drop-shadow(0 0 15px rgba(239, 68, 68, 0.4));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.error-icon svg {
+    width: 64px;
+    height: 64px;
 }
 
 .error-container h3 {
