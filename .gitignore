@@ -1,6 +1,7 @@
 .env
 /venv/
 /history-samples/
+.cursor/
 
 __pycache__/
 *.py[cod]
