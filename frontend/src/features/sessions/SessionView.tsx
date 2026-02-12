@@ -23,7 +23,7 @@ export default function SessionView() {
 
   if (!activeSessionId) {
     return (
-      <div className="flex items-center justify-center h-full text-white/30 text-sm">
+      <div className="flex items-center justify-center h-full text-text-tertiary text-sm">
         Select a session from the sidebar
       </div>
     );

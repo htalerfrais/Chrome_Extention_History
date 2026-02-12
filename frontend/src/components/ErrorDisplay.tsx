@@ -1,4 +1,4 @@
-import { AlertCircle } from 'lucide-react';
+import { AlertCircle, RotateCcw } from 'lucide-react';
 
 interface ErrorDisplayProps {
   message: string;
@@ -7,14 +7,19 @@ interface ErrorDisplayProps {
 
 export default function ErrorDisplay({ message, onRetry }: ErrorDisplayProps) {
   return (
-    <div className="flex flex-col items-center justify-center gap-4 py-16 text-white/60">
-      <AlertCircle size={48} strokeWidth={1.5} />
-      <h3 className="text-sm uppercase tracking-[0.3em]">Analysis Failed</h3>
-      <p className="text-xs text-white/40 max-w-sm text-center">{message}</p>
+    <div className="flex flex-col items-center justify-center gap-5 py-20">
+      <div className="p-4 rounded-full bg-error/10">
+        <AlertCircle size={32} strokeWidth={1.5} className="text-error" />
+      </div>
+      <div className="text-center space-y-2">
+        <h3 className="text-sm font-semibold text-text">Something went wrong</h3>
+        <p className="text-xs text-text-tertiary max-w-sm">{message}</p>
+      </div>
       <button
-        className="px-6 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+        className="flex items-center gap-2 px-5 py-2.5 text-xs font-medium rounded-lg bg-surface hover:bg-surface-hover text-text-secondary hover:text-text transition-colors duration-150"
         onClick={onRetry}
       >
+        <RotateCcw size={14} />
         Try Again
       </button>
     </div>

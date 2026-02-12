@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { ExternalLink } from 'lucide-react';
 
 interface HistoryItem {
   url: string;
@@ -28,7 +29,6 @@ export default function ClusterItem({ item }: ClusterItemProps) {
           url.includes('.docx')) {
         return 'local-file';
       }
-      
       const urlObj = new URL(url);
       return urlObj.hostname;
     } catch {
@@ -42,11 +42,9 @@ export default function ClusterItem({ item }: ClusterItemProps) {
 
   const getAlternativeFaviconUrls = (url: string): string[] => {
     const domain = getDomain(url);
-    
     if (domain === 'local-file' || domain === 'unknown' || domain === '') {
       return [];
     }
-    
     return [
       `https://www.google.com/s2/favicons?domain=${domain}&sz=32`,
       `https://favicon.io/favicon/${domain}`,
@@ -83,7 +81,6 @@ export default function ClusterItem({ item }: ClusterItemProps) {
     if (title.includes('.png') || title.includes('.jpg') || title.includes('.jpeg')) return 'IMG';
     if (title.includes('.doc') || title.includes('.docx')) return 'DOC';
     if (title.includes('.xls') || title.includes('.xlsx')) return 'XLS';
-    
     return title
       .split(' ')
       .slice(0, 2)
@@ -99,36 +96,43 @@ export default function ClusterItem({ item }: ClusterItemProps) {
   const shouldShowFallback = showFallback || alternativeUrls.length === 0;
 
   return (
-    <div className="flex items-center gap-3 py-2">
+    <div className="group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-surface transition-colors duration-150">
+      {/* Favicon */}
       {!shouldShowFallback ? (
         <img
           src={currentFaviconUrl}
           alt=""
-          className="w-5 h-5"
+          className="w-6 h-6 rounded"
           onError={handleFaviconError}
         />
       ) : (
-        <div className="w-5 h-5 text-[10px] font-semibold bg-white text-black flex items-center justify-center">
+        <div className="w-6 h-6 text-xxs font-semibold bg-accent-muted text-accent-hover flex items-center justify-center rounded">
           {getInitials(item.title)}
         </div>
       )}
+
+      {/* Text */}
       <div className="flex-1 min-w-0">
-        <div className="text-sm text-white truncate" title={item.title}>
+        <div className="text-sm text-text truncate" title={item.title}>
           {item.title}
         </div>
-        <div className="text-xs text-white/50 truncate" title={domain}>
+        <div className="text-xs text-text-tertiary truncate" title={domain}>
           {domain}
         </div>
       </div>
-      <div className="text-xs text-white/50">
+
+      {/* Date */}
+      <div className="text-xxs text-text-ghost flex-shrink-0">
         {visitTime}
       </div>
-      <button 
-        className="text-white/60 hover:text-white"
+
+      {/* Open link */}
+      <button
+        className="p-1.5 rounded text-text-ghost opacity-0 group-hover:opacity-100 hover:text-accent hover:bg-accent-subtle transition-all duration-150"
         onClick={handleOpenUrl}
-        title="Ouvrir dans un nouvel onglet"
+        title="Open in new tab"
       >
-        ↗
+        <ExternalLink size={14} />
       </button>
     </div>
   );
