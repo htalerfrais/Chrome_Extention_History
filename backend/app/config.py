@@ -46,6 +46,7 @@ class Settings(BaseSettings):
     
     search_limit_clusters: int = 5
     search_limit_items_per_cluster: int = 4
+    search_overfetch_multiplier: int = 3
     
     embedding_provider: str = "google"
     embedding_model: str = "gemini-embedding-001"
