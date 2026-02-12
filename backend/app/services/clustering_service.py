@@ -126,22 +126,48 @@ class ClusteringService:
 
         return response
 
-    def _build_item_embedding_text(self, item: Any) -> Optional[str]:
-        parts: List[str] = []
-        if item.title:
-            parts.append(item.title)
-        if item.url_hostname:
-            parts.append(item.url_hostname)
-        if item.url_pathname_clean:
-            parts.append(item.url_pathname_clean)
-        if item.url_search_query:
-            parts.append(item.url_search_query)
+    def _build_group_embedding_text(self, group: SemanticGroup) -> Optional[str]:
+        """Build natural-language embedding text from a SemanticGroup.
+        
+        Collects all unique search queries and pathnames from items in the group
+        to produce a richer text than title+hostname alone.
+        """
+        title = (group.title or "").strip()
+        hostname = (group.hostname or "").strip()
 
-        if not parts:
+        if not title and not hostname:
             return None
 
-        text = " | ".join(part.strip() for part in parts if part)
-        return text[:1200]
+        # Collect unique non-empty search queries from all items
+        search_queries: List[str] = []
+        seen_queries: set = set()
+        for item in group.items:
+            q = (item.url_search_query or "").strip()
+            if q and q not in seen_queries:
+                seen_queries.add(q)
+                search_queries.append(q)
+
+        # Collect unique non-trivial pathnames from all items (skip bare "/")
+        pathnames: List[str] = []
+        seen_paths: set = set()
+        for item in group.items:
+            p = (item.url_pathname_clean or "").strip()
+            if p and p != "/" and p not in seen_paths:
+                seen_paths.add(p)
+                pathnames.append(p)
+
+        # Build natural-language text
+        text = title if title else hostname
+        if title and hostname:
+            text = f"{title} on {hostname}"
+
+        if pathnames:
+            text += f", pages: {', '.join(pathnames)}"
+
+        if search_queries:
+            text += f". Searched: {', '.join(search_queries)}"
+
+        return text.strip()[:1200]
 
     def _build_cluster_meta_embedding_text(self, cluster_meta: Dict[str, Any]) -> str:
         """Build embedding text from cluster metadata (theme + summary)."""
@@ -191,7 +217,8 @@ class ClusteringService:
 
     async def _embed_semantic_groups(self, groups: List[SemanticGroup]) -> List[SemanticGroup]:
         """
-        Embed each SemanticGroup once based on title + hostname + example_pathname_clean.
+        Embed each SemanticGroup once using natural-language text built from
+        title, hostname, all unique pathnames, and all unique search queries.
         Returns groups with embedding field populated.
         """
         if not self.embedding_service or not groups:
@@ -202,16 +229,8 @@ class ClusteringService:
         group_indices: List[int] = []
         
         for idx, group in enumerate(groups):
-            parts: List[str] = []
-            if group.title:
-                parts.append(group.title)
-            if group.hostname:
-                parts.append(group.hostname)
-            if group.example_pathname_clean:
-                parts.append(group.example_pathname_clean)
-            
-            if parts:
-                text = " | ".join(part.strip() for part in parts if part)[:1200]
+            text = self._build_group_embedding_text(group)
+            if text:
                 group_texts.append(text)
                 group_indices.append(idx)
 
