@@ -12,8 +12,8 @@
     font-family: 'Outfit', system-ui, Avenir, Helvetica, Arial, sans-serif;
     line-height: 1.5;
     font-weight: 400;
-    color: #ffffff;
-    background-color: #000000;
+    color: #E8EAED;
+    background-color: #0B0D13;
     font-synthesis: none;
     text-rendering: optimizeLegibility;
     -webkit-font-smoothing: antialiased;
@@ -25,27 +25,47 @@ a { text-decoration: none; color: inherit; }
 
 body { margin: 0; min-width: 320px; min-height: 100vh; width: 100%; }
 
-h1 { font-size: 1rem; line-height: 1.2; font-weight: 500; }
+h1 { font-size: 1rem; line-height: 1.2; font-weight: 600; }
 
 button { background: transparent; color: inherit; border: 0; padding: 0; cursor: pointer; }
-
-/* No light mode, no animations */
 
 @layer utilities {
   .thin-scrollbar {
     scrollbar-width: thin;
-    scrollbar-color: rgba(255, 255, 255, 0.15) transparent;
+    scrollbar-color: rgba(99, 102, 241, 0.2) transparent;
   }
-
   .thin-scrollbar::-webkit-scrollbar {
     width: 4px;
   }
-
   .thin-scrollbar::-webkit-scrollbar-track {
     background: transparent;
   }
-
   .thin-scrollbar::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.15);
+    background-color: rgba(99, 102, 241, 0.2);
+    border-radius: 2px;
   }
+  .thin-scrollbar::-webkit-scrollbar-thumb:hover {
+    background-color: rgba(99, 102, 241, 0.35);
+  }
+
+  .animate-fade-in-up {
+    animation: fadeInUp 0.25s ease-out;
+  }
+
+  .animate-dot-bounce span {
+    display: inline-block;
+    animation: dotBounce 1.2s ease-in-out infinite;
+  }
+  .animate-dot-bounce span:nth-child(2) { animation-delay: 0.15s; }
+  .animate-dot-bounce span:nth-child(3) { animation-delay: 0.3s; }
+}
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-4px); opacity: 1; }
 }

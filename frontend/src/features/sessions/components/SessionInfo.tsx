@@ -22,11 +22,11 @@ export default function SessionInfo({ sessionData }: SessionInfoProps) {
   const endLabel = endTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <div className="flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/40">
-      <span>{dateLabel}</span>
-      <span>{startLabel}&nbsp;&rarr;&nbsp;{endLabel}</span>
-      <span>{duration} min</span>
-      <span>{clusterCount} topics</span>
+    <div className="flex flex-wrap items-center gap-2 text-xxs text-text-tertiary">
+      <span className="bg-surface px-2 py-0.5 rounded">{dateLabel}</span>
+      <span className="bg-surface px-2 py-0.5 rounded">{startLabel}&nbsp;&rarr;&nbsp;{endLabel}</span>
+      <span className="bg-surface px-2 py-0.5 rounded">{duration} min</span>
+      <span className="bg-accent-subtle text-accent-hover px-2 py-0.5 rounded font-medium">{clusterCount} topics</span>
     </div>
   );
 }

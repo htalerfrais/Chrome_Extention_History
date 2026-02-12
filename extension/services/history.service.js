@@ -109,7 +109,7 @@ class HistoryService {
                     return null;
                 }
             }
-
+            
             historyItems.push(processedItem);
             
             if (historyItems.length > this.MAX_ITEMS) {

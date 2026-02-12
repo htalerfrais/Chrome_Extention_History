@@ -21,7 +21,7 @@ export default function SessionList() {
 
   if (sortedSessions.length === 0) {
     return (
-      <div className="px-3 py-4 text-xs text-white/30 text-center">
+      <div className="px-5 py-6 text-xs text-text-ghost text-center">
         No sessions yet
       </div>
     );
@@ -35,7 +35,7 @@ export default function SessionList() {
   };
 
   return (
-    <div className="flex flex-col gap-1 px-2 py-2 overflow-y-auto thin-scrollbar">
+    <div className="flex flex-col gap-0.5 px-3 py-1">
       {sortedSessions.map((session, index) => {
         const sessionNumber = index + 1;
         const startTime = session.startTime;
@@ -69,16 +69,16 @@ export default function SessionList() {
           <button
             key={session.sessionId}
             onClick={() => handleSessionClick(session.sessionId)}
-            className={`flex flex-col items-start gap-0.5 w-full px-3 py-2 text-left rounded transition-colors ${
+            className={`flex flex-col items-start gap-0.5 w-full px-3 py-2.5 text-left rounded-lg transition-colors duration-150 ${
               isActive
-                ? 'bg-white/10 text-white'
-                : 'text-white/50 hover:bg-white/5 hover:text-white/70'
+                ? 'bg-accent-subtle text-text border-l-2 border-accent'
+                : 'text-text-secondary hover:bg-surface hover:text-text'
             }`}
           >
-            <span className="text-[11px] uppercase tracking-[0.2em]">
+            <span className="text-xs font-medium">
               Session {sessionNumber}
             </span>
-            <span className="text-[10px] text-white/40">
+            <span className="text-xxs text-text-tertiary">
               {startTime.toLocaleDateString()} · {statusText}
             </span>
           </button>

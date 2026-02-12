@@ -18,21 +18,26 @@ interface ClusterDetailProps {
 
 export default function ClusterDetail({ cluster }: ClusterDetailProps) {
   return (
-    <div className="p-6 space-y-4">
-      <div>
-        <h3 className="text-xs uppercase tracking-[0.3em] text-white/60">
+    <div className="p-8 space-y-6">
+      {/* Header */}
+      <div className="space-y-2">
+        <h3 className="text-base font-semibold text-text leading-snug">
           {cluster.theme}
         </h3>
         {cluster.summary && (
-          <p className="text-sm text-white/50 mt-2">{cluster.summary}</p>
+          <p className="text-sm text-text-secondary leading-relaxed">{cluster.summary}</p>
         )}
       </div>
 
-      <div className="text-[10px] uppercase tracking-[0.2em] text-white/30">
-        {cluster.items.length} page{cluster.items.length !== 1 ? 's' : ''} visited
+      {/* Count badge */}
+      <div className="flex items-center gap-2">
+        <span className="text-xxs font-medium text-accent-hover bg-accent-subtle px-2.5 py-1 rounded">
+          {cluster.items.length} page{cluster.items.length !== 1 ? 's' : ''} visited
+        </span>
       </div>
 
-      <div className="space-y-1 divide-y divide-white/5">
+      {/* Items list */}
+      <div className="space-y-0.5">
         {cluster.items.map((item, index) => (
           <ClusterItem key={`${item.url}-${item.visit_time}-${index}`} item={item} />
         ))}
