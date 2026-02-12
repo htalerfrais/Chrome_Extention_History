@@ -525,10 +525,6 @@ html, body, #root {
     -moz-osx-font-smoothing: grayscale;
   }
 
-.col-span-full{
-  grid-column: 1 / -1;
-}
-
 .mx-3{
   margin-left: 0.75rem;
   margin-right: 0.75rem;
@@ -543,8 +539,23 @@ html, body, #root {
   margin-bottom: 0.25rem;
 }
 
+.mt-0\.5{
+  margin-top: 0.125rem;
+}
+
+.mt-2{
+  margin-top: 0.5rem;
+}
+
 .mt-6{
   margin-top: 1.5rem;
+}
+
+.line-clamp-6{
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 6;
 }
 
 .block{
@@ -553,10 +564,6 @@ html, body, #root {
 
 .flex{
   display: flex;
-}
-
-.grid{
-  display: grid;
 }
 
 .h-5{
@@ -579,10 +586,6 @@ html, body, #root {
   max-height: 12rem;
 }
 
-.max-h-80{
-  max-height: 20rem;
-}
-
 .min-h-0{
   min-height: 0px;
 }
@@ -603,8 +606,12 @@ html, body, #root {
   width: 1.5rem;
 }
 
-.w-\[320px\]{
-  width: 320px;
+.w-\[420px\]{
+  width: 420px;
+}
+
+.w-\[480px\]{
+  width: 480px;
 }
 
 .w-full{
@@ -644,10 +651,6 @@ html, body, #root {
 
 .animate-spin{
   animation: spin 1s linear infinite;
-}
-
-.grid-cols-1{
-  grid-template-columns: repeat(1, minmax(0, 1fr));
 }
 
 .flex-col{
@@ -702,8 +705,10 @@ html, body, #root {
   gap: 1rem;
 }
 
-.gap-8{
-  gap: 2rem;
+.space-y-1 > :not([hidden]) ~ :not([hidden]){
+  --tw-space-y-reverse: 0;
+  margin-top: calc(0.25rem * calc(1 - var(--tw-space-y-reverse)));
+  margin-bottom: calc(0.25rem * var(--tw-space-y-reverse));
 }
 
 .space-y-2 > :not([hidden]) ~ :not([hidden]){
@@ -800,11 +805,6 @@ html, body, #root {
   background-color: rgb(8 8 8 / var(--tw-bg-opacity, 1));
 }
 
-.bg-\[\#111111\]{
-  --tw-bg-opacity: 1;
-  background-color: rgb(17 17 17 / var(--tw-bg-opacity, 1));
-}
-
 .bg-black{
   --tw-bg-opacity: 1;
   background-color: rgb(0 0 0 / var(--tw-bg-opacity, 1));
@@ -882,14 +882,6 @@ html, body, #root {
 .py-4{
   padding-top: 1rem;
   padding-bottom: 1rem;
-}
-
-.pb-6{
-  padding-bottom: 1.5rem;
-}
-
-.pr-2{
-  padding-right: 0.5rem;
 }
 
 .text-left{
@@ -978,6 +970,10 @@ html, body, #root {
 
 .text-white\/30{
   color: rgb(255 255 255 / 0.3);
+}
+
+.text-white\/35{
+  color: rgb(255 255 255 / 0.35);
 }
 
 .text-white\/40{
@@ -1089,10 +1085,6 @@ button { background: transparent; color: inherit; border: 0; padding: 0; cursor:
 
 @media (min-width: 768px){
 
-  .md\:grid-cols-2{
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .md\:flex-row{
     flex-direction: row;
   }
@@ -1107,12 +1099,5 @@ button { background: transparent; color: inherit; border: 0; padding: 0; cursor:
 
   .md\:justify-between{
     justify-content: space-between;
-  }
-}
-
-@media (min-width: 1280px){
-
-  .xl\:grid-cols-3{
-    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

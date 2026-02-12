@@ -29,7 +29,7 @@ export default function AppLayout() {
       {/* Right chat sidebar */}
       <div
         className={`flex-shrink-0 border-l border-white/10 bg-[#080808] transition-all ${
-          isChatOpen ? 'w-[320px]' : 'w-12'
+          isChatOpen ? 'w-[600px]' : 'w-12'
         }`}
       >
         <ChatPanel />

@@ -30,7 +30,7 @@ export default function SessionView() {
   }
 
   return (
-    <main className="w-full">
+    <main className="w-full h-full">
       <ClustersSection
         sessionData={currentSessionData}
         isAnalyzing={isAnalyzing}

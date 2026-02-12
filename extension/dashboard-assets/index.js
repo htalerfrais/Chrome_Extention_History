@@ -24913,21 +24913,32 @@ function ClusterItem({ item }) {
     )
   ] });
 }
-function ClusterCard({ cluster }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#111111] text-white p-6 space-y-4", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs uppercase tracking-[0.3em] text-white/60", children: cluster.theme }),
-    cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white/60", title: cluster.summary, children: cluster.summary }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-80 overflow-y-auto pr-2 space-y-2 thin-scrollbar", children: cluster.items.map((item, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index2}`)) })
+function ClusterDetail({ cluster }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-6 space-y-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs uppercase tracking-[0.3em] text-white/60", children: cluster.theme }),
+      cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/50 mt-2", children: cluster.summary })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] uppercase tracking-[0.2em] text-white/30", children: [
+      cluster.items.length,
+      " page",
+      cluster.items.length !== 1 ? "s" : "",
+      " visited"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-1 divide-y divide-white/5", children: cluster.items.map((item, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index2}`)) })
   ] });
 }
 function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
+  var _a;
+  const [selectedIndex, setSelectedIndex] = reactExports.useState(0);
   const clusters = (sessionData == null ? void 0 : sessionData.clusters) || [];
   const isLoading = isAnalyzing || isReanalyzing;
   if (!isLoading && (!sessionData || clusters.length === 0)) {
     return null;
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black text-white w-full", children: [
-    (sessionData || isReanalyzing) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between", children: [
+  const selectedCluster = (_a = clusters[selectedIndex]) != null ? _a : null;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-black text-white", children: [
+    (sessionData || isReanalyzing) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-shrink-0 w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-white/10", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.4em] text-white/70", children: "Topics" }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-4 md:justify-end", children: [
         sessionData && /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
@@ -24942,11 +24953,33 @@ function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isRean
         )
       ] })
     ] }),
-    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "col-span-full flex flex-col items-center justify-center py-16", children: [
+    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 flex flex-col items-center justify-center py-16", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 uppercase tracking-[0.35em] text-xs mt-6", children: isReanalyzing ? "Re-analyzing Session" : "Analyzing Session" })
-    ] }) }),
-    !isLoading && sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: clusters.map((cluster, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index2}`)) })
+    ] }),
+    !isLoading && sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-1 min-h-0", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[420px] flex-shrink-0 border-r border-white/10 overflow-y-auto thin-scrollbar py-2", children: clusters.map((cluster, index2) => {
+        const isSelected = index2 === selectedIndex;
+        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+          "button",
+          {
+            onClick: () => setSelectedIndex(index2),
+            className: `w-full text-left px-4 py-3 flex flex-col gap-1 transition-colors ${isSelected ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white/70"}`,
+            children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs uppercase tracking-[0.2em]", children: cluster.theme }),
+              cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40 line-clamp-6 leading-relaxed", children: cluster.summary }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/35 mt-0.5", children: [
+                cluster.items.length,
+                " item",
+                cluster.items.length !== 1 ? "s" : ""
+              ] })
+            ]
+          },
+          `${cluster.theme}-${index2}`
+        );
+      }) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0 overflow-y-auto thin-scrollbar", children: selectedCluster && /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterDetail, { cluster: selectedCluster }) })
+    ] })
   ] });
 }
 function ErrorDisplay({ message, onRetry }) {
@@ -24981,7 +25014,7 @@ function SessionView() {
   if (!activeSessionId) {
     return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center h-full text-white/30 text-sm", children: "Select a session from the sidebar" });
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "w-full h-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
     ClustersSection,
     {
       sessionData: currentSessionData,
@@ -25018,7 +25051,7 @@ function AppLayout() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       "div",
       {
-        className: `flex-shrink-0 border-l border-white/10 bg-[#080808] transition-all ${isChatOpen ? "w-[320px]" : "w-12"}`,
+        className: `flex-shrink-0 border-l border-white/10 bg-[#080808] transition-all ${isChatOpen ? "w-[480px]" : "w-12"}`,
         children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChatPanel, {})
       }
     )
