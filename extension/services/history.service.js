@@ -100,6 +100,16 @@ class HistoryService {
             const stored = await chrome.storage.local.get({ historyItems: [] });
             let historyItems = stored.historyItems || [];
             
+            // Deduplicate against the last item in storage
+            if (historyItems.length > 0) {
+                const lastItem = historyItems[historyItems.length - 1];
+                const deduped = filterHistoryURL([lastItem, processedItem]);
+                if (deduped.length === 1) {
+                    console.log('Item filtered out (duplicate of last stored):', rawItem.url);
+                    return null;
+                }
+            }
+
             historyItems.push(processedItem);
             
             if (historyItems.length > this.MAX_ITEMS) {
