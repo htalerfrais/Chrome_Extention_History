@@ -25051,7 +25051,7 @@ function AppLayout() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       "div",
       {
-        className: `flex-shrink-0 border-l border-white/10 bg-[#080808] transition-all ${isChatOpen ? "w-[480px]" : "w-12"}`,
+        className: `flex-shrink-0 border-l border-white/10 bg-[#080808] transition-all ${isChatOpen ? "w-[600px]" : "w-12"}`,
         children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChatPanel, {})
       }
     )
