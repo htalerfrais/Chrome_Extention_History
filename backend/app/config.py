@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     chat_max_tokens: int = 8000
     chat_temperature: float = 0.7
     chat_history_limit: int = 10
+    chat_max_tool_iterations: int = 5
     
     search_limit_clusters: int = 5
     search_limit_items_per_cluster: int = 4
