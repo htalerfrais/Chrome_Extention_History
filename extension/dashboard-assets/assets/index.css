@@ -1016,6 +1016,11 @@ html, body, #root {
   line-height: 1.5rem;
 }
 
+.text-lg{
+  font-size: 1.125rem;
+  line-height: 1.75rem;
+}
+
 .text-sm{
   font-size: 0.875rem;
   line-height: 1.25rem;
@@ -1172,6 +1177,19 @@ html, body, #root {
     background-color: rgba(99, 102, 241, 0.35);
   }
 
+.animate-fade-in-up {
+    animation: fadeInUp 0.25s ease-out;
+  }
+
+.animate-dot-bounce span {
+    display: inline-block;
+    animation: dotBounce 1.2s ease-in-out infinite;
+  }
+
+.animate-dot-bounce span:nth-child(2) { animation-delay: 0.15s; }
+
+.animate-dot-bounce span:nth-child(3) { animation-delay: 0.3s; }
+
 a { text-decoration: none; color: inherit; }
 
 body { margin: 0; min-width: 320px; min-height: 100vh; width: 100%; }
@@ -1179,6 +1197,16 @@ body { margin: 0; min-width: 320px; min-height: 100vh; width: 100%; }
 h1 { font-size: 1rem; line-height: 1.2; font-weight: 600; }
 
 button { background: transparent; color: inherit; border: 0; padding: 0; cursor: pointer; }
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dotBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+  30%           { transform: translateY(-4px); opacity: 1; }
+}
 
 .hover\:bg-accent-subtle:hover{
   background-color: rgba(99, 102, 241, 0.08);

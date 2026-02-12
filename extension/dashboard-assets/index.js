@@ -24628,7 +24628,7 @@ function ChatBubble({ message }) {
       minute: "2-digit"
     });
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `flex ${isUser ? "justify-end" : "justify-start"}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `flex animate-fade-in-up ${isUser ? "justify-end" : "justify-start"}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "div",
     {
       className: `max-w-[85%] space-y-2 rounded-xl px-4 py-3 ${isUser ? "bg-accent text-white" : "bg-bg-elevated text-text-secondary"}`,
@@ -24775,6 +24775,11 @@ function ChatWindow() {
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto px-5 py-4 space-y-4 thin-scrollbar", children: [
       messages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-full w-full flex items-center justify-center text-text-ghost text-sm", children: "Start a conversation" }) : messages.map((message, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBubble, { message }, `${message.role}-${index2}-${message.timestamp.getTime()}`)),
+      isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex justify-start animate-fade-in-up", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-bg-elevated rounded-xl px-4 py-3 animate-dot-bounce text-text-tertiary text-lg tracking-widest", children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "." })
+      ] }) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: messagesEndRef })
     ] }),
     error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-5 mb-2 px-3 py-2 text-xs text-error bg-error/10 rounded-lg", children: error }),

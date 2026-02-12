@@ -21,7 +21,7 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
   };
 
   return (
-    <div className={`flex ${isUser ? 'justify-end' : 'justify-start'}`}>
+    <div className={`flex animate-fade-in-up ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div
         className={`max-w-[85%] space-y-2 rounded-xl px-4 py-3 ${
           isUser

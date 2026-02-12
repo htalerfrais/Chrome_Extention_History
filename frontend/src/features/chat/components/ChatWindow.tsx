@@ -37,6 +37,13 @@ export default function ChatWindow() {
             <ChatBubble key={`${message.role}-${index}-${message.timestamp.getTime()}`} message={message} />
           ))
         )}
+        {isLoading && (
+          <div className="flex justify-start animate-fade-in-up">
+            <div className="bg-bg-elevated rounded-xl px-4 py-3 animate-dot-bounce text-text-tertiary text-lg tracking-widest">
+              <span>.</span><span>.</span><span>.</span>
+            </div>
+          </div>
+        )}
         <div ref={messagesEndRef} />
       </div>
 
