@@ -14441,7 +14441,7 @@ const createLucideIcon = (iconName, iconNode) => {
   Component.displayName = toPascalCase(iconName);
   return Component;
 };
-const __iconNode$5 = [
+const __iconNode$b = [
   [
     "path",
     {
@@ -14462,21 +14462,31 @@ const __iconNode$5 = [
   ["circle", { cx: "20", cy: "21", r: ".5", key: "yhc1fs" }],
   ["circle", { cx: "20", cy: "8", r: ".5", key: "1e43v0" }]
 ];
-const BrainCircuit = createLucideIcon("brain-circuit", __iconNode$5);
-const __iconNode$4 = [
+const BrainCircuit = createLucideIcon("brain-circuit", __iconNode$b);
+const __iconNode$a = [["path", { d: "m6 9 6 6 6-6", key: "qrunsl" }]];
+const ChevronDown = createLucideIcon("chevron-down", __iconNode$a);
+const __iconNode$9 = [["path", { d: "m18 15-6-6-6 6", key: "153udz" }]];
+const ChevronUp = createLucideIcon("chevron-up", __iconNode$9);
+const __iconNode$8 = [
   ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
   ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
   ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
 ];
-const CircleAlert = createLucideIcon("circle-alert", __iconNode$4);
-const __iconNode$3 = [
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$8);
+const __iconNode$7 = [
+  ["path", { d: "M15 3h6v6", key: "1q9fwt" }],
+  ["path", { d: "M10 14 21 3", key: "gplh6r" }],
+  ["path", { d: "M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6", key: "a6xqqp" }]
+];
+const ExternalLink = createLucideIcon("external-link", __iconNode$7);
+const __iconNode$6 = [
   ["rect", { width: "7", height: "7", x: "3", y: "3", rx: "1", key: "1g98yp" }],
   ["rect", { width: "7", height: "7", x: "14", y: "3", rx: "1", key: "6d4xhi" }],
   ["rect", { width: "7", height: "7", x: "14", y: "14", rx: "1", key: "nxv5o0" }],
   ["rect", { width: "7", height: "7", x: "3", y: "14", rx: "1", key: "1bb6yr" }]
 ];
-const LayoutGrid = createLucideIcon("layout-grid", __iconNode$3);
-const __iconNode$2 = [
+const LayoutGrid = createLucideIcon("layout-grid", __iconNode$6);
+const __iconNode$5 = [
   [
     "path",
     {
@@ -14485,7 +14495,29 @@ const __iconNode$2 = [
     }
   ]
 ];
-const MessageSquare = createLucideIcon("message-square", __iconNode$2);
+const MessageSquare = createLucideIcon("message-square", __iconNode$5);
+const __iconNode$4 = [
+  ["rect", { width: "18", height: "18", x: "3", y: "3", rx: "2", key: "afitv7" }],
+  ["path", { d: "M15 3v18", key: "14nvp0" }],
+  ["path", { d: "m8 9 3 3-3 3", key: "12hl5m" }]
+];
+const PanelRightClose = createLucideIcon("panel-right-close", __iconNode$4);
+const __iconNode$3 = [
+  ["path", { d: "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8", key: "1357e3" }],
+  ["path", { d: "M3 3v5h5", key: "1xhq8a" }]
+];
+const RotateCcw = createLucideIcon("rotate-ccw", __iconNode$3);
+const __iconNode$2 = [
+  [
+    "path",
+    {
+      d: "M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z",
+      key: "1ffxy3"
+    }
+  ],
+  ["path", { d: "m21.854 2.147-10.94 10.939", key: "12cjpa" }]
+];
+const Send = createLucideIcon("send", __iconNode$2);
 const __iconNode$1 = [
   [
     "path",
@@ -14891,7 +14923,7 @@ function SessionList() {
     startTime: new Date(session.start_time)
   })).sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
   if (sortedSessions.length === 0) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-3 py-4 text-xs text-white/30 text-center", children: "No sessions yet" });
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-5 py-6 text-xs text-text-ghost text-center", children: "No sessions yet" });
   }
   const handleSessionClick = (sessionId) => {
     setActiveSession(sessionId);
@@ -14899,7 +14931,7 @@ function SessionList() {
       navigate("/sessions");
     }
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-1 px-2 py-2 overflow-y-auto thin-scrollbar", children: sortedSessions.map((session, index2) => {
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-0.5 px-3 py-1", children: sortedSessions.map((session, index2) => {
     var _a, _b;
     const sessionNumber = index2 + 1;
     const startTime = session.startTime;
@@ -14929,13 +14961,13 @@ function SessionList() {
       "button",
       {
         onClick: () => handleSessionClick(session.sessionId),
-        className: `flex flex-col items-start gap-0.5 w-full px-3 py-2 text-left rounded transition-colors ${isActive ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white/70"}`,
+        className: `flex flex-col items-start gap-0.5 w-full px-3 py-2.5 text-left rounded-lg transition-colors duration-150 ${isActive ? "bg-accent-subtle text-text border-l-2 border-accent" : "text-text-secondary hover:bg-surface hover:text-text"}`,
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] uppercase tracking-[0.2em]", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-medium", children: [
             "Session ",
             sessionNumber
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/40", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xxs text-text-tertiary", children: [
             startTime.toLocaleDateString(),
             " · ",
             statusText
@@ -14968,36 +15000,36 @@ Session Gap: ${sessionGap} minutes
 
 To switch environments, modify extension/api/config.js`);
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-[#060606] border-r border-white/10", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-4 flex items-center justify-between", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-sm tracking-widest uppercase text-white", children: "Obra" }),
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-bg-deep", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 py-5 flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-sm font-semibold tracking-widest uppercase text-text", children: "Obra" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
           onClick: openSettings,
-          className: "p-1 text-white/40 hover:text-white transition-colors",
+          className: "p-1.5 rounded text-text-tertiary hover:text-text-secondary hover:bg-surface transition-colors duration-150",
           title: "Settings",
-          children: /* @__PURE__ */ jsxRuntimeExports.jsx(Settings, { size: 16 })
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx(Settings, { size: 15 })
         }
       )
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "flex flex-col gap-1 px-2", children: navItems.map(({ path, label, icon: Icon2 }) => {
+    /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "flex flex-col gap-0.5 px-3", children: navItems.map(({ path, label, icon: Icon2 }) => {
       const isActive = location.pathname === path;
       return /* @__PURE__ */ jsxRuntimeExports.jsxs(
         "button",
         {
           onClick: () => navigate(path),
-          className: `flex items-center gap-3 px-3 py-2 rounded text-left transition-colors ${isActive ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white/70"}`,
+          className: `flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors duration-150 ${isActive ? "bg-accent-muted text-accent-hover border-l-2 border-accent" : "text-text-secondary hover:bg-surface hover:text-text"}`,
           children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { size: 16 }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs uppercase tracking-[0.2em]", children: label })
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { size: 16, strokeWidth: isActive ? 2 : 1.5 }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs font-medium tracking-wide", children: label })
           ]
         },
         path
       );
     }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-3 my-3 border-t border-white/10" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-2 mb-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "px-3 text-[10px] uppercase tracking-[0.25em] text-white/30", children: "Sessions" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-4 my-4 border-t border-line" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-5 mb-2", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xxs font-medium uppercase tracking-[0.2em] text-text-ghost", children: "Sessions" }) }),
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-h-0 overflow-y-auto thin-scrollbar", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SessionList, {}) })
   ] });
 }
@@ -24585,7 +24617,7 @@ function defaultUrlTransform(value) {
   return "";
 }
 function ChatBubble({ message }) {
-  var _a, _b;
+  var _a, _b, _c;
   const isUser = message.role === "user";
   const hasSources = message.role === "assistant" && (((_a = message.sources) == null ? void 0 : _a.length) || 0) > 0;
   const [showSources, setShowSources] = reactExports.useState(false);
@@ -24596,53 +24628,63 @@ function ChatBubble({ message }) {
       minute: "2-digit"
     });
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `flex ${isUser ? "justify-end" : "justify-start"}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: `max-w-[85%] space-y-2 ${isUser ? "text-white" : "text-white/70"}`, children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm leading-relaxed prose prose-invert prose-sm max-w-none", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Markdown, { children: message.content }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-[10px] uppercase tracking-[0.25em] text-white/40", children: formatTime(message.timestamp) }),
-    hasSources && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "border border-white/10 rounded-md overflow-hidden", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsxs(
-        "button",
-        {
-          type: "button",
-          className: "w-full px-3 py-2 flex items-center justify-between text-xs uppercase tracking-widest text-white/70 bg-white/5 hover:bg-white/10 transition",
-          onClick: () => setShowSources((prev) => !prev),
-          children: [
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: "Sources" }),
-            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/50", children: showSources ? "Hide" : "Show" })
-          ]
-        }
-      ),
-      showSources && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-48 overflow-y-auto divide-y divide-white/5 bg-white/5", children: (_b = message.sources) == null ? void 0 : _b.map((source, idx) => {
-        const title = source.title || "Untitled";
-        const domain = source.url_hostname || (() => {
-          try {
-            return new URL(source.url).hostname;
-          } catch (e) {
-            return "";
-          }
-        })();
-        const dateLabel = source.visit_time ? new Date(source.visit_time).toLocaleDateString() : "";
-        return /* @__PURE__ */ jsxRuntimeExports.jsxs(
-          "a",
-          {
-            href: source.url,
-            target: "_blank",
-            rel: "noreferrer",
-            className: "block px-3 py-2 hover:bg-white/10 transition",
-            children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white", children: title }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/60", children: domain || source.url }),
-              dateLabel && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[11px] text-white/50", children: [
-                "Visited: ",
-                dateLabel
-              ] })
-            ]
-          },
-          `${idx}-${source.url}`
-        );
-      }) })
-    ] })
-  ] }) });
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: `flex ${isUser ? "justify-end" : "justify-start"}`, children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
+    "div",
+    {
+      className: `max-w-[85%] space-y-2 rounded-xl px-4 py-3 ${isUser ? "bg-accent text-white" : "bg-bg-elevated text-text-secondary"}`,
+      children: [
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm leading-relaxed prose prose-invert prose-sm max-w-none", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Markdown, { children: message.content }) }),
+        /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xxs opacity-50", children: formatTime(message.timestamp) }),
+        hasSources && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "border border-line-strong rounded-lg overflow-hidden mt-2", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs(
+            "button",
+            {
+              type: "button",
+              className: "w-full px-3 py-2 flex items-center justify-between text-xs text-text-tertiary bg-surface hover:bg-surface-hover transition-colors duration-150",
+              onClick: () => setShowSources((prev) => !prev),
+              children: [
+                /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-medium", children: [
+                  "Sources (",
+                  (_b = message.sources) == null ? void 0 : _b.length,
+                  ")"
+                ] }),
+                showSources ? /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronUp, { size: 14 }) : /* @__PURE__ */ jsxRuntimeExports.jsx(ChevronDown, { size: 14 })
+              ]
+            }
+          ),
+          showSources && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-48 overflow-y-auto divide-y divide-line thin-scrollbar", children: (_c = message.sources) == null ? void 0 : _c.map((source, idx) => {
+            const title = source.title || "Untitled";
+            const domain = source.url_hostname || (() => {
+              try {
+                return new URL(source.url).hostname;
+              } catch (e) {
+                return "";
+              }
+            })();
+            const dateLabel = source.visit_time ? new Date(source.visit_time).toLocaleDateString() : "";
+            return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+              "a",
+              {
+                href: source.url,
+                target: "_blank",
+                rel: "noreferrer",
+                className: "block px-3 py-2.5 hover:bg-surface-hover transition-colors duration-150",
+                children: [
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-text", children: title }),
+                  /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary mt-0.5", children: domain || source.url }),
+                  dateLabel && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-xxs text-text-ghost mt-0.5", children: [
+                    "Visited: ",
+                    dateLabel
+                  ] })
+                ]
+              },
+              `${idx}-${source.url}`
+            );
+          }) })
+        ] })
+      ]
+    }
+  ) });
 }
 const useChatStore = create$1((set, get) => ({
   // Initial state
@@ -24724,41 +24766,42 @@ function ChatWindow() {
     var _a;
     (_a = messagesEndRef.current) == null ? void 0 : _a.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  const handleKeyPress = (e) => {
+  const handleKeyDown = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       sendMessage();
     }
   };
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full text-white", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto px-4 py-2 space-y-2 thin-scrollbar", children: [
-      messages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-full w-full flex items-center justify-center text-white/40 text-sm", children: "Start a conversation" }) : messages.map((message, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBubble, { message }, `${message.role}-${index2}-${message.timestamp.getTime()}`)),
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto px-5 py-4 space-y-4 thin-scrollbar", children: [
+      messages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-full w-full flex items-center justify-center text-text-ghost text-sm", children: "Start a conversation" }) : messages.map((message, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBubble, { message }, `${message.role}-${index2}-${message.timestamp.getTime()}`)),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: messagesEndRef })
     ] }),
-    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-4 py-2 text-xs text-red-400/80", children: error }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-3 flex items-center gap-2 border-t border-white/10 bg-[#080808]", children: [
+    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-5 mb-2 px-3 py-2 text-xs text-error bg-error/10 rounded-lg", children: error }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-5 py-4 border-t border-line", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-end gap-2 bg-surface rounded-xl px-4 py-2", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
-        "input",
+        "textarea",
         {
-          type: "text",
-          className: "flex-1 bg-transparent border-b border-white/20 outline-none px-0 py-2 text-sm placeholder-white/30 disabled:opacity-40",
-          placeholder: "Type your message...",
+          className: "flex-1 bg-transparent outline-none py-1.5 text-sm text-text placeholder-text-ghost resize-none min-h-[24px] max-h-[120px] leading-relaxed disabled:opacity-40",
+          placeholder: "Ask about your browsing history...",
           value: inputValue,
           onChange: (e) => setInput(e.target.value),
-          onKeyDown: handleKeyPress,
-          disabled: isLoading
+          onKeyDown: handleKeyDown,
+          disabled: isLoading,
+          rows: 1
         }
       ),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
-          className: "text-sm text-white/70 disabled:text-white/30",
+          className: "p-2 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent-subtle disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-text-tertiary transition-colors duration-150 flex-shrink-0",
           onClick: sendMessage,
           disabled: isLoading || !inputValue.trim(),
-          children: isLoading ? "Sending" : "Send"
+          title: "Send message",
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx(Send, { size: 16 })
         }
       )
-    ] })
+    ] }) })
   ] });
 }
 const useUIStore = create$1((set) => ({
@@ -24775,21 +24818,22 @@ function ChatPanel() {
       "button",
       {
         onClick: toggleChat,
-        className: "p-2 text-white/50 hover:text-white transition-colors",
+        className: "p-2 rounded-lg text-text-tertiary hover:text-accent hover:bg-accent-subtle transition-colors duration-150",
         title: "Open chat",
-        children: /* @__PURE__ */ jsxRuntimeExports.jsx(MessageSquare, { size: 20 })
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(MessageSquare, { size: 18 })
       }
     ) });
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-3 border-b border-white/10 flex items-center justify-between", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-widest text-white", children: "Chat" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-5 py-4 border-b border-line flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm font-semibold tracking-wide text-text", children: "Chat" }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "button",
         {
           onClick: toggleChat,
-          className: "text-white/50 hover:text-white text-xs uppercase tracking-widest transition-colors",
-          children: "Hide"
+          className: "p-1.5 rounded-lg text-text-tertiary hover:text-text-secondary hover:bg-surface transition-colors duration-150",
+          title: "Hide chat",
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx(PanelRightClose, { size: 16 })
         }
       )
     ] }),
@@ -24808,18 +24852,18 @@ function SessionInfo({ sessionData }) {
   const dateLabel = startTime.toLocaleDateString();
   const startLabel = startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
   const endLabel = endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/40", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: dateLabel }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-2 text-xxs text-text-tertiary", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "bg-surface px-2 py-0.5 rounded", children: dateLabel }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "bg-surface px-2 py-0.5 rounded", children: [
       startLabel,
       " → ",
       endLabel
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "bg-surface px-2 py-0.5 rounded", children: [
       duration,
       " min"
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "bg-accent-subtle text-accent-hover px-2 py-0.5 rounded font-medium", children: [
       clusterCount,
       " topics"
     ] })
@@ -24887,45 +24931,45 @@ function ClusterItem({ item }) {
   const currentFaviconUrl = alternativeUrls[currentFaviconIndex];
   const visitTime = formatVisitTime(item.visit_time);
   const shouldShowFallback = showFallback || alternativeUrls.length === 0;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 py-2", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "group flex items-center gap-3 px-3 py-3 rounded-lg hover:bg-surface transition-colors duration-150", children: [
     !shouldShowFallback ? /* @__PURE__ */ jsxRuntimeExports.jsx(
       "img",
       {
         src: currentFaviconUrl,
         alt: "",
-        className: "w-5 h-5",
+        className: "w-6 h-6 rounded",
         onError: handleFaviconError
       }
-    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-5 h-5 text-[10px] font-semibold bg-white text-black flex items-center justify-center", children: getInitials(item.title) }),
+    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-6 h-6 text-xxs font-semibold bg-accent-muted text-accent-hover flex items-center justify-center rounded", children: getInitials(item.title) }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white truncate", title: item.title, children: item.title }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/50 truncate", title: domain, children: domain })
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-text truncate", title: item.title, children: item.title }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-text-tertiary truncate", title: domain, children: domain })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/50", children: visitTime }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xxs text-text-ghost flex-shrink-0", children: visitTime }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       "button",
       {
-        className: "text-white/60 hover:text-white",
+        className: "p-1.5 rounded text-text-ghost opacity-0 group-hover:opacity-100 hover:text-accent hover:bg-accent-subtle transition-all duration-150",
         onClick: handleOpenUrl,
-        title: "Ouvrir dans un nouvel onglet",
-        children: "↗"
+        title: "Open in new tab",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(ExternalLink, { size: 14 })
       }
     )
   ] });
 }
 function ClusterDetail({ cluster }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-6 space-y-4", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-xs uppercase tracking-[0.3em] text-white/60", children: cluster.theme }),
-      cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-white/50 mt-2", children: cluster.summary })
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "p-8 space-y-6", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "space-y-2", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-base font-semibold text-text leading-snug", children: cluster.theme }),
+      cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-secondary leading-relaxed", children: cluster.summary })
     ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-[10px] uppercase tracking-[0.2em] text-white/30", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-2", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xxs font-medium text-accent-hover bg-accent-subtle px-2.5 py-1 rounded", children: [
       cluster.items.length,
       " page",
       cluster.items.length !== 1 ? "s" : "",
       " visited"
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-1 divide-y divide-white/5", children: cluster.items.map((item, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index2}`)) })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "space-y-0.5", children: cluster.items.map((item, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index2}`)) })
   ] });
 }
 function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
@@ -24937,40 +24981,40 @@ function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isRean
     return null;
   }
   const selectedCluster = (_a = clusters[selectedIndex]) != null ? _a : null;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-black text-white", children: [
-    (sessionData || isReanalyzing) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-shrink-0 w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between border-b border-white/10", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.4em] text-white/70", children: "Topics" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-4 md:justify-end", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-bg text-text", children: [
+    (sessionData || isReanalyzing) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-shrink-0 w-full px-6 py-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between border-b border-line", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm font-semibold tracking-wide text-text-secondary", children: "Topics" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 md:justify-end", children: [
         sessionData && /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
         onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
           "button",
           {
             onClick: onReanalyze,
             disabled: isReanalyzing,
-            className: "px-4 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white disabled:opacity-40",
-            children: isReanalyzing ? "Re-analyzing" : "Re-analyze"
+            className: "px-4 py-1.5 text-xxs font-medium uppercase tracking-wider rounded-lg bg-surface hover:bg-surface-hover text-text-secondary hover:text-text disabled:opacity-40 transition-colors duration-150",
+            children: isReanalyzing ? "Re-analyzing..." : "Re-analyze"
           }
         )
       ] })
     ] }),
-    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 flex flex-col items-center justify-center py-16", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 uppercase tracking-[0.35em] text-xs mt-6", children: isReanalyzing ? "Re-analyzing Session" : "Analyzing Session" })
+    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 flex flex-col items-center justify-center py-16 gap-5", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-7 h-7 border-2 border-accent/20 border-t-accent rounded-full animate-spin" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-text-tertiary text-xs tracking-wide", children: isReanalyzing ? "Re-analyzing session..." : "Analyzing session..." })
     ] }),
     !isLoading && sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-1 min-h-0", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[420px] flex-shrink-0 border-r border-white/10 overflow-y-auto thin-scrollbar py-2", children: clusters.map((cluster, index2) => {
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[420px] flex-shrink-0 border-r border-line bg-bg-deep overflow-y-auto thin-scrollbar py-1", children: clusters.map((cluster, index2) => {
         const isSelected = index2 === selectedIndex;
         return /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "button",
           {
             onClick: () => setSelectedIndex(index2),
-            className: `w-full text-left px-4 py-3 flex flex-col gap-1 transition-colors ${isSelected ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white/70"}`,
+            className: `w-full text-left px-5 py-4 flex flex-col gap-1.5 transition-colors duration-150 border-l-2 ${isSelected ? "bg-accent-subtle border-accent text-text" : "border-transparent text-text-secondary hover:bg-surface hover:text-text"}`,
             children: [
-              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs uppercase tracking-[0.2em]", children: cluster.theme }),
-              cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-white/40 line-clamp-6 leading-relaxed", children: cluster.summary }),
-              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/35 mt-0.5", children: [
+              /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-sm font-medium leading-snug", children: cluster.theme }),
+              cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs text-text-tertiary line-clamp-6 leading-relaxed", children: cluster.summary }),
+              /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xxs text-text-ghost mt-0.5", children: [
                 cluster.items.length,
-                " item",
+                " page",
                 cluster.items.length !== 1 ? "s" : ""
               ] })
             ]
@@ -24983,16 +25027,21 @@ function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isRean
   ] });
 }
 function ErrorDisplay({ message, onRetry }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center gap-4 py-16 text-white/60", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { size: 48, strokeWidth: 1.5 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm uppercase tracking-[0.3em]", children: "Analysis Failed" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/40 max-w-sm text-center", children: message }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center gap-5 py-20", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-4 rounded-full bg-error/10", children: /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { size: 32, strokeWidth: 1.5, className: "text-error" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center space-y-2", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm font-semibold text-text", children: "Something went wrong" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-text-tertiary max-w-sm", children: message })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "button",
       {
-        className: "px-6 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white hover:bg-white/15 transition-colors",
+        className: "flex items-center gap-2 px-5 py-2.5 text-xs font-medium rounded-lg bg-surface hover:bg-surface-hover text-text-secondary hover:text-text transition-colors duration-150",
         onClick: onRetry,
-        children: "Try Again"
+        children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsx(RotateCcw, { size: 14 }),
+          "Try Again"
+        ]
       }
     )
   ] });
@@ -25012,7 +25061,7 @@ function SessionView() {
     return /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: initializeSessions });
   }
   if (!activeSessionId) {
-    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center h-full text-white/30 text-sm", children: "Select a session from the sidebar" });
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center h-full text-text-tertiary text-sm", children: "Select a session from the sidebar" });
   }
   return /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "w-full h-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
     ClustersSection,
@@ -25025,24 +25074,30 @@ function SessionView() {
   ) });
 }
 function QuizView() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center h-full text-white/40 gap-4", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(BrainCircuit, { size: 48, strokeWidth: 1 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.3em]", children: "Quiz & Flashcards" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/25 max-w-sm text-center", children: "Create quizzes and flashcards based on your explored topics to reinforce learning." })
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center h-full gap-5", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-5 rounded-2xl bg-accent-subtle", children: /* @__PURE__ */ jsxRuntimeExports.jsx(BrainCircuit, { size: 40, strokeWidth: 1.2, className: "text-accent" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center space-y-2", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-base font-semibold text-text", children: "Quiz & Flashcards" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary max-w-md leading-relaxed", children: "Create quizzes and flashcards based on your explored topics to reinforce learning through spaced repetition." })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xxs font-medium text-accent bg-accent-subtle px-3 py-1.5 rounded-lg", children: "Coming soon" })
   ] });
 }
 function TrackingView() {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center h-full text-white/40 gap-4", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingDown, { size: 48, strokeWidth: 1 }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.3em]", children: "Memory Tracking" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/25 max-w-sm text-center", children: "Track explored topics and visualize the forgetting curve to review them at the optimal time." })
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center h-full gap-5", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "p-5 rounded-2xl bg-accent-subtle", children: /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingDown, { size: 40, strokeWidth: 1.2, className: "text-accent" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "text-center space-y-2", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-base font-semibold text-text", children: "Memory Tracking" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-sm text-text-tertiary max-w-md leading-relaxed", children: "Track explored topics and visualize the forgetting curve to review them at the optimal time." })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xxs font-medium text-accent bg-accent-subtle px-3 py-1.5 rounded-lg", children: "Coming soon" })
   ] });
 }
 function AppLayout() {
   const isChatOpen = useUIStore((s) => s.isChatOpen);
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-screen bg-black text-white font-sans", children: [
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-screen bg-bg text-text font-sans", children: [
     /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-56 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, {}) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0 overflow-y-auto thin-scrollbar", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Routes, { children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0 overflow-y-auto thin-scrollbar border-l border-line", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Routes, { children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/sessions", element: /* @__PURE__ */ jsxRuntimeExports.jsx(SessionView, {}) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/quiz", element: /* @__PURE__ */ jsxRuntimeExports.jsx(QuizView, {}) }),
       /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/tracking", element: /* @__PURE__ */ jsxRuntimeExports.jsx(TrackingView, {}) }),
@@ -25051,7 +25106,7 @@ function AppLayout() {
     /* @__PURE__ */ jsxRuntimeExports.jsx(
       "div",
       {
-        className: `flex-shrink-0 border-l border-white/10 bg-[#080808] transition-all ${isChatOpen ? "w-[600px]" : "w-12"}`,
+        className: `flex-shrink-0 border-l border-line bg-bg-raised transition-all duration-200 ${isChatOpen ? "w-[480px]" : "w-12"}`,
         children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChatPanel, {})
       }
     )
