@@ -23,49 +23,51 @@ export default function Sidebar() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-[#060606] border-r border-white/10">
+    <div className="flex flex-col h-full bg-bg-deep">
       {/* Logo */}
-      <div className="px-4 py-4 flex items-center justify-between">
-        <h1 className="text-sm tracking-widest uppercase text-white">Obra</h1>
+      <div className="px-5 py-5 flex items-center justify-between">
+        <h1 className="text-sm font-semibold tracking-widest uppercase text-text">Obra</h1>
         <button
           onClick={openSettings}
-          className="p-1 text-white/40 hover:text-white transition-colors"
+          className="p-1.5 rounded text-text-tertiary hover:text-text-secondary hover:bg-surface transition-colors duration-150"
           title="Settings"
         >
-          <Settings size={16} />
+          <Settings size={15} />
         </button>
       </div>
 
       {/* Nav buttons */}
-      <nav className="flex flex-col gap-1 px-2">
+      <nav className="flex flex-col gap-0.5 px-3">
         {navItems.map(({ path, label, icon: Icon }) => {
           const isActive = location.pathname === path;
           return (
             <button
               key={path}
               onClick={() => navigate(path)}
-              className={`flex items-center gap-3 px-3 py-2 rounded text-left transition-colors ${
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-left transition-colors duration-150 ${
                 isActive
-                  ? 'bg-white/10 text-white'
-                  : 'text-white/50 hover:bg-white/5 hover:text-white/70'
+                  ? 'bg-accent-muted text-accent-hover border-l-2 border-accent'
+                  : 'text-text-secondary hover:bg-surface hover:text-text'
               }`}
             >
-              <Icon size={16} />
-              <span className="text-xs uppercase tracking-[0.2em]">{label}</span>
+              <Icon size={16} strokeWidth={isActive ? 2 : 1.5} />
+              <span className="text-xs font-medium tracking-wide">{label}</span>
             </button>
           );
         })}
       </nav>
 
       {/* Divider */}
-      <div className="mx-3 my-3 border-t border-white/10" />
+      <div className="mx-4 my-4 border-t border-line" />
 
-      {/* Session list */}
-      <div className="px-2 mb-1">
-        <span className="px-3 text-[10px] uppercase tracking-[0.25em] text-white/30">
+      {/* Session list header */}
+      <div className="px-5 mb-2">
+        <span className="text-xxs font-medium uppercase tracking-[0.2em] text-text-ghost">
           Sessions
         </span>
       </div>
+
+      {/* Session list */}
       <div className="flex-1 min-h-0 overflow-y-auto thin-scrollbar">
         <SessionList />
       </div>

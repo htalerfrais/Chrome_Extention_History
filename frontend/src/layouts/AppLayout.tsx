@@ -10,14 +10,14 @@ export default function AppLayout() {
   const isChatOpen = useUIStore((s) => s.isChatOpen);
 
   return (
-    <div className="flex h-screen bg-black text-white font-sans">
+    <div className="flex h-screen bg-bg text-text font-sans">
       {/* Left sidebar */}
       <div className="w-56 flex-shrink-0">
         <Sidebar />
       </div>
 
       {/* Central content */}
-      <div className="flex-1 min-w-0 overflow-y-auto thin-scrollbar">
+      <div className="flex-1 min-w-0 overflow-y-auto thin-scrollbar border-l border-line">
         <Routes>
           <Route path="/sessions" element={<SessionView />} />
           <Route path="/quiz" element={<QuizView />} />
@@ -28,8 +28,8 @@ export default function AppLayout() {
 
       {/* Right chat sidebar */}
       <div
-        className={`flex-shrink-0 border-l border-white/10 bg-[#080808] transition-all ${
-          isChatOpen ? 'w-[600px]' : 'w-12'
+        className={`flex-shrink-0 border-l border-line bg-bg-raised transition-all duration-200 ${
+          isChatOpen ? 'w-[480px]' : 'w-12'
         }`}
       >
         <ChatPanel />
