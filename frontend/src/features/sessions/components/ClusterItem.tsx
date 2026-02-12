@@ -16,7 +16,6 @@ export default function ClusterItem({ item }: ClusterItemProps) {
 
   const getDomain = (url: string): string => {
     try {
-      // Handle special cases - files and local pages
       if (url === 'about:blank' || 
           url.startsWith('chrome-extension://') || 
           url.startsWith('moz-extension://') ||
@@ -33,7 +32,6 @@ export default function ClusterItem({ item }: ClusterItemProps) {
       const urlObj = new URL(url);
       return urlObj.hostname;
     } catch {
-      // If URL parsing fails, try to extract domain manually
       if (url.includes('://')) {
         const parts = url.split('://')[1];
         return parts.split('/')[0];
@@ -42,11 +40,9 @@ export default function ClusterItem({ item }: ClusterItemProps) {
     }
   };
 
-
   const getAlternativeFaviconUrls = (url: string): string[] => {
     const domain = getDomain(url);
     
-    // Skip favicon URLs for special cases (local files, extensions, etc.)
     if (domain === 'local-file' || domain === 'unknown' || domain === '') {
       return [];
     }
@@ -73,18 +69,15 @@ export default function ClusterItem({ item }: ClusterItemProps) {
   };
 
   const handleFaviconError = () => {
-    console.log(`Favicon failed for ${item.title}, trying next source...`);
     const alternativeUrls = getAlternativeFaviconUrls(item.url);
     if (currentFaviconIndex < alternativeUrls.length - 1) {
       setCurrentFaviconIndex(currentFaviconIndex + 1);
     } else {
-      console.log(`All favicon sources failed for ${item.title}, showing initials: ${getInitials(item.title)}`);
       setShowFallback(true);
     }
   };
 
   const getInitials = (title: string): string => {
-    // Handle special cases for local files
     if (title === 'about:blank') return 'AB';
     if (title.includes('.pdf')) return 'PDF';
     if (title.includes('.png') || title.includes('.jpg') || title.includes('.jpeg')) return 'IMG';
@@ -103,8 +96,6 @@ export default function ClusterItem({ item }: ClusterItemProps) {
   const alternativeUrls = getAlternativeFaviconUrls(item.url);
   const currentFaviconUrl = alternativeUrls[currentFaviconIndex];
   const visitTime = formatVisitTime(item.visit_time);
-
-  // For special cases (local files, about:blank, etc.), show fallback immediately
   const shouldShowFallback = showFallback || alternativeUrls.length === 0;
 
   return (

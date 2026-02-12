@@ -1,3 +1,5 @@
+import { AlertCircle } from 'lucide-react';
+
 interface ErrorDisplayProps {
   message: string;
   onRetry: () => void;
@@ -5,26 +7,14 @@ interface ErrorDisplayProps {
 
 export default function ErrorDisplay({ message, onRetry }: ErrorDisplayProps) {
   return (
-    <div className="error-container">
-      <div className="error-icon">
-        <svg 
-          width="64" 
-          height="64" 
-          viewBox="0 0 24 24" 
-          fill="none" 
-          stroke="currentColor" 
-          strokeWidth="1.5" 
-          strokeLinecap="round" 
-          strokeLinejoin="round"
-        >
-          <circle cx="12" cy="12" r="10" />
-          <line x1="15" y1="9" x2="9" y2="15" />
-          <line x1="9" y1="9" x2="15" y2="15" />
-        </svg>
-      </div>
-      <h3>Analysis Failed</h3>
-      <p>{message}</p>
-      <button className="btn btn-primary" onClick={onRetry}>
+    <div className="flex flex-col items-center justify-center gap-4 py-16 text-white/60">
+      <AlertCircle size={48} strokeWidth={1.5} />
+      <h3 className="text-sm uppercase tracking-[0.3em]">Analysis Failed</h3>
+      <p className="text-xs text-white/40 max-w-sm text-center">{message}</p>
+      <button
+        className="px-6 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white hover:bg-white/15 transition-colors"
+        onClick={onRetry}
+      >
         Try Again
       </button>
     </div>

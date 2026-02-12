@@ -15,7 +15,7 @@ export default function SessionInfo({ sessionData }: SessionInfoProps) {
 
   const startTime = new Date(sessionData.session_start_time);
   const endTime = new Date(sessionData.session_end_time);
-  const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60)); // minutes
+  const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1000 * 60));
   const clusterCount = sessionData.clusters?.length || 0;
   const dateLabel = startTime.toLocaleDateString();
   const startLabel = startTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
@@ -24,7 +24,7 @@ export default function SessionInfo({ sessionData }: SessionInfoProps) {
   return (
     <div className="flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/40">
       <span>{dateLabel}</span>
-      <span>{startLabel}&nbsp;→&nbsp;{endLabel}</span>
+      <span>{startLabel}&nbsp;&rarr;&nbsp;{endLabel}</span>
       <span>{duration} min</span>
       <span>{clusterCount} topics</span>
     </div>

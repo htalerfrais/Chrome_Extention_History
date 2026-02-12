@@ -544,6 +544,7 @@ function requireReact() {
   return react.exports;
 }
 var reactExports = requireReact();
+const React = /* @__PURE__ */ getDefaultExportFromCjs(reactExports);
 var client = { exports: {} };
 var reactDomClient_production = {};
 var scheduler = { exports: {} };
@@ -818,7 +819,7 @@ var hasRequiredReactDom_production;
 function requireReactDom_production() {
   if (hasRequiredReactDom_production) return reactDom_production;
   hasRequiredReactDom_production = 1;
-  var React = requireReact();
+  var React2 = requireReact();
   function formatProdErrorMessage(code2) {
     var url = "https://react.dev/errors/" + code2;
     if (1 < arguments.length) {
@@ -857,7 +858,7 @@ function requireReactDom_production() {
       implementation
     };
   }
-  var ReactSharedInternals = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
+  var ReactSharedInternals = React2.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE;
   function getCrossOriginStringAs(as, input) {
     if ("font" === as) return "";
     if ("string" === typeof input)
@@ -985,7 +986,7 @@ var hasRequiredReactDomClient_production;
 function requireReactDomClient_production() {
   if (hasRequiredReactDomClient_production) return reactDomClient_production;
   hasRequiredReactDomClient_production = 1;
-  var Scheduler = requireScheduler(), React = requireReact(), ReactDOM = requireReactDom();
+  var Scheduler = requireScheduler(), React2 = requireReact(), ReactDOM = requireReactDom();
   function formatProdErrorMessage(code2) {
     var url = "https://react.dev/errors/" + code2;
     if (1 < arguments.length) {
@@ -1153,7 +1154,7 @@ function requireReactDomClient_production() {
       }
     return null;
   }
-  var isArrayImpl = Array.isArray, ReactSharedInternals = React.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, ReactDOMSharedInternals = ReactDOM.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, sharedNotPendingObject = {
+  var isArrayImpl = Array.isArray, ReactSharedInternals = React2.__CLIENT_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, ReactDOMSharedInternals = ReactDOM.__DOM_INTERNALS_DO_NOT_USE_OR_WARN_USERS_THEY_CANNOT_UPGRADE, sharedNotPendingObject = {
     pending: false,
     data: null,
     method: null,
@@ -11939,7 +11940,7 @@ function requireReactDomClient_production() {
       0 === i && attemptExplicitHydrationTarget(target);
     }
   };
-  var isomorphicReactPackageVersion$jscomp$inline_1785 = React.version;
+  var isomorphicReactPackageVersion$jscomp$inline_1785 = React2.version;
   if ("19.1.1" !== isomorphicReactPackageVersion$jscomp$inline_1785)
     throw Error(
       formatProdErrorMessage(
@@ -12057,218 +12058,2856 @@ function requireClient() {
   return client.exports;
 }
 var clientExports = requireClient();
-function Header({
-  onSettings
-}) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("header", { className: "bg-black text-white sticky top-0 z-[100]", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between w-full px-6 py-4", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-sm tracking-widest uppercase", children: "Obra" }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "text-white/70 hover:text-white", onClick: onSettings, children: "Settings" }) })
-  ] }) });
-}
-function ErrorDisplay({ message, onRetry }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "error-container", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "error-icon", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
-      "svg",
-      {
-        width: "64",
-        height: "64",
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: "1.5",
-        strokeLinecap: "round",
-        strokeLinejoin: "round",
-        children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("circle", { cx: "12", cy: "12", r: "10" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "15", y1: "9", x2: "9", y2: "15" }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx("line", { x1: "9", y1: "9", x2: "15", y2: "15" })
-        ]
-      }
-    ) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { children: "Analysis Failed" }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { children: message }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("button", { className: "btn btn-primary", onClick: onRetry, children: "Try Again" })
-  ] });
-}
-function SessionInfo({ sessionData }) {
-  var _a;
-  if (!sessionData) {
-    return null;
+function createMemoryHistory(options = {}) {
+  let { initialEntries = ["/"], initialIndex, v5Compat = false } = options;
+  let entries;
+  entries = initialEntries.map(
+    (entry, index22) => createMemoryLocation(
+      entry,
+      typeof entry === "string" ? null : entry.state,
+      index22 === 0 ? "default" : void 0
+    )
+  );
+  let index2 = clampIndex(
+    initialIndex == null ? entries.length - 1 : initialIndex
+  );
+  let action = "POP";
+  let listener = null;
+  function clampIndex(n) {
+    return Math.min(Math.max(n, 0), entries.length - 1);
   }
-  const startTime = new Date(sessionData.session_start_time);
-  const endTime = new Date(sessionData.session_end_time);
-  const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60));
-  const clusterCount = ((_a = sessionData.clusters) == null ? void 0 : _a.length) || 0;
-  const dateLabel = startTime.toLocaleDateString();
-  const startLabel = startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  const endLabel = endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/40", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: dateLabel }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-      startLabel,
-      " → ",
-      endLabel
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-      duration,
-      " min"
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
-      clusterCount,
-      " topics"
-    ] })
-  ] });
-}
-function ClusterItem({ item }) {
-  const [currentFaviconIndex, setCurrentFaviconIndex] = reactExports.useState(0);
-  const [showFallback, setShowFallback] = reactExports.useState(false);
-  const getDomain = (url) => {
-    try {
-      if (url === "about:blank" || url.startsWith("chrome-extension://") || url.startsWith("moz-extension://") || url.startsWith("file://") || url.includes(".pdf") || url.includes(".png") || url.includes(".jpg") || url.includes(".jpeg") || url.includes(".doc") || url.includes(".docx")) {
-        return "local-file";
+  function getCurrentLocation() {
+    return entries[index2];
+  }
+  function createMemoryLocation(to, state = null, key) {
+    let location = createLocation(
+      entries ? getCurrentLocation().pathname : "/",
+      to,
+      state,
+      key
+    );
+    warning(
+      location.pathname.charAt(0) === "/",
+      `relative pathnames are not supported in memory history: ${JSON.stringify(
+        to
+      )}`
+    );
+    return location;
+  }
+  function createHref2(to) {
+    return typeof to === "string" ? to : createPath(to);
+  }
+  let history = {
+    get index() {
+      return index2;
+    },
+    get action() {
+      return action;
+    },
+    get location() {
+      return getCurrentLocation();
+    },
+    createHref: createHref2,
+    createURL(to) {
+      return new URL(createHref2(to), "http://localhost");
+    },
+    encodeLocation(to) {
+      let path = typeof to === "string" ? parsePath(to) : to;
+      return {
+        pathname: path.pathname || "",
+        search: path.search || "",
+        hash: path.hash || ""
+      };
+    },
+    push(to, state) {
+      action = "PUSH";
+      let nextLocation = createMemoryLocation(to, state);
+      index2 += 1;
+      entries.splice(index2, entries.length, nextLocation);
+      if (v5Compat && listener) {
+        listener({ action, location: nextLocation, delta: 1 });
       }
-      const urlObj = new URL(url);
-      return urlObj.hostname;
-    } catch (e) {
-      if (url.includes("://")) {
-        const parts = url.split("://")[1];
-        return parts.split("/")[0];
+    },
+    replace(to, state) {
+      action = "REPLACE";
+      let nextLocation = createMemoryLocation(to, state);
+      entries[index2] = nextLocation;
+      if (v5Compat && listener) {
+        listener({ action, location: nextLocation, delta: 0 });
       }
-      return "unknown";
+    },
+    go(delta) {
+      action = "POP";
+      let nextIndex = clampIndex(index2 + delta);
+      let nextLocation = entries[nextIndex];
+      index2 = nextIndex;
+      if (listener) {
+        listener({ action, location: nextLocation, delta });
+      }
+    },
+    listen(fn) {
+      listener = fn;
+      return () => {
+        listener = null;
+      };
     }
   };
-  const getAlternativeFaviconUrls = (url) => {
-    const domain2 = getDomain(url);
-    if (domain2 === "local-file" || domain2 === "unknown" || domain2 === "") {
+  return history;
+}
+function invariant(value, message) {
+  if (value === false || value === null || typeof value === "undefined") {
+    throw new Error(message);
+  }
+}
+function warning(cond, message) {
+  if (!cond) {
+    if (typeof console !== "undefined") console.warn(message);
+    try {
+      throw new Error(message);
+    } catch (e) {
+    }
+  }
+}
+function createKey() {
+  return Math.random().toString(36).substring(2, 10);
+}
+function createLocation(current, to, state = null, key) {
+  let location = __spreadProps(__spreadValues({
+    pathname: typeof current === "string" ? current : current.pathname,
+    search: "",
+    hash: ""
+  }, typeof to === "string" ? parsePath(to) : to), {
+    state,
+    // TODO: This could be cleaned up.  push/replace should probably just take
+    // full Locations now and avoid the need to run through this flow at all
+    // But that's a pretty big refactor to the current test suite so going to
+    // keep as is for the time being and just let any incoming keys take precedence
+    key: to && to.key || key || createKey()
+  });
+  return location;
+}
+function createPath({
+  pathname = "/",
+  search: search2 = "",
+  hash = ""
+}) {
+  if (search2 && search2 !== "?")
+    pathname += search2.charAt(0) === "?" ? search2 : "?" + search2;
+  if (hash && hash !== "#")
+    pathname += hash.charAt(0) === "#" ? hash : "#" + hash;
+  return pathname;
+}
+function parsePath(path) {
+  let parsedPath = {};
+  if (path) {
+    let hashIndex = path.indexOf("#");
+    if (hashIndex >= 0) {
+      parsedPath.hash = path.substring(hashIndex);
+      path = path.substring(0, hashIndex);
+    }
+    let searchIndex = path.indexOf("?");
+    if (searchIndex >= 0) {
+      parsedPath.search = path.substring(searchIndex);
+      path = path.substring(0, searchIndex);
+    }
+    if (path) {
+      parsedPath.pathname = path;
+    }
+  }
+  return parsedPath;
+}
+function matchRoutes(routes, locationArg, basename2 = "/") {
+  return matchRoutesImpl(routes, locationArg, basename2, false);
+}
+function matchRoutesImpl(routes, locationArg, basename2, allowPartial) {
+  let location = typeof locationArg === "string" ? parsePath(locationArg) : locationArg;
+  let pathname = stripBasename(location.pathname || "/", basename2);
+  if (pathname == null) {
+    return null;
+  }
+  let branches = flattenRoutes(routes);
+  rankRouteBranches(branches);
+  let matches = null;
+  for (let i = 0; matches == null && i < branches.length; ++i) {
+    let decoded = decodePath(pathname);
+    matches = matchRouteBranch(
+      branches[i],
+      decoded,
+      allowPartial
+    );
+  }
+  return matches;
+}
+function flattenRoutes(routes, branches = [], parentsMeta = [], parentPath = "", _hasParentOptionalSegments = false) {
+  let flattenRoute = (route, index2, hasParentOptionalSegments = _hasParentOptionalSegments, relativePath) => {
+    let meta = {
+      relativePath: relativePath === void 0 ? route.path || "" : relativePath,
+      caseSensitive: route.caseSensitive === true,
+      childrenIndex: index2,
+      route
+    };
+    if (meta.relativePath.startsWith("/")) {
+      if (!meta.relativePath.startsWith(parentPath) && hasParentOptionalSegments) {
+        return;
+      }
+      invariant(
+        meta.relativePath.startsWith(parentPath),
+        `Absolute route path "${meta.relativePath}" nested under path "${parentPath}" is not valid. An absolute child route path must start with the combined path of all its parent routes.`
+      );
+      meta.relativePath = meta.relativePath.slice(parentPath.length);
+    }
+    let path = joinPaths([parentPath, meta.relativePath]);
+    let routesMeta = parentsMeta.concat(meta);
+    if (route.children && route.children.length > 0) {
+      invariant(
+        // Our types know better, but runtime JS may not!
+        // @ts-expect-error
+        route.index !== true,
+        `Index routes must not have child routes. Please remove all child routes from route path "${path}".`
+      );
+      flattenRoutes(
+        route.children,
+        branches,
+        routesMeta,
+        path,
+        hasParentOptionalSegments
+      );
+    }
+    if (route.path == null && !route.index) {
+      return;
+    }
+    branches.push({
+      path,
+      score: computeScore(path, route.index),
+      routesMeta
+    });
+  };
+  routes.forEach((route, index2) => {
+    var _a;
+    if (route.path === "" || !((_a = route.path) == null ? void 0 : _a.includes("?"))) {
+      flattenRoute(route, index2);
+    } else {
+      for (let exploded of explodeOptionalSegments(route.path)) {
+        flattenRoute(route, index2, true, exploded);
+      }
+    }
+  });
+  return branches;
+}
+function explodeOptionalSegments(path) {
+  let segments = path.split("/");
+  if (segments.length === 0) return [];
+  let [first, ...rest] = segments;
+  let isOptional = first.endsWith("?");
+  let required = first.replace(/\?$/, "");
+  if (rest.length === 0) {
+    return isOptional ? [required, ""] : [required];
+  }
+  let restExploded = explodeOptionalSegments(rest.join("/"));
+  let result = [];
+  result.push(
+    ...restExploded.map(
+      (subpath) => subpath === "" ? required : [required, subpath].join("/")
+    )
+  );
+  if (isOptional) {
+    result.push(...restExploded);
+  }
+  return result.map(
+    (exploded) => path.startsWith("/") && exploded === "" ? "/" : exploded
+  );
+}
+function rankRouteBranches(branches) {
+  branches.sort(
+    (a, b) => a.score !== b.score ? b.score - a.score : compareIndexes(
+      a.routesMeta.map((meta) => meta.childrenIndex),
+      b.routesMeta.map((meta) => meta.childrenIndex)
+    )
+  );
+}
+var paramRe = /^:[\w-]+$/;
+var dynamicSegmentValue = 3;
+var indexRouteValue = 2;
+var emptySegmentValue = 1;
+var staticSegmentValue = 10;
+var splatPenalty = -2;
+var isSplat = (s) => s === "*";
+function computeScore(path, index2) {
+  let segments = path.split("/");
+  let initialScore = segments.length;
+  if (segments.some(isSplat)) {
+    initialScore += splatPenalty;
+  }
+  if (index2) {
+    initialScore += indexRouteValue;
+  }
+  return segments.filter((s) => !isSplat(s)).reduce(
+    (score, segment) => score + (paramRe.test(segment) ? dynamicSegmentValue : segment === "" ? emptySegmentValue : staticSegmentValue),
+    initialScore
+  );
+}
+function compareIndexes(a, b) {
+  let siblings = a.length === b.length && a.slice(0, -1).every((n, i) => n === b[i]);
+  return siblings ? (
+    // If two routes are siblings, we should try to match the earlier sibling
+    // first. This allows people to have fine-grained control over the matching
+    // behavior by simply putting routes with identical paths in the order they
+    // want them tried.
+    a[a.length - 1] - b[b.length - 1]
+  ) : (
+    // Otherwise, it doesn't really make sense to rank non-siblings by index,
+    // so they sort equally.
+    0
+  );
+}
+function matchRouteBranch(branch, pathname, allowPartial = false) {
+  let { routesMeta } = branch;
+  let matchedParams = {};
+  let matchedPathname = "/";
+  let matches = [];
+  for (let i = 0; i < routesMeta.length; ++i) {
+    let meta = routesMeta[i];
+    let end = i === routesMeta.length - 1;
+    let remainingPathname = matchedPathname === "/" ? pathname : pathname.slice(matchedPathname.length) || "/";
+    let match = matchPath(
+      { path: meta.relativePath, caseSensitive: meta.caseSensitive, end },
+      remainingPathname
+    );
+    let route = meta.route;
+    if (!match && end && allowPartial && !routesMeta[routesMeta.length - 1].route.index) {
+      match = matchPath(
+        {
+          path: meta.relativePath,
+          caseSensitive: meta.caseSensitive,
+          end: false
+        },
+        remainingPathname
+      );
+    }
+    if (!match) {
+      return null;
+    }
+    Object.assign(matchedParams, match.params);
+    matches.push({
+      // TODO: Can this as be avoided?
+      params: matchedParams,
+      pathname: joinPaths([matchedPathname, match.pathname]),
+      pathnameBase: normalizePathname(
+        joinPaths([matchedPathname, match.pathnameBase])
+      ),
+      route
+    });
+    if (match.pathnameBase !== "/") {
+      matchedPathname = joinPaths([matchedPathname, match.pathnameBase]);
+    }
+  }
+  return matches;
+}
+function matchPath(pattern, pathname) {
+  if (typeof pattern === "string") {
+    pattern = { path: pattern, caseSensitive: false, end: true };
+  }
+  let [matcher, compiledParams] = compilePath(
+    pattern.path,
+    pattern.caseSensitive,
+    pattern.end
+  );
+  let match = pathname.match(matcher);
+  if (!match) return null;
+  let matchedPathname = match[0];
+  let pathnameBase = matchedPathname.replace(/(.)\/+$/, "$1");
+  let captureGroups = match.slice(1);
+  let params = compiledParams.reduce(
+    (memo2, { paramName, isOptional }, index2) => {
+      if (paramName === "*") {
+        let splatValue = captureGroups[index2] || "";
+        pathnameBase = matchedPathname.slice(0, matchedPathname.length - splatValue.length).replace(/(.)\/+$/, "$1");
+      }
+      const value = captureGroups[index2];
+      if (isOptional && !value) {
+        memo2[paramName] = void 0;
+      } else {
+        memo2[paramName] = (value || "").replace(/%2F/g, "/");
+      }
+      return memo2;
+    },
+    {}
+  );
+  return {
+    params,
+    pathname: matchedPathname,
+    pathnameBase,
+    pattern
+  };
+}
+function compilePath(path, caseSensitive = false, end = true) {
+  warning(
+    path === "*" || !path.endsWith("*") || path.endsWith("/*"),
+    `Route path "${path}" will be treated as if it were "${path.replace(/\*$/, "/*")}" because the \`*\` character must always follow a \`/\` in the pattern. To get rid of this warning, please change the route path to "${path.replace(/\*$/, "/*")}".`
+  );
+  let params = [];
+  let regexpSource = "^" + path.replace(/\/*\*?$/, "").replace(/^\/*/, "/").replace(/[\\.*+^${}|()[\]]/g, "\\$&").replace(
+    /\/:([\w-]+)(\?)?/g,
+    (_, paramName, isOptional) => {
+      params.push({ paramName, isOptional: isOptional != null });
+      return isOptional ? "/?([^\\/]+)?" : "/([^\\/]+)";
+    }
+  ).replace(/\/([\w-]+)\?(\/|$)/g, "(/$1)?$2");
+  if (path.endsWith("*")) {
+    params.push({ paramName: "*" });
+    regexpSource += path === "*" || path === "/*" ? "(.*)$" : "(?:\\/(.+)|\\/*)$";
+  } else if (end) {
+    regexpSource += "\\/*$";
+  } else if (path !== "" && path !== "/") {
+    regexpSource += "(?:(?=\\/|$))";
+  } else ;
+  let matcher = new RegExp(regexpSource, caseSensitive ? void 0 : "i");
+  return [matcher, params];
+}
+function decodePath(value) {
+  try {
+    return value.split("/").map((v) => decodeURIComponent(v).replace(/\//g, "%2F")).join("/");
+  } catch (error) {
+    warning(
+      false,
+      `The URL path "${value}" could not be decoded because it is a malformed URL segment. This is probably due to a bad percent encoding (${error}).`
+    );
+    return value;
+  }
+}
+function stripBasename(pathname, basename2) {
+  if (basename2 === "/") return pathname;
+  if (!pathname.toLowerCase().startsWith(basename2.toLowerCase())) {
+    return null;
+  }
+  let startIndex = basename2.endsWith("/") ? basename2.length - 1 : basename2.length;
+  let nextChar = pathname.charAt(startIndex);
+  if (nextChar && nextChar !== "/") {
+    return null;
+  }
+  return pathname.slice(startIndex) || "/";
+}
+var ABSOLUTE_URL_REGEX = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+function resolvePath(to, fromPathname = "/") {
+  let {
+    pathname: toPathname,
+    search: search2 = "",
+    hash = ""
+  } = typeof to === "string" ? parsePath(to) : to;
+  let pathname;
+  if (toPathname) {
+    toPathname = toPathname.replace(/\/\/+/g, "/");
+    if (toPathname.startsWith("/")) {
+      pathname = resolvePathname(toPathname.substring(1), "/");
+    } else {
+      pathname = resolvePathname(toPathname, fromPathname);
+    }
+  } else {
+    pathname = fromPathname;
+  }
+  return {
+    pathname,
+    search: normalizeSearch(search2),
+    hash: normalizeHash(hash)
+  };
+}
+function resolvePathname(relativePath, fromPathname) {
+  let segments = fromPathname.replace(/\/+$/, "").split("/");
+  let relativeSegments = relativePath.split("/");
+  relativeSegments.forEach((segment) => {
+    if (segment === "..") {
+      if (segments.length > 1) segments.pop();
+    } else if (segment !== ".") {
+      segments.push(segment);
+    }
+  });
+  return segments.length > 1 ? segments.join("/") : "/";
+}
+function getInvalidPathError(char, field, dest, path) {
+  return `Cannot include a '${char}' character in a manually specified \`to.${field}\` field [${JSON.stringify(
+    path
+  )}].  Please separate it out to the \`to.${dest}\` field. Alternatively you may provide the full path as a string in <Link to="..."> and the router will parse it for you.`;
+}
+function getPathContributingMatches(matches) {
+  return matches.filter(
+    (match, index2) => index2 === 0 || match.route.path && match.route.path.length > 0
+  );
+}
+function getResolveToMatches(matches) {
+  let pathMatches = getPathContributingMatches(matches);
+  return pathMatches.map(
+    (match, idx) => idx === pathMatches.length - 1 ? match.pathname : match.pathnameBase
+  );
+}
+function resolveTo(toArg, routePathnames, locationPathname, isPathRelative = false) {
+  let to;
+  if (typeof toArg === "string") {
+    to = parsePath(toArg);
+  } else {
+    to = __spreadValues({}, toArg);
+    invariant(
+      !to.pathname || !to.pathname.includes("?"),
+      getInvalidPathError("?", "pathname", "search", to)
+    );
+    invariant(
+      !to.pathname || !to.pathname.includes("#"),
+      getInvalidPathError("#", "pathname", "hash", to)
+    );
+    invariant(
+      !to.search || !to.search.includes("#"),
+      getInvalidPathError("#", "search", "hash", to)
+    );
+  }
+  let isEmptyPath = toArg === "" || to.pathname === "";
+  let toPathname = isEmptyPath ? "/" : to.pathname;
+  let from;
+  if (toPathname == null) {
+    from = locationPathname;
+  } else {
+    let routePathnameIndex = routePathnames.length - 1;
+    if (!isPathRelative && toPathname.startsWith("..")) {
+      let toSegments = toPathname.split("/");
+      while (toSegments[0] === "..") {
+        toSegments.shift();
+        routePathnameIndex -= 1;
+      }
+      to.pathname = toSegments.join("/");
+    }
+    from = routePathnameIndex >= 0 ? routePathnames[routePathnameIndex] : "/";
+  }
+  let path = resolvePath(to, from);
+  let hasExplicitTrailingSlash = toPathname && toPathname !== "/" && toPathname.endsWith("/");
+  let hasCurrentTrailingSlash = (isEmptyPath || toPathname === ".") && locationPathname.endsWith("/");
+  if (!path.pathname.endsWith("/") && (hasExplicitTrailingSlash || hasCurrentTrailingSlash)) {
+    path.pathname += "/";
+  }
+  return path;
+}
+var joinPaths = (paths) => paths.join("/").replace(/\/\/+/g, "/");
+var normalizePathname = (pathname) => pathname.replace(/\/+$/, "").replace(/^\/*/, "/");
+var normalizeSearch = (search2) => !search2 || search2 === "?" ? "" : search2.startsWith("?") ? search2 : "?" + search2;
+var normalizeHash = (hash) => !hash || hash === "#" ? "" : hash.startsWith("#") ? hash : "#" + hash;
+var ErrorResponseImpl = class {
+  constructor(status, statusText, data2, internal = false) {
+    this.status = status;
+    this.statusText = statusText || "";
+    this.internal = internal;
+    if (data2 instanceof Error) {
+      this.data = data2.toString();
+      this.error = data2;
+    } else {
+      this.data = data2;
+    }
+  }
+};
+function isRouteErrorResponse(error) {
+  return error != null && typeof error.status === "number" && typeof error.statusText === "string" && typeof error.internal === "boolean" && "data" in error;
+}
+function getRoutePattern(matches) {
+  return matches.map((m) => m.route.path).filter(Boolean).join("/").replace(/\/\/*/g, "/") || "/";
+}
+var isBrowser = typeof window !== "undefined" && typeof window.document !== "undefined" && typeof window.document.createElement !== "undefined";
+function parseToInfo(_to, basename2) {
+  let to = _to;
+  if (typeof to !== "string" || !ABSOLUTE_URL_REGEX.test(to)) {
+    return {
+      absoluteURL: void 0,
+      isExternal: false,
+      to
+    };
+  }
+  let absoluteURL = to;
+  let isExternal = false;
+  if (isBrowser) {
+    try {
+      let currentUrl = new URL(window.location.href);
+      let targetUrl = to.startsWith("//") ? new URL(currentUrl.protocol + to) : new URL(to);
+      let path = stripBasename(targetUrl.pathname, basename2);
+      if (targetUrl.origin === currentUrl.origin && path != null) {
+        to = path + targetUrl.search + targetUrl.hash;
+      } else {
+        isExternal = true;
+      }
+    } catch (e) {
+      warning(
+        false,
+        `<Link to="${to}"> contains an invalid URL which will probably break when clicked - please update to a valid URL path.`
+      );
+    }
+  }
+  return {
+    absoluteURL,
+    isExternal,
+    to
+  };
+}
+Object.getOwnPropertyNames(Object.prototype).sort().join("\0");
+var validMutationMethodsArr = [
+  "POST",
+  "PUT",
+  "PATCH",
+  "DELETE"
+];
+new Set(
+  validMutationMethodsArr
+);
+var validRequestMethodsArr = [
+  "GET",
+  ...validMutationMethodsArr
+];
+new Set(validRequestMethodsArr);
+var DataRouterContext = reactExports.createContext(null);
+DataRouterContext.displayName = "DataRouter";
+var DataRouterStateContext = reactExports.createContext(null);
+DataRouterStateContext.displayName = "DataRouterState";
+var RSCRouterContext = reactExports.createContext(false);
+var ViewTransitionContext = reactExports.createContext({
+  isTransitioning: false
+});
+ViewTransitionContext.displayName = "ViewTransition";
+var FetchersContext = reactExports.createContext(
+  /* @__PURE__ */ new Map()
+);
+FetchersContext.displayName = "Fetchers";
+var AwaitContext = reactExports.createContext(null);
+AwaitContext.displayName = "Await";
+var NavigationContext = reactExports.createContext(
+  null
+);
+NavigationContext.displayName = "Navigation";
+var LocationContext = reactExports.createContext(
+  null
+);
+LocationContext.displayName = "Location";
+var RouteContext = reactExports.createContext({
+  outlet: null,
+  matches: [],
+  isDataRoute: false
+});
+RouteContext.displayName = "Route";
+var RouteErrorContext = reactExports.createContext(null);
+RouteErrorContext.displayName = "RouteError";
+var ERROR_DIGEST_BASE = "REACT_ROUTER_ERROR";
+var ERROR_DIGEST_REDIRECT = "REDIRECT";
+var ERROR_DIGEST_ROUTE_ERROR_RESPONSE = "ROUTE_ERROR_RESPONSE";
+function decodeRedirectErrorDigest(digest) {
+  if (digest.startsWith(`${ERROR_DIGEST_BASE}:${ERROR_DIGEST_REDIRECT}:{`)) {
+    try {
+      let parsed = JSON.parse(digest.slice(28));
+      if (typeof parsed === "object" && parsed && typeof parsed.status === "number" && typeof parsed.statusText === "string" && typeof parsed.location === "string" && typeof parsed.reloadDocument === "boolean" && typeof parsed.replace === "boolean") {
+        return parsed;
+      }
+    } catch (e) {
+    }
+  }
+}
+function decodeRouteErrorResponseDigest(digest) {
+  if (digest.startsWith(
+    `${ERROR_DIGEST_BASE}:${ERROR_DIGEST_ROUTE_ERROR_RESPONSE}:{`
+  )) {
+    try {
+      let parsed = JSON.parse(digest.slice(40));
+      if (typeof parsed === "object" && parsed && typeof parsed.status === "number" && typeof parsed.statusText === "string") {
+        return new ErrorResponseImpl(
+          parsed.status,
+          parsed.statusText,
+          parsed.data
+        );
+      }
+    } catch (e) {
+    }
+  }
+}
+function useHref(to, { relative } = {}) {
+  invariant(
+    useInRouterContext(),
+    // TODO: This error is probably because they somehow have 2 versions of the
+    // router loaded. We can help them understand how to avoid that.
+    `useHref() may be used only in the context of a <Router> component.`
+  );
+  let { basename: basename2, navigator } = reactExports.useContext(NavigationContext);
+  let { hash, pathname, search: search2 } = useResolvedPath(to, { relative });
+  let joinedPathname = pathname;
+  if (basename2 !== "/") {
+    joinedPathname = pathname === "/" ? basename2 : joinPaths([basename2, pathname]);
+  }
+  return navigator.createHref({ pathname: joinedPathname, search: search2, hash });
+}
+function useInRouterContext() {
+  return reactExports.useContext(LocationContext) != null;
+}
+function useLocation() {
+  invariant(
+    useInRouterContext(),
+    // TODO: This error is probably because they somehow have 2 versions of the
+    // router loaded. We can help them understand how to avoid that.
+    `useLocation() may be used only in the context of a <Router> component.`
+  );
+  return reactExports.useContext(LocationContext).location;
+}
+var navigateEffectWarning = `You should call navigate() in a React.useEffect(), not when your component is first rendered.`;
+function useIsomorphicLayoutEffect(cb) {
+  let isStatic = reactExports.useContext(NavigationContext).static;
+  if (!isStatic) {
+    reactExports.useLayoutEffect(cb);
+  }
+}
+function useNavigate() {
+  let { isDataRoute } = reactExports.useContext(RouteContext);
+  return isDataRoute ? useNavigateStable() : useNavigateUnstable();
+}
+function useNavigateUnstable() {
+  invariant(
+    useInRouterContext(),
+    // TODO: This error is probably because they somehow have 2 versions of the
+    // router loaded. We can help them understand how to avoid that.
+    `useNavigate() may be used only in the context of a <Router> component.`
+  );
+  let dataRouterContext = reactExports.useContext(DataRouterContext);
+  let { basename: basename2, navigator } = reactExports.useContext(NavigationContext);
+  let { matches } = reactExports.useContext(RouteContext);
+  let { pathname: locationPathname } = useLocation();
+  let routePathnamesJson = JSON.stringify(getResolveToMatches(matches));
+  let activeRef = reactExports.useRef(false);
+  useIsomorphicLayoutEffect(() => {
+    activeRef.current = true;
+  });
+  let navigate = reactExports.useCallback(
+    (to, options = {}) => {
+      warning(activeRef.current, navigateEffectWarning);
+      if (!activeRef.current) return;
+      if (typeof to === "number") {
+        navigator.go(to);
+        return;
+      }
+      let path = resolveTo(
+        to,
+        JSON.parse(routePathnamesJson),
+        locationPathname,
+        options.relative === "path"
+      );
+      if (dataRouterContext == null && basename2 !== "/") {
+        path.pathname = path.pathname === "/" ? basename2 : joinPaths([basename2, path.pathname]);
+      }
+      (!!options.replace ? navigator.replace : navigator.push)(
+        path,
+        options.state,
+        options
+      );
+    },
+    [
+      basename2,
+      navigator,
+      routePathnamesJson,
+      locationPathname,
+      dataRouterContext
+    ]
+  );
+  return navigate;
+}
+reactExports.createContext(null);
+function useResolvedPath(to, { relative } = {}) {
+  let { matches } = reactExports.useContext(RouteContext);
+  let { pathname: locationPathname } = useLocation();
+  let routePathnamesJson = JSON.stringify(getResolveToMatches(matches));
+  return reactExports.useMemo(
+    () => resolveTo(
+      to,
+      JSON.parse(routePathnamesJson),
+      locationPathname,
+      relative === "path"
+    ),
+    [to, routePathnamesJson, locationPathname, relative]
+  );
+}
+function useRoutes(routes, locationArg) {
+  return useRoutesImpl(routes, locationArg);
+}
+function useRoutesImpl(routes, locationArg, dataRouterState, onError, future) {
+  var _a;
+  invariant(
+    useInRouterContext(),
+    // TODO: This error is probably because they somehow have 2 versions of the
+    // router loaded. We can help them understand how to avoid that.
+    `useRoutes() may be used only in the context of a <Router> component.`
+  );
+  let { navigator } = reactExports.useContext(NavigationContext);
+  let { matches: parentMatches } = reactExports.useContext(RouteContext);
+  let routeMatch = parentMatches[parentMatches.length - 1];
+  let parentParams = routeMatch ? routeMatch.params : {};
+  let parentPathname = routeMatch ? routeMatch.pathname : "/";
+  let parentPathnameBase = routeMatch ? routeMatch.pathnameBase : "/";
+  let parentRoute = routeMatch && routeMatch.route;
+  {
+    let parentPath = parentRoute && parentRoute.path || "";
+    warningOnce(
+      parentPathname,
+      !parentRoute || parentPath.endsWith("*") || parentPath.endsWith("*?"),
+      `You rendered descendant <Routes> (or called \`useRoutes()\`) at "${parentPathname}" (under <Route path="${parentPath}">) but the parent route path has no trailing "*". This means if you navigate deeper, the parent won't match anymore and therefore the child routes will never render.
+
+Please change the parent <Route path="${parentPath}"> to <Route path="${parentPath === "/" ? "*" : `${parentPath}/*`}">.`
+    );
+  }
+  let locationFromContext = useLocation();
+  let location;
+  if (locationArg) {
+    let parsedLocationArg = typeof locationArg === "string" ? parsePath(locationArg) : locationArg;
+    invariant(
+      parentPathnameBase === "/" || ((_a = parsedLocationArg.pathname) == null ? void 0 : _a.startsWith(parentPathnameBase)),
+      `When overriding the location using \`<Routes location>\` or \`useRoutes(routes, location)\`, the location pathname must begin with the portion of the URL pathname that was matched by all parent routes. The current pathname base is "${parentPathnameBase}" but pathname "${parsedLocationArg.pathname}" was given in the \`location\` prop.`
+    );
+    location = parsedLocationArg;
+  } else {
+    location = locationFromContext;
+  }
+  let pathname = location.pathname || "/";
+  let remainingPathname = pathname;
+  if (parentPathnameBase !== "/") {
+    let parentSegments = parentPathnameBase.replace(/^\//, "").split("/");
+    let segments = pathname.replace(/^\//, "").split("/");
+    remainingPathname = "/" + segments.slice(parentSegments.length).join("/");
+  }
+  let matches = matchRoutes(routes, { pathname: remainingPathname });
+  {
+    warning(
+      parentRoute || matches != null,
+      `No routes matched location "${location.pathname}${location.search}${location.hash}" `
+    );
+    warning(
+      matches == null || matches[matches.length - 1].route.element !== void 0 || matches[matches.length - 1].route.Component !== void 0 || matches[matches.length - 1].route.lazy !== void 0,
+      `Matched leaf route at location "${location.pathname}${location.search}${location.hash}" does not have an element or Component. This means it will render an <Outlet /> with a null value by default resulting in an "empty" page.`
+    );
+  }
+  let renderedMatches = _renderMatches(
+    matches && matches.map(
+      (match) => Object.assign({}, match, {
+        params: Object.assign({}, parentParams, match.params),
+        pathname: joinPaths([
+          parentPathnameBase,
+          // Re-encode pathnames that were decoded inside matchRoutes.
+          // Pre-encode `?` and `#` ahead of `encodeLocation` because it uses
+          // `new URL()` internally and we need to prevent it from treating
+          // them as separators
+          navigator.encodeLocation ? navigator.encodeLocation(
+            match.pathname.replace(/\?/g, "%3F").replace(/#/g, "%23")
+          ).pathname : match.pathname
+        ]),
+        pathnameBase: match.pathnameBase === "/" ? parentPathnameBase : joinPaths([
+          parentPathnameBase,
+          // Re-encode pathnames that were decoded inside matchRoutes
+          // Pre-encode `?` and `#` ahead of `encodeLocation` because it uses
+          // `new URL()` internally and we need to prevent it from treating
+          // them as separators
+          navigator.encodeLocation ? navigator.encodeLocation(
+            match.pathnameBase.replace(/\?/g, "%3F").replace(/#/g, "%23")
+          ).pathname : match.pathnameBase
+        ])
+      })
+    ),
+    parentMatches,
+    dataRouterState,
+    onError,
+    future
+  );
+  if (locationArg && renderedMatches) {
+    return /* @__PURE__ */ reactExports.createElement(
+      LocationContext.Provider,
+      {
+        value: {
+          location: __spreadValues({
+            pathname: "/",
+            search: "",
+            hash: "",
+            state: null,
+            key: "default"
+          }, location),
+          navigationType: "POP"
+          /* Pop */
+        }
+      },
+      renderedMatches
+    );
+  }
+  return renderedMatches;
+}
+function DefaultErrorComponent() {
+  let error = useRouteError();
+  let message = isRouteErrorResponse(error) ? `${error.status} ${error.statusText}` : error instanceof Error ? error.message : JSON.stringify(error);
+  let stack = error instanceof Error ? error.stack : null;
+  let lightgrey = "rgba(200,200,200, 0.5)";
+  let preStyles = { padding: "0.5rem", backgroundColor: lightgrey };
+  let codeStyles = { padding: "2px 4px", backgroundColor: lightgrey };
+  let devInfo = null;
+  {
+    console.error(
+      "Error handled by React Router default ErrorBoundary:",
+      error
+    );
+    devInfo = /* @__PURE__ */ reactExports.createElement(reactExports.Fragment, null, /* @__PURE__ */ reactExports.createElement("p", null, "💿 Hey developer 👋"), /* @__PURE__ */ reactExports.createElement("p", null, "You can provide a way better UX than this when your app throws errors by providing your own ", /* @__PURE__ */ reactExports.createElement("code", { style: codeStyles }, "ErrorBoundary"), " or", " ", /* @__PURE__ */ reactExports.createElement("code", { style: codeStyles }, "errorElement"), " prop on your route."));
+  }
+  return /* @__PURE__ */ reactExports.createElement(reactExports.Fragment, null, /* @__PURE__ */ reactExports.createElement("h2", null, "Unexpected Application Error!"), /* @__PURE__ */ reactExports.createElement("h3", { style: { fontStyle: "italic" } }, message), stack ? /* @__PURE__ */ reactExports.createElement("pre", { style: preStyles }, stack) : null, devInfo);
+}
+var defaultErrorElement = /* @__PURE__ */ reactExports.createElement(DefaultErrorComponent, null);
+var RenderErrorBoundary = class extends reactExports.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      location: props.location,
+      revalidation: props.revalidation,
+      error: props.error
+    };
+  }
+  static getDerivedStateFromError(error) {
+    return { error };
+  }
+  static getDerivedStateFromProps(props, state) {
+    if (state.location !== props.location || state.revalidation !== "idle" && props.revalidation === "idle") {
+      return {
+        error: props.error,
+        location: props.location,
+        revalidation: props.revalidation
+      };
+    }
+    return {
+      error: props.error !== void 0 ? props.error : state.error,
+      location: state.location,
+      revalidation: props.revalidation || state.revalidation
+    };
+  }
+  componentDidCatch(error, errorInfo) {
+    if (this.props.onError) {
+      this.props.onError(error, errorInfo);
+    } else {
+      console.error(
+        "React Router caught the following error during render",
+        error
+      );
+    }
+  }
+  render() {
+    let error = this.state.error;
+    if (this.context && typeof error === "object" && error && "digest" in error && typeof error.digest === "string") {
+      const decoded = decodeRouteErrorResponseDigest(error.digest);
+      if (decoded) error = decoded;
+    }
+    let result = error !== void 0 ? /* @__PURE__ */ reactExports.createElement(RouteContext.Provider, { value: this.props.routeContext }, /* @__PURE__ */ reactExports.createElement(
+      RouteErrorContext.Provider,
+      {
+        value: error,
+        children: this.props.component
+      }
+    )) : this.props.children;
+    if (this.context) {
+      return /* @__PURE__ */ reactExports.createElement(RSCErrorHandler, { error }, result);
+    }
+    return result;
+  }
+};
+RenderErrorBoundary.contextType = RSCRouterContext;
+var errorRedirectHandledMap = /* @__PURE__ */ new WeakMap();
+function RSCErrorHandler({
+  children,
+  error
+}) {
+  let { basename: basename2 } = reactExports.useContext(NavigationContext);
+  if (typeof error === "object" && error && "digest" in error && typeof error.digest === "string") {
+    let redirect2 = decodeRedirectErrorDigest(error.digest);
+    if (redirect2) {
+      let existingRedirect = errorRedirectHandledMap.get(error);
+      if (existingRedirect) throw existingRedirect;
+      let parsed = parseToInfo(redirect2.location, basename2);
+      if (isBrowser && !errorRedirectHandledMap.get(error)) {
+        if (parsed.isExternal || redirect2.reloadDocument) {
+          window.location.href = parsed.absoluteURL || parsed.to;
+        } else {
+          const redirectPromise = Promise.resolve().then(
+            () => window.__reactRouterDataRouter.navigate(parsed.to, {
+              replace: redirect2.replace
+            })
+          );
+          errorRedirectHandledMap.set(error, redirectPromise);
+          throw redirectPromise;
+        }
+      }
+      return /* @__PURE__ */ reactExports.createElement(
+        "meta",
+        {
+          httpEquiv: "refresh",
+          content: `0;url=${parsed.absoluteURL || parsed.to}`
+        }
+      );
+    }
+  }
+  return children;
+}
+function RenderedRoute({ routeContext, match, children }) {
+  let dataRouterContext = reactExports.useContext(DataRouterContext);
+  if (dataRouterContext && dataRouterContext.static && dataRouterContext.staticContext && (match.route.errorElement || match.route.ErrorBoundary)) {
+    dataRouterContext.staticContext._deepestRenderedBoundaryId = match.route.id;
+  }
+  return /* @__PURE__ */ reactExports.createElement(RouteContext.Provider, { value: routeContext }, children);
+}
+function _renderMatches(matches, parentMatches = [], dataRouterState = null, onErrorHandler = null, future = null) {
+  if (matches == null) {
+    if (!dataRouterState) {
+      return null;
+    }
+    if (dataRouterState.errors) {
+      matches = dataRouterState.matches;
+    } else if (parentMatches.length === 0 && !dataRouterState.initialized && dataRouterState.matches.length > 0) {
+      matches = dataRouterState.matches;
+    } else {
+      return null;
+    }
+  }
+  let renderedMatches = matches;
+  let errors = dataRouterState == null ? void 0 : dataRouterState.errors;
+  if (errors != null) {
+    let errorIndex = renderedMatches.findIndex(
+      (m) => m.route.id && (errors == null ? void 0 : errors[m.route.id]) !== void 0
+    );
+    invariant(
+      errorIndex >= 0,
+      `Could not find a matching route for errors on route IDs: ${Object.keys(
+        errors
+      ).join(",")}`
+    );
+    renderedMatches = renderedMatches.slice(
+      0,
+      Math.min(renderedMatches.length, errorIndex + 1)
+    );
+  }
+  let renderFallback = false;
+  let fallbackIndex = -1;
+  if (dataRouterState) {
+    for (let i = 0; i < renderedMatches.length; i++) {
+      let match = renderedMatches[i];
+      if (match.route.HydrateFallback || match.route.hydrateFallbackElement) {
+        fallbackIndex = i;
+      }
+      if (match.route.id) {
+        let { loaderData, errors: errors2 } = dataRouterState;
+        let needsToRunLoader = match.route.loader && !loaderData.hasOwnProperty(match.route.id) && (!errors2 || errors2[match.route.id] === void 0);
+        if (match.route.lazy || needsToRunLoader) {
+          renderFallback = true;
+          if (fallbackIndex >= 0) {
+            renderedMatches = renderedMatches.slice(0, fallbackIndex + 1);
+          } else {
+            renderedMatches = [renderedMatches[0]];
+          }
+          break;
+        }
+      }
+    }
+  }
+  let onError = dataRouterState && onErrorHandler ? (error, errorInfo) => {
+    var _a, _b, _c;
+    onErrorHandler(error, {
+      location: dataRouterState.location,
+      params: (_c = (_b = (_a = dataRouterState.matches) == null ? void 0 : _a[0]) == null ? void 0 : _b.params) != null ? _c : {},
+      unstable_pattern: getRoutePattern(dataRouterState.matches),
+      errorInfo
+    });
+  } : void 0;
+  return renderedMatches.reduceRight(
+    (outlet, match, index2) => {
+      let error;
+      let shouldRenderHydrateFallback = false;
+      let errorElement = null;
+      let hydrateFallbackElement = null;
+      if (dataRouterState) {
+        error = errors && match.route.id ? errors[match.route.id] : void 0;
+        errorElement = match.route.errorElement || defaultErrorElement;
+        if (renderFallback) {
+          if (fallbackIndex < 0 && index2 === 0) {
+            warningOnce(
+              "route-fallback",
+              false,
+              "No `HydrateFallback` element provided to render during initial hydration"
+            );
+            shouldRenderHydrateFallback = true;
+            hydrateFallbackElement = null;
+          } else if (fallbackIndex === index2) {
+            shouldRenderHydrateFallback = true;
+            hydrateFallbackElement = match.route.hydrateFallbackElement || null;
+          }
+        }
+      }
+      let matches2 = parentMatches.concat(renderedMatches.slice(0, index2 + 1));
+      let getChildren = () => {
+        let children;
+        if (error) {
+          children = errorElement;
+        } else if (shouldRenderHydrateFallback) {
+          children = hydrateFallbackElement;
+        } else if (match.route.Component) {
+          children = /* @__PURE__ */ reactExports.createElement(match.route.Component, null);
+        } else if (match.route.element) {
+          children = match.route.element;
+        } else {
+          children = outlet;
+        }
+        return /* @__PURE__ */ reactExports.createElement(
+          RenderedRoute,
+          {
+            match,
+            routeContext: {
+              outlet,
+              matches: matches2,
+              isDataRoute: dataRouterState != null
+            },
+            children
+          }
+        );
+      };
+      return dataRouterState && (match.route.ErrorBoundary || match.route.errorElement || index2 === 0) ? /* @__PURE__ */ reactExports.createElement(
+        RenderErrorBoundary,
+        {
+          location: dataRouterState.location,
+          revalidation: dataRouterState.revalidation,
+          component: errorElement,
+          error,
+          children: getChildren(),
+          routeContext: { outlet: null, matches: matches2, isDataRoute: true },
+          onError
+        }
+      ) : getChildren();
+    },
+    null
+  );
+}
+function getDataRouterConsoleError(hookName) {
+  return `${hookName} must be used within a data router.  See https://reactrouter.com/en/main/routers/picking-a-router.`;
+}
+function useDataRouterContext(hookName) {
+  let ctx = reactExports.useContext(DataRouterContext);
+  invariant(ctx, getDataRouterConsoleError(hookName));
+  return ctx;
+}
+function useDataRouterState(hookName) {
+  let state = reactExports.useContext(DataRouterStateContext);
+  invariant(state, getDataRouterConsoleError(hookName));
+  return state;
+}
+function useRouteContext(hookName) {
+  let route = reactExports.useContext(RouteContext);
+  invariant(route, getDataRouterConsoleError(hookName));
+  return route;
+}
+function useCurrentRouteId(hookName) {
+  let route = useRouteContext(hookName);
+  let thisRoute = route.matches[route.matches.length - 1];
+  invariant(
+    thisRoute.route.id,
+    `${hookName} can only be used on routes that contain a unique "id"`
+  );
+  return thisRoute.route.id;
+}
+function useRouteId() {
+  return useCurrentRouteId(
+    "useRouteId"
+    /* UseRouteId */
+  );
+}
+function useRouteError() {
+  var _a;
+  let error = reactExports.useContext(RouteErrorContext);
+  let state = useDataRouterState(
+    "useRouteError"
+    /* UseRouteError */
+  );
+  let routeId = useCurrentRouteId(
+    "useRouteError"
+    /* UseRouteError */
+  );
+  if (error !== void 0) {
+    return error;
+  }
+  return (_a = state.errors) == null ? void 0 : _a[routeId];
+}
+function useNavigateStable() {
+  let { router } = useDataRouterContext(
+    "useNavigate"
+    /* UseNavigateStable */
+  );
+  let id = useCurrentRouteId(
+    "useNavigate"
+    /* UseNavigateStable */
+  );
+  let activeRef = reactExports.useRef(false);
+  useIsomorphicLayoutEffect(() => {
+    activeRef.current = true;
+  });
+  let navigate = reactExports.useCallback(
+    async (to, options = {}) => {
+      warning(activeRef.current, navigateEffectWarning);
+      if (!activeRef.current) return;
+      if (typeof to === "number") {
+        await router.navigate(to);
+      } else {
+        await router.navigate(to, __spreadValues({ fromRouteId: id }, options));
+      }
+    },
+    [router, id]
+  );
+  return navigate;
+}
+var alreadyWarned = {};
+function warningOnce(key, cond, message) {
+  if (!cond && !alreadyWarned[key]) {
+    alreadyWarned[key] = true;
+    warning(false, message);
+  }
+}
+reactExports.memo(DataRoutes);
+function DataRoutes({
+  routes,
+  future,
+  state,
+  onError
+}) {
+  return useRoutesImpl(routes, void 0, state, onError, future);
+}
+function MemoryRouter({
+  basename: basename2,
+  children,
+  initialEntries,
+  initialIndex,
+  unstable_useTransitions
+}) {
+  let historyRef = reactExports.useRef();
+  if (historyRef.current == null) {
+    historyRef.current = createMemoryHistory({
+      initialEntries,
+      initialIndex,
+      v5Compat: true
+    });
+  }
+  let history = historyRef.current;
+  let [state, setStateImpl] = reactExports.useState({
+    action: history.action,
+    location: history.location
+  });
+  let setState = reactExports.useCallback(
+    (newState) => {
+      if (unstable_useTransitions === false) {
+        setStateImpl(newState);
+      } else {
+        reactExports.startTransition(() => setStateImpl(newState));
+      }
+    },
+    [unstable_useTransitions]
+  );
+  reactExports.useLayoutEffect(() => history.listen(setState), [history, setState]);
+  return /* @__PURE__ */ reactExports.createElement(
+    Router,
+    {
+      basename: basename2,
+      children,
+      location: state.location,
+      navigationType: state.action,
+      navigator: history,
+      unstable_useTransitions
+    }
+  );
+}
+function Navigate({
+  to,
+  replace: replace2,
+  state,
+  relative
+}) {
+  invariant(
+    useInRouterContext(),
+    // TODO: This error is probably because they somehow have 2 versions of
+    // the router loaded. We can help them understand how to avoid that.
+    `<Navigate> may be used only in the context of a <Router> component.`
+  );
+  let { static: isStatic } = reactExports.useContext(NavigationContext);
+  warning(
+    !isStatic,
+    `<Navigate> must not be used on the initial render in a <StaticRouter>. This is a no-op, but you should modify your code so the <Navigate> is only ever rendered in response to some user interaction or state change.`
+  );
+  let { matches } = reactExports.useContext(RouteContext);
+  let { pathname: locationPathname } = useLocation();
+  let navigate = useNavigate();
+  let path = resolveTo(
+    to,
+    getResolveToMatches(matches),
+    locationPathname,
+    relative === "path"
+  );
+  let jsonPath = JSON.stringify(path);
+  reactExports.useEffect(() => {
+    navigate(JSON.parse(jsonPath), { replace: replace2, state, relative });
+  }, [navigate, jsonPath, relative, replace2, state]);
+  return null;
+}
+function Route(props) {
+  invariant(
+    false,
+    `A <Route> is only ever to be used as the child of <Routes> element, never rendered directly. Please wrap your <Route> in a <Routes>.`
+  );
+}
+function Router({
+  basename: basenameProp = "/",
+  children = null,
+  location: locationProp,
+  navigationType = "POP",
+  navigator,
+  static: staticProp = false,
+  unstable_useTransitions
+}) {
+  invariant(
+    !useInRouterContext(),
+    `You cannot render a <Router> inside another <Router>. You should never have more than one in your app.`
+  );
+  let basename2 = basenameProp.replace(/^\/*/, "/");
+  let navigationContext = reactExports.useMemo(
+    () => ({
+      basename: basename2,
+      navigator,
+      static: staticProp,
+      unstable_useTransitions,
+      future: {}
+    }),
+    [basename2, navigator, staticProp, unstable_useTransitions]
+  );
+  if (typeof locationProp === "string") {
+    locationProp = parsePath(locationProp);
+  }
+  let {
+    pathname = "/",
+    search: search2 = "",
+    hash = "",
+    state = null,
+    key = "default"
+  } = locationProp;
+  let locationContext = reactExports.useMemo(() => {
+    let trailingPathname = stripBasename(pathname, basename2);
+    if (trailingPathname == null) {
+      return null;
+    }
+    return {
+      location: {
+        pathname: trailingPathname,
+        search: search2,
+        hash,
+        state,
+        key
+      },
+      navigationType
+    };
+  }, [basename2, pathname, search2, hash, state, key, navigationType]);
+  warning(
+    locationContext != null,
+    `<Router basename="${basename2}"> is not able to match the URL "${pathname}${search2}${hash}" because it does not start with the basename, so the <Router> won't render anything.`
+  );
+  if (locationContext == null) {
+    return null;
+  }
+  return /* @__PURE__ */ reactExports.createElement(NavigationContext.Provider, { value: navigationContext }, /* @__PURE__ */ reactExports.createElement(LocationContext.Provider, { children, value: locationContext }));
+}
+function Routes({
+  children,
+  location
+}) {
+  return useRoutes(createRoutesFromChildren(children), location);
+}
+function createRoutesFromChildren(children, parentPath = []) {
+  let routes = [];
+  reactExports.Children.forEach(children, (element2, index2) => {
+    if (!reactExports.isValidElement(element2)) {
+      return;
+    }
+    let treePath = [...parentPath, index2];
+    if (element2.type === reactExports.Fragment) {
+      routes.push.apply(
+        routes,
+        createRoutesFromChildren(element2.props.children, treePath)
+      );
+      return;
+    }
+    invariant(
+      element2.type === Route,
+      `[${typeof element2.type === "string" ? element2.type : element2.type.name}] is not a <Route> component. All component children of <Routes> must be a <Route> or <React.Fragment>`
+    );
+    invariant(
+      !element2.props.index || !element2.props.children,
+      "An index route cannot have child routes."
+    );
+    let route = {
+      id: element2.props.id || treePath.join("-"),
+      caseSensitive: element2.props.caseSensitive,
+      element: element2.props.element,
+      Component: element2.props.Component,
+      index: element2.props.index,
+      path: element2.props.path,
+      middleware: element2.props.middleware,
+      loader: element2.props.loader,
+      action: element2.props.action,
+      hydrateFallbackElement: element2.props.hydrateFallbackElement,
+      HydrateFallback: element2.props.HydrateFallback,
+      errorElement: element2.props.errorElement,
+      ErrorBoundary: element2.props.ErrorBoundary,
+      hasErrorBoundary: element2.props.hasErrorBoundary === true || element2.props.ErrorBoundary != null || element2.props.errorElement != null,
+      shouldRevalidate: element2.props.shouldRevalidate,
+      handle: element2.props.handle,
+      lazy: element2.props.lazy
+    };
+    if (element2.props.children) {
+      route.children = createRoutesFromChildren(
+        element2.props.children,
+        treePath
+      );
+    }
+    routes.push(route);
+  });
+  return routes;
+}
+var defaultMethod = "get";
+var defaultEncType = "application/x-www-form-urlencoded";
+function isHtmlElement(object) {
+  return typeof HTMLElement !== "undefined" && object instanceof HTMLElement;
+}
+function isButtonElement(object) {
+  return isHtmlElement(object) && object.tagName.toLowerCase() === "button";
+}
+function isFormElement(object) {
+  return isHtmlElement(object) && object.tagName.toLowerCase() === "form";
+}
+function isInputElement(object) {
+  return isHtmlElement(object) && object.tagName.toLowerCase() === "input";
+}
+function isModifiedEvent(event) {
+  return !!(event.metaKey || event.altKey || event.ctrlKey || event.shiftKey);
+}
+function shouldProcessLinkClick(event, target) {
+  return event.button === 0 && // Ignore everything but left clicks
+  (!target || target === "_self") && // Let browser handle "target=_blank" etc.
+  !isModifiedEvent(event);
+}
+var _formDataSupportsSubmitter = null;
+function isFormDataSubmitterSupported() {
+  if (_formDataSupportsSubmitter === null) {
+    try {
+      new FormData(
+        document.createElement("form"),
+        // @ts-expect-error if FormData supports the submitter parameter, this will throw
+        0
+      );
+      _formDataSupportsSubmitter = false;
+    } catch (e) {
+      _formDataSupportsSubmitter = true;
+    }
+  }
+  return _formDataSupportsSubmitter;
+}
+var supportedFormEncTypes = /* @__PURE__ */ new Set([
+  "application/x-www-form-urlencoded",
+  "multipart/form-data",
+  "text/plain"
+]);
+function getFormEncType(encType) {
+  if (encType != null && !supportedFormEncTypes.has(encType)) {
+    warning(
+      false,
+      `"${encType}" is not a valid \`encType\` for \`<Form>\`/\`<fetcher.Form>\` and will default to "${defaultEncType}"`
+    );
+    return null;
+  }
+  return encType;
+}
+function getFormSubmissionInfo(target, basename2) {
+  let method;
+  let action;
+  let encType;
+  let formData;
+  let body;
+  if (isFormElement(target)) {
+    let attr = target.getAttribute("action");
+    action = attr ? stripBasename(attr, basename2) : null;
+    method = target.getAttribute("method") || defaultMethod;
+    encType = getFormEncType(target.getAttribute("enctype")) || defaultEncType;
+    formData = new FormData(target);
+  } else if (isButtonElement(target) || isInputElement(target) && (target.type === "submit" || target.type === "image")) {
+    let form = target.form;
+    if (form == null) {
+      throw new Error(
+        `Cannot submit a <button> or <input type="submit"> without a <form>`
+      );
+    }
+    let attr = target.getAttribute("formaction") || form.getAttribute("action");
+    action = attr ? stripBasename(attr, basename2) : null;
+    method = target.getAttribute("formmethod") || form.getAttribute("method") || defaultMethod;
+    encType = getFormEncType(target.getAttribute("formenctype")) || getFormEncType(form.getAttribute("enctype")) || defaultEncType;
+    formData = new FormData(form, target);
+    if (!isFormDataSubmitterSupported()) {
+      let { name: name2, type, value } = target;
+      if (type === "image") {
+        let prefix = name2 ? `${name2}.` : "";
+        formData.append(`${prefix}x`, "0");
+        formData.append(`${prefix}y`, "0");
+      } else if (name2) {
+        formData.append(name2, value);
+      }
+    }
+  } else if (isHtmlElement(target)) {
+    throw new Error(
+      `Cannot submit element that is not <form>, <button>, or <input type="submit|image">`
+    );
+  } else {
+    method = defaultMethod;
+    action = null;
+    encType = defaultEncType;
+    body = target;
+  }
+  if (formData && encType === "text/plain") {
+    body = formData;
+    formData = void 0;
+  }
+  return { action, method: method.toLowerCase(), encType, formData, body };
+}
+Object.getOwnPropertyNames(Object.prototype).sort().join("\0");
+function invariant2(value, message) {
+  if (value === false || value === null || typeof value === "undefined") {
+    throw new Error(message);
+  }
+}
+function singleFetchUrl(reqUrl, basename2, trailingSlashAware, extension2) {
+  let url = typeof reqUrl === "string" ? new URL(
+    reqUrl,
+    // This can be called during the SSR flow via PrefetchPageLinksImpl so
+    // don't assume window is available
+    typeof window === "undefined" ? "server://singlefetch/" : window.location.origin
+  ) : reqUrl;
+  if (trailingSlashAware) {
+    if (url.pathname.endsWith("/")) {
+      url.pathname = `${url.pathname}_.${extension2}`;
+    } else {
+      url.pathname = `${url.pathname}.${extension2}`;
+    }
+  } else {
+    if (url.pathname === "/") {
+      url.pathname = `_root.${extension2}`;
+    } else if (basename2 && stripBasename(url.pathname, basename2) === "/") {
+      url.pathname = `${basename2.replace(/\/$/, "")}/_root.${extension2}`;
+    } else {
+      url.pathname = `${url.pathname.replace(/\/$/, "")}.${extension2}`;
+    }
+  }
+  return url;
+}
+async function loadRouteModule(route, routeModulesCache) {
+  if (route.id in routeModulesCache) {
+    return routeModulesCache[route.id];
+  }
+  try {
+    let routeModule = await import(
+      /* @vite-ignore */
+      /* webpackIgnore: true */
+      route.module
+    );
+    routeModulesCache[route.id] = routeModule;
+    return routeModule;
+  } catch (error) {
+    console.error(
+      `Error loading route module \`${route.module}\`, reloading page...`
+    );
+    console.error(error);
+    if (window.__reactRouterContext && window.__reactRouterContext.isSpaMode && // @ts-expect-error
+    void 0) ;
+    window.location.reload();
+    return new Promise(() => {
+    });
+  }
+}
+function isHtmlLinkDescriptor(object) {
+  if (object == null) {
+    return false;
+  }
+  if (object.href == null) {
+    return object.rel === "preload" && typeof object.imageSrcSet === "string" && typeof object.imageSizes === "string";
+  }
+  return typeof object.rel === "string" && typeof object.href === "string";
+}
+async function getKeyedPrefetchLinks(matches, manifest, routeModules) {
+  let links = await Promise.all(
+    matches.map(async (match) => {
+      let route = manifest.routes[match.route.id];
+      if (route) {
+        let mod = await loadRouteModule(route, routeModules);
+        return mod.links ? mod.links() : [];
+      }
+      return [];
+    })
+  );
+  return dedupeLinkDescriptors(
+    links.flat(1).filter(isHtmlLinkDescriptor).filter((link2) => link2.rel === "stylesheet" || link2.rel === "preload").map(
+      (link2) => link2.rel === "stylesheet" ? __spreadProps(__spreadValues({}, link2), { rel: "prefetch", as: "style" }) : __spreadProps(__spreadValues({}, link2), { rel: "prefetch" })
+    )
+  );
+}
+function getNewMatchesForLinks(page, nextMatches, currentMatches, manifest, location, mode) {
+  let isNew = (match, index2) => {
+    if (!currentMatches[index2]) return true;
+    return match.route.id !== currentMatches[index2].route.id;
+  };
+  let matchPathChanged = (match, index2) => {
+    var _a;
+    return (
+      // param change, /users/123 -> /users/456
+      currentMatches[index2].pathname !== match.pathname || // splat param changed, which is not present in match.path
+      // e.g. /files/images/avatar.jpg -> files/finances.xls
+      ((_a = currentMatches[index2].route.path) == null ? void 0 : _a.endsWith("*")) && currentMatches[index2].params["*"] !== match.params["*"]
+    );
+  };
+  if (mode === "assets") {
+    return nextMatches.filter(
+      (match, index2) => isNew(match, index2) || matchPathChanged(match, index2)
+    );
+  }
+  if (mode === "data") {
+    return nextMatches.filter((match, index2) => {
+      var _a;
+      let manifestRoute = manifest.routes[match.route.id];
+      if (!manifestRoute || !manifestRoute.hasLoader) {
+        return false;
+      }
+      if (isNew(match, index2) || matchPathChanged(match, index2)) {
+        return true;
+      }
+      if (match.route.shouldRevalidate) {
+        let routeChoice = match.route.shouldRevalidate({
+          currentUrl: new URL(
+            location.pathname + location.search + location.hash,
+            window.origin
+          ),
+          currentParams: ((_a = currentMatches[0]) == null ? void 0 : _a.params) || {},
+          nextUrl: new URL(page, window.origin),
+          nextParams: match.params,
+          defaultShouldRevalidate: true
+        });
+        if (typeof routeChoice === "boolean") {
+          return routeChoice;
+        }
+      }
+      return true;
+    });
+  }
+  return [];
+}
+function getModuleLinkHrefs(matches, manifest, { includeHydrateFallback } = {}) {
+  return dedupeHrefs(
+    matches.map((match) => {
+      let route = manifest.routes[match.route.id];
+      if (!route) return [];
+      let hrefs = [route.module];
+      if (route.clientActionModule) {
+        hrefs = hrefs.concat(route.clientActionModule);
+      }
+      if (route.clientLoaderModule) {
+        hrefs = hrefs.concat(route.clientLoaderModule);
+      }
+      if (includeHydrateFallback && route.hydrateFallbackModule) {
+        hrefs = hrefs.concat(route.hydrateFallbackModule);
+      }
+      if (route.imports) {
+        hrefs = hrefs.concat(route.imports);
+      }
+      return hrefs;
+    }).flat(1)
+  );
+}
+function dedupeHrefs(hrefs) {
+  return [...new Set(hrefs)];
+}
+function sortKeys(obj) {
+  let sorted = {};
+  let keys2 = Object.keys(obj).sort();
+  for (let key of keys2) {
+    sorted[key] = obj[key];
+  }
+  return sorted;
+}
+function dedupeLinkDescriptors(descriptors, preloads) {
+  let set = /* @__PURE__ */ new Set();
+  new Set(preloads);
+  return descriptors.reduce((deduped, descriptor) => {
+    let key = JSON.stringify(sortKeys(descriptor));
+    if (!set.has(key)) {
+      set.add(key);
+      deduped.push({ key, link: descriptor });
+    }
+    return deduped;
+  }, []);
+}
+function useDataRouterContext2() {
+  let context = reactExports.useContext(DataRouterContext);
+  invariant2(
+    context,
+    "You must render this element inside a <DataRouterContext.Provider> element"
+  );
+  return context;
+}
+function useDataRouterStateContext() {
+  let context = reactExports.useContext(DataRouterStateContext);
+  invariant2(
+    context,
+    "You must render this element inside a <DataRouterStateContext.Provider> element"
+  );
+  return context;
+}
+var FrameworkContext = reactExports.createContext(void 0);
+FrameworkContext.displayName = "FrameworkContext";
+function useFrameworkContext() {
+  let context = reactExports.useContext(FrameworkContext);
+  invariant2(
+    context,
+    "You must render this element inside a <HydratedRouter> element"
+  );
+  return context;
+}
+function usePrefetchBehavior(prefetch, theirElementProps) {
+  let frameworkContext = reactExports.useContext(FrameworkContext);
+  let [maybePrefetch, setMaybePrefetch] = reactExports.useState(false);
+  let [shouldPrefetch, setShouldPrefetch] = reactExports.useState(false);
+  let { onFocus, onBlur, onMouseEnter, onMouseLeave, onTouchStart } = theirElementProps;
+  let ref = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    if (prefetch === "render") {
+      setShouldPrefetch(true);
+    }
+    if (prefetch === "viewport") {
+      let callback = (entries) => {
+        entries.forEach((entry) => {
+          setShouldPrefetch(entry.isIntersecting);
+        });
+      };
+      let observer = new IntersectionObserver(callback, { threshold: 0.5 });
+      if (ref.current) observer.observe(ref.current);
+      return () => {
+        observer.disconnect();
+      };
+    }
+  }, [prefetch]);
+  reactExports.useEffect(() => {
+    if (maybePrefetch) {
+      let id = setTimeout(() => {
+        setShouldPrefetch(true);
+      }, 100);
+      return () => {
+        clearTimeout(id);
+      };
+    }
+  }, [maybePrefetch]);
+  let setIntent = () => {
+    setMaybePrefetch(true);
+  };
+  let cancelIntent = () => {
+    setMaybePrefetch(false);
+    setShouldPrefetch(false);
+  };
+  if (!frameworkContext) {
+    return [false, ref, {}];
+  }
+  if (prefetch !== "intent") {
+    return [shouldPrefetch, ref, {}];
+  }
+  return [
+    shouldPrefetch,
+    ref,
+    {
+      onFocus: composeEventHandlers(onFocus, setIntent),
+      onBlur: composeEventHandlers(onBlur, cancelIntent),
+      onMouseEnter: composeEventHandlers(onMouseEnter, setIntent),
+      onMouseLeave: composeEventHandlers(onMouseLeave, cancelIntent),
+      onTouchStart: composeEventHandlers(onTouchStart, setIntent)
+    }
+  ];
+}
+function composeEventHandlers(theirHandler, ourHandler) {
+  return (event) => {
+    theirHandler && theirHandler(event);
+    if (!event.defaultPrevented) {
+      ourHandler(event);
+    }
+  };
+}
+function PrefetchPageLinks(_a) {
+  var _b = _a, { page } = _b, linkProps = __objRest(_b, ["page"]);
+  let { router } = useDataRouterContext2();
+  let matches = reactExports.useMemo(
+    () => matchRoutes(router.routes, page, router.basename),
+    [router.routes, page, router.basename]
+  );
+  if (!matches) {
+    return null;
+  }
+  return /* @__PURE__ */ reactExports.createElement(PrefetchPageLinksImpl, __spreadValues({ page, matches }, linkProps));
+}
+function useKeyedPrefetchLinks(matches) {
+  let { manifest, routeModules } = useFrameworkContext();
+  let [keyedPrefetchLinks, setKeyedPrefetchLinks] = reactExports.useState([]);
+  reactExports.useEffect(() => {
+    let interrupted = false;
+    void getKeyedPrefetchLinks(matches, manifest, routeModules).then(
+      (links) => {
+        if (!interrupted) {
+          setKeyedPrefetchLinks(links);
+        }
+      }
+    );
+    return () => {
+      interrupted = true;
+    };
+  }, [matches, manifest, routeModules]);
+  return keyedPrefetchLinks;
+}
+function PrefetchPageLinksImpl(_c) {
+  var _d = _c, {
+    page,
+    matches: nextMatches
+  } = _d, linkProps = __objRest(_d, [
+    "page",
+    "matches"
+  ]);
+  let location = useLocation();
+  let { future, manifest, routeModules } = useFrameworkContext();
+  let { basename: basename2 } = useDataRouterContext2();
+  let { loaderData, matches } = useDataRouterStateContext();
+  let newMatchesForData = reactExports.useMemo(
+    () => getNewMatchesForLinks(
+      page,
+      nextMatches,
+      matches,
+      manifest,
+      location,
+      "data"
+    ),
+    [page, nextMatches, matches, manifest, location]
+  );
+  let newMatchesForAssets = reactExports.useMemo(
+    () => getNewMatchesForLinks(
+      page,
+      nextMatches,
+      matches,
+      manifest,
+      location,
+      "assets"
+    ),
+    [page, nextMatches, matches, manifest, location]
+  );
+  let dataHrefs = reactExports.useMemo(() => {
+    if (page === location.pathname + location.search + location.hash) {
       return [];
     }
-    return [
-      `https://www.google.com/s2/favicons?domain=${domain2}&sz=32`,
-      `https://favicon.io/favicon/${domain2}`,
-      `https://icons.duckduckgo.com/ip3/${domain2}.ico`,
-      `https://${domain2}/favicon.ico`,
-      `https://${domain2}/apple-touch-icon.png`,
-      `https://${domain2}/apple-touch-icon-precomposed.png`
-    ];
-  };
-  const formatVisitTime = (visitTime2) => {
-    return new Date(visitTime2).toLocaleDateString();
-  };
-  const handleOpenUrl = (event) => {
-    event.stopPropagation();
-    if (item.url) {
-      chrome.tabs.create({ url: item.url });
-    }
-  };
-  const handleFaviconError = () => {
-    console.log(`Favicon failed for ${item.title}, trying next source...`);
-    const alternativeUrls2 = getAlternativeFaviconUrls(item.url);
-    if (currentFaviconIndex < alternativeUrls2.length - 1) {
-      setCurrentFaviconIndex(currentFaviconIndex + 1);
-    } else {
-      console.log(`All favicon sources failed for ${item.title}, showing initials: ${getInitials(item.title)}`);
-      setShowFallback(true);
-    }
-  };
-  const getInitials = (title) => {
-    if (title === "about:blank") return "AB";
-    if (title.includes(".pdf")) return "PDF";
-    if (title.includes(".png") || title.includes(".jpg") || title.includes(".jpeg")) return "IMG";
-    if (title.includes(".doc") || title.includes(".docx")) return "DOC";
-    if (title.includes(".xls") || title.includes(".xlsx")) return "XLS";
-    return title.split(" ").slice(0, 2).map((word) => word.charAt(0).toUpperCase()).join("").substring(0, 2);
-  };
-  const domain = getDomain(item.url);
-  const alternativeUrls = getAlternativeFaviconUrls(item.url);
-  const currentFaviconUrl = alternativeUrls[currentFaviconIndex];
-  const visitTime = formatVisitTime(item.visit_time);
-  const shouldShowFallback = showFallback || alternativeUrls.length === 0;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 py-2", children: [
-    !shouldShowFallback ? /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "img",
-      {
-        src: currentFaviconUrl,
-        alt: "",
-        className: "w-5 h-5",
-        onError: handleFaviconError
+    let routesParams = /* @__PURE__ */ new Set();
+    let foundOptOutRoute = false;
+    nextMatches.forEach((m) => {
+      var _a;
+      let manifestRoute = manifest.routes[m.route.id];
+      if (!manifestRoute || !manifestRoute.hasLoader) {
+        return;
       }
-    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-5 h-5 text-[10px] font-semibold bg-white text-black flex items-center justify-center", children: getInitials(item.title) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white truncate", title: item.title, children: item.title }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/50 truncate", title: domain, children: domain })
-    ] }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/50", children: visitTime }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      "button",
-      {
-        className: "text-white/60 hover:text-white",
-        onClick: handleOpenUrl,
-        title: "Ouvrir dans un nouvel onglet",
-        children: "↗"
+      if (!newMatchesForData.some((m2) => m2.route.id === m.route.id) && m.route.id in loaderData && ((_a = routeModules[m.route.id]) == null ? void 0 : _a.shouldRevalidate)) {
+        foundOptOutRoute = true;
+      } else if (manifestRoute.hasClientLoader) {
+        foundOptOutRoute = true;
+      } else {
+        routesParams.add(m.route.id);
       }
-    )
-  ] });
+    });
+    if (routesParams.size === 0) {
+      return [];
+    }
+    let url = singleFetchUrl(
+      page,
+      basename2,
+      future.unstable_trailingSlashAwareDataRequests,
+      "data"
+    );
+    if (foundOptOutRoute && routesParams.size > 0) {
+      url.searchParams.set(
+        "_routes",
+        nextMatches.filter((m) => routesParams.has(m.route.id)).map((m) => m.route.id).join(",")
+      );
+    }
+    return [url.pathname + url.search];
+  }, [
+    basename2,
+    future.unstable_trailingSlashAwareDataRequests,
+    loaderData,
+    location,
+    manifest,
+    newMatchesForData,
+    nextMatches,
+    page,
+    routeModules
+  ]);
+  let moduleHrefs = reactExports.useMemo(
+    () => getModuleLinkHrefs(newMatchesForAssets, manifest),
+    [newMatchesForAssets, manifest]
+  );
+  let keyedPrefetchLinks = useKeyedPrefetchLinks(newMatchesForAssets);
+  return /* @__PURE__ */ reactExports.createElement(reactExports.Fragment, null, dataHrefs.map((href) => /* @__PURE__ */ reactExports.createElement("link", __spreadValues({ key: href, rel: "prefetch", as: "fetch", href }, linkProps))), moduleHrefs.map((href) => /* @__PURE__ */ reactExports.createElement("link", __spreadValues({ key: href, rel: "modulepreload", href }, linkProps))), keyedPrefetchLinks.map(({ key, link: link2 }) => {
+    var _a;
+    return (
+      // these don't spread `linkProps` because they are full link descriptors
+      // already with their own props
+      /* @__PURE__ */ reactExports.createElement(
+        "link",
+        __spreadProps(__spreadValues({
+          key,
+          nonce: linkProps.nonce
+        }, link2), {
+          crossOrigin: (_a = link2.crossOrigin) != null ? _a : linkProps.crossOrigin
+        })
+      )
+    );
+  }));
 }
-function ClusterCard({ cluster }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#111111] text-white p-6 space-y-4", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs uppercase tracking-[0.3em] text-white/60", children: cluster.theme }),
-    cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white/60", title: cluster.summary, children: cluster.summary }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-80 overflow-y-auto pr-2 space-y-2 thin-scrollbar", children: cluster.items.map((item, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index2}`)) })
-  ] });
+function mergeRefs(...refs) {
+  return (value) => {
+    refs.forEach((ref) => {
+      if (typeof ref === "function") {
+        ref(value);
+      } else if (ref != null) {
+        ref.current = value;
+      }
+    });
+  };
 }
-function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
-  const clusters = (sessionData == null ? void 0 : sessionData.clusters) || [];
-  const isLoading = isAnalyzing || isReanalyzing;
-  if (!isLoading && (!sessionData || clusters.length === 0)) {
-    return null;
+var isBrowser2 = typeof window !== "undefined" && typeof window.document !== "undefined" && typeof window.document.createElement !== "undefined";
+try {
+  if (isBrowser2) {
+    window.__reactRouterVersion = // @ts-expect-error
+    "7.13.0";
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black text-white w-full", children: [
-    (sessionData || isReanalyzing) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.4em] text-white/70", children: "Topics" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-4 md:justify-end", children: [
-        sessionData && /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
-        onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
-          "button",
-          {
-            onClick: onReanalyze,
-            disabled: isReanalyzing,
-            className: "px-4 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white disabled:opacity-40",
-            children: isReanalyzing ? "Re-analyzing" : "Re-analyze"
-          }
-        )
-      ] })
-    ] }),
-    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "col-span-full flex flex-col items-center justify-center py-16", children: [
-      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "loading-spinner" }),
-      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 uppercase tracking-[0.35em] text-xs mt-6", children: isReanalyzing ? "Re-analyzing Session" : "Analyzing Session" })
-    ] }) }),
-    !isLoading && sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: clusters.map((cluster, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index2}`)) })
-  ] });
+} catch (e) {
 }
-function SessionTabs({
-  currentSessionResults,
-  activeSessionId,
-  onSessionChange,
-  availableSessions,
-  sessionAnalysisStates
-}) {
-  const sortedSessions = availableSessions.map((session) => ({
+var ABSOLUTE_URL_REGEX2 = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
+var Link = reactExports.forwardRef(
+  function LinkWithRef(_e, forwardedRef) {
+    var _f = _e, {
+      onClick,
+      discover = "render",
+      prefetch = "none",
+      relative,
+      reloadDocument,
+      replace: replace2,
+      state,
+      target,
+      to,
+      preventScrollReset,
+      viewTransition,
+      unstable_defaultShouldRevalidate
+    } = _f, rest = __objRest(_f, [
+      "onClick",
+      "discover",
+      "prefetch",
+      "relative",
+      "reloadDocument",
+      "replace",
+      "state",
+      "target",
+      "to",
+      "preventScrollReset",
+      "viewTransition",
+      "unstable_defaultShouldRevalidate"
+    ]);
+    let { basename: basename2, unstable_useTransitions } = reactExports.useContext(NavigationContext);
+    let isAbsolute = typeof to === "string" && ABSOLUTE_URL_REGEX2.test(to);
+    let parsed = parseToInfo(to, basename2);
+    to = parsed.to;
+    let href = useHref(to, { relative });
+    let [shouldPrefetch, prefetchRef, prefetchHandlers] = usePrefetchBehavior(
+      prefetch,
+      rest
+    );
+    let internalOnClick = useLinkClickHandler(to, {
+      replace: replace2,
+      state,
+      target,
+      preventScrollReset,
+      relative,
+      viewTransition,
+      unstable_defaultShouldRevalidate,
+      unstable_useTransitions
+    });
+    function handleClick(event) {
+      if (onClick) onClick(event);
+      if (!event.defaultPrevented) {
+        internalOnClick(event);
+      }
+    }
+    let link2 = (
+      // eslint-disable-next-line jsx-a11y/anchor-has-content
+      /* @__PURE__ */ reactExports.createElement(
+        "a",
+        __spreadProps(__spreadValues(__spreadValues({}, rest), prefetchHandlers), {
+          href: parsed.absoluteURL || href,
+          onClick: parsed.isExternal || reloadDocument ? onClick : handleClick,
+          ref: mergeRefs(forwardedRef, prefetchRef),
+          target,
+          "data-discover": !isAbsolute && discover === "render" ? "true" : void 0
+        })
+      )
+    );
+    return shouldPrefetch && !isAbsolute ? /* @__PURE__ */ reactExports.createElement(reactExports.Fragment, null, link2, /* @__PURE__ */ reactExports.createElement(PrefetchPageLinks, { page: href })) : link2;
+  }
+);
+Link.displayName = "Link";
+var NavLink = reactExports.forwardRef(
+  function NavLinkWithRef(_g, ref) {
+    var _h = _g, {
+      "aria-current": ariaCurrentProp = "page",
+      caseSensitive = false,
+      className: classNameProp = "",
+      end = false,
+      style: styleProp,
+      to,
+      viewTransition,
+      children
+    } = _h, rest = __objRest(_h, [
+      "aria-current",
+      "caseSensitive",
+      "className",
+      "end",
+      "style",
+      "to",
+      "viewTransition",
+      "children"
+    ]);
+    let path = useResolvedPath(to, { relative: rest.relative });
+    let location = useLocation();
+    let routerState = reactExports.useContext(DataRouterStateContext);
+    let { navigator, basename: basename2 } = reactExports.useContext(NavigationContext);
+    let isTransitioning = routerState != null && // Conditional usage is OK here because the usage of a data router is static
+    // eslint-disable-next-line react-hooks/rules-of-hooks
+    useViewTransitionState(path) && viewTransition === true;
+    let toPathname = navigator.encodeLocation ? navigator.encodeLocation(path).pathname : path.pathname;
+    let locationPathname = location.pathname;
+    let nextLocationPathname = routerState && routerState.navigation && routerState.navigation.location ? routerState.navigation.location.pathname : null;
+    if (!caseSensitive) {
+      locationPathname = locationPathname.toLowerCase();
+      nextLocationPathname = nextLocationPathname ? nextLocationPathname.toLowerCase() : null;
+      toPathname = toPathname.toLowerCase();
+    }
+    if (nextLocationPathname && basename2) {
+      nextLocationPathname = stripBasename(nextLocationPathname, basename2) || nextLocationPathname;
+    }
+    const endSlashPosition = toPathname !== "/" && toPathname.endsWith("/") ? toPathname.length - 1 : toPathname.length;
+    let isActive = locationPathname === toPathname || !end && locationPathname.startsWith(toPathname) && locationPathname.charAt(endSlashPosition) === "/";
+    let isPending = nextLocationPathname != null && (nextLocationPathname === toPathname || !end && nextLocationPathname.startsWith(toPathname) && nextLocationPathname.charAt(toPathname.length) === "/");
+    let renderProps = {
+      isActive,
+      isPending,
+      isTransitioning
+    };
+    let ariaCurrent = isActive ? ariaCurrentProp : void 0;
+    let className;
+    if (typeof classNameProp === "function") {
+      className = classNameProp(renderProps);
+    } else {
+      className = [
+        classNameProp,
+        isActive ? "active" : null,
+        isPending ? "pending" : null,
+        isTransitioning ? "transitioning" : null
+      ].filter(Boolean).join(" ");
+    }
+    let style = typeof styleProp === "function" ? styleProp(renderProps) : styleProp;
+    return /* @__PURE__ */ reactExports.createElement(
+      Link,
+      __spreadProps(__spreadValues({}, rest), {
+        "aria-current": ariaCurrent,
+        className,
+        ref,
+        style,
+        to,
+        viewTransition
+      }),
+      typeof children === "function" ? children(renderProps) : children
+    );
+  }
+);
+NavLink.displayName = "NavLink";
+var Form = reactExports.forwardRef(
+  (_i, forwardedRef) => {
+    var _j = _i, {
+      discover = "render",
+      fetcherKey,
+      navigate,
+      reloadDocument,
+      replace: replace2,
+      state,
+      method = defaultMethod,
+      action,
+      onSubmit,
+      relative,
+      preventScrollReset,
+      viewTransition,
+      unstable_defaultShouldRevalidate
+    } = _j, props = __objRest(_j, [
+      "discover",
+      "fetcherKey",
+      "navigate",
+      "reloadDocument",
+      "replace",
+      "state",
+      "method",
+      "action",
+      "onSubmit",
+      "relative",
+      "preventScrollReset",
+      "viewTransition",
+      "unstable_defaultShouldRevalidate"
+    ]);
+    let { unstable_useTransitions } = reactExports.useContext(NavigationContext);
+    let submit = useSubmit();
+    let formAction = useFormAction(action, { relative });
+    let formMethod = method.toLowerCase() === "get" ? "get" : "post";
+    let isAbsolute = typeof action === "string" && ABSOLUTE_URL_REGEX2.test(action);
+    let submitHandler = (event) => {
+      onSubmit && onSubmit(event);
+      if (event.defaultPrevented) return;
+      event.preventDefault();
+      let submitter = event.nativeEvent.submitter;
+      let submitMethod = (submitter == null ? void 0 : submitter.getAttribute("formmethod")) || method;
+      let doSubmit = () => submit(submitter || event.currentTarget, {
+        fetcherKey,
+        method: submitMethod,
+        navigate,
+        replace: replace2,
+        state,
+        relative,
+        preventScrollReset,
+        viewTransition,
+        unstable_defaultShouldRevalidate
+      });
+      if (unstable_useTransitions && navigate !== false) {
+        reactExports.startTransition(() => doSubmit());
+      } else {
+        doSubmit();
+      }
+    };
+    return /* @__PURE__ */ reactExports.createElement(
+      "form",
+      __spreadProps(__spreadValues({
+        ref: forwardedRef,
+        method: formMethod,
+        action: formAction,
+        onSubmit: reloadDocument ? onSubmit : submitHandler
+      }, props), {
+        "data-discover": !isAbsolute && discover === "render" ? "true" : void 0
+      })
+    );
+  }
+);
+Form.displayName = "Form";
+function getDataRouterConsoleError2(hookName) {
+  return `${hookName} must be used within a data router.  See https://reactrouter.com/en/main/routers/picking-a-router.`;
+}
+function useDataRouterContext3(hookName) {
+  let ctx = reactExports.useContext(DataRouterContext);
+  invariant(ctx, getDataRouterConsoleError2(hookName));
+  return ctx;
+}
+function useLinkClickHandler(to, {
+  target,
+  replace: replaceProp,
+  state,
+  preventScrollReset,
+  relative,
+  viewTransition,
+  unstable_defaultShouldRevalidate,
+  unstable_useTransitions
+} = {}) {
+  let navigate = useNavigate();
+  let location = useLocation();
+  let path = useResolvedPath(to, { relative });
+  return reactExports.useCallback(
+    (event) => {
+      if (shouldProcessLinkClick(event, target)) {
+        event.preventDefault();
+        let replace2 = replaceProp !== void 0 ? replaceProp : createPath(location) === createPath(path);
+        let doNavigate = () => navigate(to, {
+          replace: replace2,
+          state,
+          preventScrollReset,
+          relative,
+          viewTransition,
+          unstable_defaultShouldRevalidate
+        });
+        if (unstable_useTransitions) {
+          reactExports.startTransition(() => doNavigate());
+        } else {
+          doNavigate();
+        }
+      }
+    },
+    [
+      location,
+      navigate,
+      path,
+      replaceProp,
+      state,
+      target,
+      to,
+      preventScrollReset,
+      relative,
+      viewTransition,
+      unstable_defaultShouldRevalidate,
+      unstable_useTransitions
+    ]
+  );
+}
+var fetcherId = 0;
+var getUniqueFetcherId = () => `__${String(++fetcherId)}__`;
+function useSubmit() {
+  let { router } = useDataRouterContext3(
+    "useSubmit"
+    /* UseSubmit */
+  );
+  let { basename: basename2 } = reactExports.useContext(NavigationContext);
+  let currentRouteId = useRouteId();
+  let routerFetch = router.fetch;
+  let routerNavigate = router.navigate;
+  return reactExports.useCallback(
+    async (target, options = {}) => {
+      let { action, method, encType, formData, body } = getFormSubmissionInfo(
+        target,
+        basename2
+      );
+      if (options.navigate === false) {
+        let key = options.fetcherKey || getUniqueFetcherId();
+        await routerFetch(key, currentRouteId, options.action || action, {
+          unstable_defaultShouldRevalidate: options.unstable_defaultShouldRevalidate,
+          preventScrollReset: options.preventScrollReset,
+          formData,
+          body,
+          formMethod: options.method || method,
+          formEncType: options.encType || encType,
+          flushSync: options.flushSync
+        });
+      } else {
+        await routerNavigate(options.action || action, {
+          unstable_defaultShouldRevalidate: options.unstable_defaultShouldRevalidate,
+          preventScrollReset: options.preventScrollReset,
+          formData,
+          body,
+          formMethod: options.method || method,
+          formEncType: options.encType || encType,
+          replace: options.replace,
+          state: options.state,
+          fromRouteId: currentRouteId,
+          flushSync: options.flushSync,
+          viewTransition: options.viewTransition
+        });
+      }
+    },
+    [routerFetch, routerNavigate, basename2, currentRouteId]
+  );
+}
+function useFormAction(action, { relative } = {}) {
+  let { basename: basename2 } = reactExports.useContext(NavigationContext);
+  let routeContext = reactExports.useContext(RouteContext);
+  invariant(routeContext, "useFormAction must be used inside a RouteContext");
+  let [match] = routeContext.matches.slice(-1);
+  let path = __spreadValues({}, useResolvedPath(action ? action : ".", { relative }));
+  let location = useLocation();
+  if (action == null) {
+    path.search = location.search;
+    let params = new URLSearchParams(path.search);
+    let indexValues = params.getAll("index");
+    let hasNakedIndexParam = indexValues.some((v) => v === "");
+    if (hasNakedIndexParam) {
+      params.delete("index");
+      indexValues.filter((v) => v).forEach((v) => params.append("index", v));
+      let qs = params.toString();
+      path.search = qs ? `?${qs}` : "";
+    }
+  }
+  if ((!action || action === ".") && match.route.index) {
+    path.search = path.search ? path.search.replace(/^\?/, "?index&") : "?index";
+  }
+  if (basename2 !== "/") {
+    path.pathname = path.pathname === "/" ? basename2 : joinPaths([basename2, path.pathname]);
+  }
+  return createPath(path);
+}
+function useViewTransitionState(to, { relative } = {}) {
+  let vtContext = reactExports.useContext(ViewTransitionContext);
+  invariant(
+    vtContext != null,
+    "`useViewTransitionState` must be used within `react-router-dom`'s `RouterProvider`.  Did you accidentally import `RouterProvider` from `react-router`?"
+  );
+  let { basename: basename2 } = useDataRouterContext3(
+    "useViewTransitionState"
+    /* useViewTransitionState */
+  );
+  let path = useResolvedPath(to, { relative });
+  if (!vtContext.isTransitioning) {
+    return false;
+  }
+  let currentPath = stripBasename(vtContext.currentLocation.pathname, basename2) || vtContext.currentLocation.pathname;
+  let nextPath = stripBasename(vtContext.nextLocation.pathname, basename2) || vtContext.nextLocation.pathname;
+  return matchPath(path.pathname, nextPath) != null || matchPath(path.pathname, currentPath) != null;
+}
+const mergeClasses = (...classes) => classes.filter((className, index2, array) => {
+  return Boolean(className) && className.trim() !== "" && array.indexOf(className) === index2;
+}).join(" ").trim();
+const toKebabCase = (string2) => string2.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase();
+const toCamelCase = (string2) => string2.replace(
+  /^([A-Z])|[\s-_]+(\w)/g,
+  (match, p1, p2) => p2 ? p2.toUpperCase() : p1.toLowerCase()
+);
+const toPascalCase = (string2) => {
+  const camelCase = toCamelCase(string2);
+  return camelCase.charAt(0).toUpperCase() + camelCase.slice(1);
+};
+var defaultAttributes = {
+  xmlns: "http://www.w3.org/2000/svg",
+  width: 24,
+  height: 24,
+  viewBox: "0 0 24 24",
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 2,
+  strokeLinecap: "round",
+  strokeLinejoin: "round"
+};
+const hasA11yProp = (props) => {
+  for (const prop in props) {
+    if (prop.startsWith("aria-") || prop === "role" || prop === "title") {
+      return true;
+    }
+  }
+  return false;
+};
+const Icon = reactExports.forwardRef(
+  (_k, ref) => {
+    var _l = _k, {
+      color: color2 = "currentColor",
+      size = 24,
+      strokeWidth = 2,
+      absoluteStrokeWidth,
+      className = "",
+      children,
+      iconNode
+    } = _l, rest = __objRest(_l, [
+      "color",
+      "size",
+      "strokeWidth",
+      "absoluteStrokeWidth",
+      "className",
+      "children",
+      "iconNode"
+    ]);
+    return reactExports.createElement(
+      "svg",
+      __spreadValues(__spreadValues(__spreadProps(__spreadValues({
+        ref
+      }, defaultAttributes), {
+        width: size,
+        height: size,
+        stroke: color2,
+        strokeWidth: absoluteStrokeWidth ? Number(strokeWidth) * 24 / Number(size) : strokeWidth,
+        className: mergeClasses("lucide", className)
+      }), !children && !hasA11yProp(rest) && { "aria-hidden": "true" }), rest),
+      [
+        ...iconNode.map(([tag, attrs]) => reactExports.createElement(tag, attrs)),
+        ...Array.isArray(children) ? children : [children]
+      ]
+    );
+  }
+);
+const createLucideIcon = (iconName, iconNode) => {
+  const Component = reactExports.forwardRef(
+    (_a, ref) => {
+      var _b = _a, { className } = _b, props = __objRest(_b, ["className"]);
+      return reactExports.createElement(Icon, __spreadValues({
+        ref,
+        iconNode,
+        className: mergeClasses(
+          `lucide-${toKebabCase(toPascalCase(iconName))}`,
+          `lucide-${iconName}`,
+          className
+        )
+      }, props));
+    }
+  );
+  Component.displayName = toPascalCase(iconName);
+  return Component;
+};
+const __iconNode$5 = [
+  [
+    "path",
+    {
+      d: "M12 5a3 3 0 1 0-5.997.125 4 4 0 0 0-2.526 5.77 4 4 0 0 0 .556 6.588A4 4 0 1 0 12 18Z",
+      key: "l5xja"
+    }
+  ],
+  ["path", { d: "M9 13a4.5 4.5 0 0 0 3-4", key: "10igwf" }],
+  ["path", { d: "M6.003 5.125A3 3 0 0 0 6.401 6.5", key: "105sqy" }],
+  ["path", { d: "M3.477 10.896a4 4 0 0 1 .585-.396", key: "ql3yin" }],
+  ["path", { d: "M6 18a4 4 0 0 1-1.967-.516", key: "2e4loj" }],
+  ["path", { d: "M12 13h4", key: "1ku699" }],
+  ["path", { d: "M12 18h6a2 2 0 0 1 2 2v1", key: "105ag5" }],
+  ["path", { d: "M12 8h8", key: "1lhi5i" }],
+  ["path", { d: "M16 8V5a2 2 0 0 1 2-2", key: "u6izg6" }],
+  ["circle", { cx: "16", cy: "13", r: ".5", key: "ry7gng" }],
+  ["circle", { cx: "18", cy: "3", r: ".5", key: "1aiba7" }],
+  ["circle", { cx: "20", cy: "21", r: ".5", key: "yhc1fs" }],
+  ["circle", { cx: "20", cy: "8", r: ".5", key: "1e43v0" }]
+];
+const BrainCircuit = createLucideIcon("brain-circuit", __iconNode$5);
+const __iconNode$4 = [
+  ["circle", { cx: "12", cy: "12", r: "10", key: "1mglay" }],
+  ["line", { x1: "12", x2: "12", y1: "8", y2: "12", key: "1pkeuh" }],
+  ["line", { x1: "12", x2: "12.01", y1: "16", y2: "16", key: "4dfq90" }]
+];
+const CircleAlert = createLucideIcon("circle-alert", __iconNode$4);
+const __iconNode$3 = [
+  ["rect", { width: "7", height: "7", x: "3", y: "3", rx: "1", key: "1g98yp" }],
+  ["rect", { width: "7", height: "7", x: "14", y: "3", rx: "1", key: "6d4xhi" }],
+  ["rect", { width: "7", height: "7", x: "14", y: "14", rx: "1", key: "nxv5o0" }],
+  ["rect", { width: "7", height: "7", x: "3", y: "14", rx: "1", key: "1bb6yr" }]
+];
+const LayoutGrid = createLucideIcon("layout-grid", __iconNode$3);
+const __iconNode$2 = [
+  [
+    "path",
+    {
+      d: "M22 17a2 2 0 0 1-2 2H6.828a2 2 0 0 0-1.414.586l-2.202 2.202A.71.71 0 0 1 2 21.286V5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2z",
+      key: "18887p"
+    }
+  ]
+];
+const MessageSquare = createLucideIcon("message-square", __iconNode$2);
+const __iconNode$1 = [
+  [
+    "path",
+    {
+      d: "M9.671 4.136a2.34 2.34 0 0 1 4.659 0 2.34 2.34 0 0 0 3.319 1.915 2.34 2.34 0 0 1 2.33 4.033 2.34 2.34 0 0 0 0 3.831 2.34 2.34 0 0 1-2.33 4.033 2.34 2.34 0 0 0-3.319 1.915 2.34 2.34 0 0 1-4.659 0 2.34 2.34 0 0 0-3.32-1.915 2.34 2.34 0 0 1-2.33-4.033 2.34 2.34 0 0 0 0-3.831A2.34 2.34 0 0 1 6.35 6.051a2.34 2.34 0 0 0 3.319-1.915",
+      key: "1i5ecw"
+    }
+  ],
+  ["circle", { cx: "12", cy: "12", r: "3", key: "1v7zrd" }]
+];
+const Settings = createLucideIcon("settings", __iconNode$1);
+const __iconNode = [
+  ["path", { d: "M16 17h6v-6", key: "t6n2it" }],
+  ["path", { d: "m22 17-8.5-8.5-5 5L2 7", key: "x473p" }]
+];
+const TrendingDown = createLucideIcon("trending-down", __iconNode);
+const createStoreImpl = (createState2) => {
+  let state;
+  const listeners = /* @__PURE__ */ new Set();
+  const setState = (partial, replace) => {
+    const nextState = typeof partial === "function" ? partial(state) : partial;
+    if (!Object.is(nextState, state)) {
+      const previousState = state;
+      state = (replace != null ? replace : typeof nextState !== "object" || nextState === null) ? nextState : Object.assign({}, state, nextState);
+      listeners.forEach((listener) => listener(state, previousState));
+    }
+  };
+  const getState = () => state;
+  const getInitialState = () => initialState;
+  const subscribe = (listener) => {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
+  };
+  const api = { setState, getState, getInitialState, subscribe };
+  const initialState = state = createState2(setState, getState, api);
+  return api;
+};
+const createStore = ((createState2) => createState2 ? createStoreImpl(createState2) : createStoreImpl);
+const identity = (arg) => arg;
+function useStore(api, selector = identity) {
+  const slice = React.useSyncExternalStore(
+    api.subscribe,
+    React.useCallback(() => selector(api.getState()), [api, selector]),
+    React.useCallback(() => selector(api.getInitialState()), [api, selector])
+  );
+  React.useDebugValue(slice);
+  return slice;
+}
+const createImpl = (createState2) => {
+  const api = createStore(createState2);
+  const useBoundStore = (selector) => useStore(api, selector);
+  Object.assign(useBoundStore, api);
+  return useBoundStore;
+};
+const create$1 = ((createState2) => createState2 ? createImpl(createState2) : createImpl);
+class ExtensionBridge {
+  constructor() {
+    __publicField(this, "isReady", false);
+    __publicField(this, "readyPromise", null);
+  }
+  async waitForReady(timeout = 1e4) {
+    if (this.isReady) {
+      return;
+    }
+    if (this.readyPromise) {
+      return this.readyPromise;
+    }
+    this.readyPromise = new Promise((resolve, reject) => {
+      const startTime = Date.now();
+      const retryDelay = 200;
+      const checkReady = () => {
+        const elapsed = Date.now() - startTime;
+        if (elapsed > timeout) {
+          reject(new Error("Timeout waiting for extension services"));
+          return;
+        }
+        if (typeof chrome !== "undefined" && chrome.runtime) {
+          chrome.runtime.sendMessage({ action: "ping" }, (pingResponse) => {
+            if (chrome.runtime.lastError) {
+              if (Date.now() - startTime > timeout) {
+                reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
+                return;
+              }
+              setTimeout(checkReady, retryDelay);
+              return;
+            }
+            if (pingResponse == null ? void 0 : pingResponse.success) {
+              this.isReady = true;
+              resolve();
+              return;
+            }
+            if (Date.now() - startTime > timeout) {
+              reject(new Error("Service worker responded but services not ready"));
+              return;
+            }
+            setTimeout(checkReady, retryDelay);
+          });
+        } else {
+          reject(new Error("Chrome runtime not available"));
+        }
+      };
+      checkReady();
+    });
+    return this.readyPromise;
+  }
+  sendMessage(message) {
+    return new Promise((resolve, reject) => {
+      chrome.runtime.sendMessage(message, (response) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else if (response.error) {
+          reject(new Error(response.error));
+        } else {
+          resolve(response);
+        }
+      });
+    });
+  }
+  /**
+   * Get all sessions (completed + current)
+   * Returns completedSessions[] + currentSession (if exists)
+   */
+  async getAllSessions() {
+    try {
+      await this.waitForReady();
+      const response = await this.sendMessage({ action: "getAllSessions" });
+      console.log(`Retrieved ${response.sessions.length} sessions from service worker`);
+      return response.sessions || [];
+    } catch (error) {
+      console.error("Error getting all sessions:", error);
+      throw error;
+    }
+  }
+  async getProcessedHistory() {
+    return new Promise((resolve, reject) => {
+      var _a;
+      if (!((_a = chrome == null ? void 0 : chrome.storage) == null ? void 0 : _a.local)) {
+        reject(new Error("Chrome storage not available"));
+        return;
+      }
+      chrome.storage.local.get({ historyItems: [] }, (data) => {
+        if (chrome.runtime.lastError) {
+          reject(new Error(chrome.runtime.lastError.message));
+        } else {
+          console.log(`Retrieved ${data.historyItems.length} preprocessed items from storage`);
+          resolve(data.historyItems);
+        }
+      });
+    });
+  }
+  /**
+   * Process history items into sessions
+   * Kept for backward compatibility (fallback)
+   */
+  async processHistoryIntoSessions(_historyItems) {
+    return await this.getAllSessions();
+  }
+  async clusterSession(session, options) {
+    try {
+      await this.waitForReady();
+      const result = await this.sendMessage({
+        action: "analyzeSession",
+        session,
+        options
+      });
+      console.log("Session clustering result:", result);
+      return result;
+    } catch (error) {
+      console.error("Error clustering session:", error);
+      throw error;
+    }
+  }
+  /**
+   * Check API health
+   */
+  async checkApiHealth() {
+    try {
+      await this.waitForReady();
+      const result = await this.sendMessage({ action: "checkApiHealth" });
+      console.log("API health check:", result);
+      return result;
+    } catch (error) {
+      console.error("Error checking API health:", error);
+      throw error;
+    }
+  }
+  async sendChatMessage(message, conversationId, history) {
+    if (!message || message.trim().length === 0) {
+      throw new Error("Message cannot be empty");
+    }
+    try {
+      await this.waitForReady();
+      const result = await this.sendMessage({
+        action: "sendChatMessage",
+        message,
+        conversationId: conversationId || null,
+        history: history || []
+      });
+      console.log("Chat message result:", result);
+      return result;
+    } catch (error) {
+      console.error("Error sending chat message:", error);
+      throw error;
+    }
+  }
+  /**
+   * Get extension configuration
+   */
+  getConfig() {
+    if (!window.ExtensionConfig) {
+      console.warn("ExtensionConfig not available, using defaults");
+      return {
+        currentEnvironment: "development",
+        getApiBaseUrl: () => "http://localhost:8000"
+      };
+    }
+    return window.ExtensionConfig;
+  }
+  getConstants() {
+    if (!window.ExtensionConstants) {
+      console.warn("ExtensionConstants not available, using defaults");
+      return {
+        SESSION_GAP_MINUTES: 120,
+        HISTORY_DAYS_BACK: 7,
+        DAY_MS: 24 * 60 * 60 * 1e3,
+        MAX_CLUSTER_ITEMS_DISPLAY: 5,
+        STATUS_CHECKING_API: "Checking API connection...",
+        STATUS_FETCHING_HISTORY: "Fetching history...",
+        STATUS_PROCESSING_SESSIONS: "Processing sessions...",
+        STATUS_ANALYZING_PATTERNS: "Analyzing patterns...",
+        STATUS_ANALYSIS_COMPLETE: "Analysis complete",
+        STATUS_ANALYSIS_FAILED: "Analysis failed",
+        ERROR_NO_HISTORY: "No history found",
+        ERROR_NO_SESSIONS: "No sessions could be created",
+        ERROR_CLUSTERING_FAILED: "Clustering failed"
+      };
+    }
+    return window.ExtensionConstants;
+  }
+  areExtensionServicesReady() {
+    var _a;
+    return !!((chrome == null ? void 0 : chrome.runtime) && window.ExtensionConstants && window.ExtensionConfig && ((_a = chrome == null ? void 0 : chrome.storage) == null ? void 0 : _a.local));
+  }
+  /**
+   * Wait for extension services to be ready
+   * @param timeoutMs - Timeout in milliseconds (default: 10 seconds)
+   */
+  async waitForExtensionServices(timeoutMs = 1e4) {
+    return this.waitForReady(timeoutMs);
+  }
+}
+const extensionBridge = new ExtensionBridge();
+if (typeof window !== "undefined") {
+  window.extensionBridge = extensionBridge;
+}
+const useSessionStore = create$1((set, get) => ({
+  // Initial state
+  availableSessions: [],
+  activeSessionId: null,
+  sessionResults: {},
+  sessionAnalysisStates: {},
+  isReanalyzing: false,
+  error: null,
+  isInitialized: false,
+  initializeSessions: async () => {
+    try {
+      set({ error: null });
+      await extensionBridge.waitForExtensionServices();
+      console.log("Extension services are ready");
+      const constants = extensionBridge.getConstants();
+      const healthCheck = await extensionBridge.checkApiHealth();
+      if (!healthCheck.success) {
+        throw new Error(`API not available: ${healthCheck.error}`);
+      }
+      const sessions = await extensionBridge.getAllSessions();
+      console.log("Sessions:", sessions);
+      if (sessions.length === 0) {
+        throw new Error(constants.ERROR_NO_SESSIONS);
+      }
+      const sortedSessions = sessions.sort(
+        (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
+      );
+      const sessionsWithId = sortedSessions.map((session) => __spreadProps(__spreadValues({}, session), {
+        session_id: session.session_identifier
+      }));
+      const initialStates = {};
+      sessionsWithId.forEach((session) => {
+        initialStates[session.session_identifier] = "pending";
+      });
+      set({
+        availableSessions: sessionsWithId,
+        sessionAnalysisStates: initialStates,
+        isInitialized: true
+      });
+      if (sessionsWithId.length > 0) {
+        const firstSession = sessionsWithId[0];
+        const firstSessionId = firstSession.session_identifier;
+        set({ activeSessionId: firstSessionId });
+        set((state) => ({
+          sessionAnalysisStates: __spreadProps(__spreadValues({}, state.sessionAnalysisStates), {
+            [firstSessionId]: "loading"
+          })
+        }));
+        const clusterResult = await extensionBridge.clusterSession(firstSession);
+        if (!clusterResult.success) {
+          throw new Error(`Clustering failed: ${clusterResult.error}`);
+        }
+        set((state) => ({
+          sessionResults: __spreadProps(__spreadValues({}, state.sessionResults), {
+            [firstSessionId]: clusterResult.data
+          }),
+          sessionAnalysisStates: __spreadProps(__spreadValues({}, state.sessionAnalysisStates), {
+            [firstSessionId]: "completed"
+          })
+        }));
+      }
+    } catch (error) {
+      console.error("Session initialization failed:", error);
+      set({ error: error instanceof Error ? error.message : "Unknown error" });
+    }
+  },
+  setActiveSession: async (sessionId) => {
+    set({ activeSessionId: sessionId });
+    const { sessionAnalysisStates } = get();
+    if (sessionAnalysisStates[sessionId] === "pending") {
+      await get().analyzeSession(sessionId);
+    }
+  },
+  analyzeSession: async (sessionId) => {
+    const { availableSessions, sessionAnalysisStates } = get();
+    const session = availableSessions.find((s) => s.session_id === sessionId);
+    if (!session) {
+      console.error(`Session ${sessionId} not found`);
+      return;
+    }
+    if (sessionAnalysisStates[sessionId] === "completed") {
+      return;
+    }
+    try {
+      set((state) => ({
+        sessionAnalysisStates: __spreadProps(__spreadValues({}, state.sessionAnalysisStates), {
+          [sessionId]: "loading"
+        })
+      }));
+      const clusterResult = await extensionBridge.clusterSession(session);
+      if (!clusterResult.success) {
+        throw new Error(`Clustering failed: ${clusterResult.error}`);
+      }
+      set((state) => ({
+        sessionResults: __spreadProps(__spreadValues({}, state.sessionResults), {
+          [sessionId]: clusterResult.data
+        }),
+        sessionAnalysisStates: __spreadProps(__spreadValues({}, state.sessionAnalysisStates), {
+          [sessionId]: "completed"
+        })
+      }));
+    } catch (error) {
+      console.error(`Session analysis failed for ${sessionId}:`, error);
+      set((state) => ({
+        sessionAnalysisStates: __spreadProps(__spreadValues({}, state.sessionAnalysisStates), {
+          [sessionId]: "error"
+        })
+      }));
+    }
+  },
+  reanalyzeActiveSession: async () => {
+    const { activeSessionId, availableSessions } = get();
+    if (!activeSessionId) return;
+    const session = availableSessions.find((s) => s.session_id === activeSessionId);
+    if (!session) return;
+    try {
+      set({ isReanalyzing: true });
+      const result = await extensionBridge.clusterSession(session, { force: true });
+      if (!result.success) {
+        throw new Error(`Clustering failed: ${result.error}`);
+      }
+      set((state) => ({
+        sessionResults: __spreadProps(__spreadValues({}, state.sessionResults), {
+          [activeSessionId]: result.data
+        }),
+        sessionAnalysisStates: __spreadProps(__spreadValues({}, state.sessionAnalysisStates), {
+          [activeSessionId]: "completed"
+        })
+      }));
+    } catch (error) {
+      console.error("Re-analysis failed:", error);
+    } finally {
+      set({ isReanalyzing: false });
+    }
+  }
+}));
+function SessionList() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const availableSessions = useSessionStore((s) => s.availableSessions);
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const sessionResults = useSessionStore((s) => s.sessionResults);
+  const sessionAnalysisStates = useSessionStore((s) => s.sessionAnalysisStates);
+  const setActiveSession = useSessionStore((s) => s.setActiveSession);
+  const sortedSessions = [...availableSessions].map((session) => ({
     sessionId: session.session_id,
     sessionData: session,
     startTime: new Date(session.start_time)
   })).sort((a, b) => b.startTime.getTime() - a.startTime.getTime());
   if (sortedSessions.length === 0) {
-    return null;
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-3 py-4 text-xs text-white/30 text-center", children: "No sessions yet" });
   }
-  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-full overflow-x-auto border-b border-white/10 bg-black", children: /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex gap-2 px-6 py-2", children: sortedSessions.map((session, index2) => {
+  const handleSessionClick = (sessionId) => {
+    setActiveSession(sessionId);
+    if (location.pathname !== "/sessions") {
+      navigate("/sessions");
+    }
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col gap-1 px-2 py-2 overflow-y-auto thin-scrollbar", children: sortedSessions.map((session, index2) => {
     var _a, _b;
     const sessionNumber = index2 + 1;
-    const startTime = new Date(session.sessionData.start_time);
+    const startTime = session.startTime;
     const endTime = new Date(session.sessionData.end_time);
     const duration = Math.max(1, Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60)));
     const itemCount = ((_a = session.sessionData.items) == null ? void 0 : _a.length) || 0;
     const analysisState = sessionAnalysisStates[session.sessionId] || "pending";
-    const sessionResult = currentSessionResults[session.sessionId];
+    const sessionResult = sessionResults[session.sessionId];
     const clusterCount = ((_b = sessionResult == null ? void 0 : sessionResult.clusters) == null ? void 0 : _b.length) || 0;
     let statusText = "";
     switch (analysisState) {
@@ -12276,27 +14915,27 @@ function SessionTabs({
         statusText = `${itemCount} items`;
         break;
       case "loading":
-        statusText = "Analyzing";
+        statusText = "Analyzing...";
         break;
       case "completed":
-        statusText = `${duration} min · ${clusterCount} topics`;
+        statusText = `${duration}min · ${clusterCount} topics`;
         break;
       case "error":
-        statusText = "Analysis failed";
+        statusText = "Failed";
         break;
     }
     const isActive = session.sessionId === activeSessionId;
     return /* @__PURE__ */ jsxRuntimeExports.jsxs(
       "button",
       {
-        onClick: () => onSessionChange(session.sessionId),
-        className: `flex flex-col items-start gap-1 min-w-[160px] px-4 py-3 border border-white/10 ${isActive ? "bg-white/10 text-white" : "bg-transparent text-white/50 hover:text-white"} text-left`,
+        onClick: () => handleSessionClick(session.sessionId),
+        className: `flex flex-col items-start gap-0.5 w-full px-3 py-2 text-left rounded transition-colors ${isActive ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white/70"}`,
         children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] uppercase tracking-[0.3em]", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[11px] uppercase tracking-[0.2em]", children: [
             "Session ",
             sessionNumber
           ] }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] uppercase tracking-[0.2em] text-white/40", children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-[10px] text-white/40", children: [
             startTime.toLocaleDateString(),
             " · ",
             statusText
@@ -12305,38 +14944,61 @@ function SessionTabs({
       },
       session.sessionId
     );
-  }) }) });
+  }) });
 }
-function Dashboard({
-  currentSessionResults,
-  activeSessionId,
-  onReanalyze,
-  isReanalyzing,
-  activeIsLoading = false,
-  availableSessions,
-  sessionAnalysisStates,
-  onSessionChange
-}) {
-  const currentSessionData = activeSessionId ? currentSessionResults[activeSessionId] : null;
-  const isAnalyzing = !currentSessionData || activeIsLoading;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full space-y-6", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      SessionTabs,
-      {
-        currentSessionResults,
-        activeSessionId,
-        onSessionChange,
-        availableSessions,
-        sessionAnalysisStates
-      }
-    ),
-    /* @__PURE__ */ jsxRuntimeExports.jsx(ClustersSection, { sessionData: currentSessionData, isAnalyzing, onReanalyze, isReanalyzing })
-  ] });
-}
-function MainLayout({ children, chatComponent }) {
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-[calc(100vh-64px)] bg-black", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 overflow-y-auto thin-scrollbar", children }),
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-[32%] min-w-[300px] border-l border-white/10 bg-[#080808]", children: chatComponent })
+const navItems = [
+  { path: "/sessions", label: "Sessions", icon: LayoutGrid },
+  { path: "/quiz", label: "Quiz", icon: BrainCircuit },
+  { path: "/tracking", label: "Tracking", icon: TrendingDown }
+];
+function Sidebar() {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const openSettings = () => {
+    const config = extensionBridge.getConfig();
+    const constants = extensionBridge.getConstants();
+    const currentEnv = config.currentEnvironment;
+    const apiUrl = config.getApiBaseUrl();
+    const sessionGap = constants.SESSION_GAP_MINUTES;
+    alert(`Settings
+
+Environment: ${currentEnv}
+API URL: ${apiUrl}
+Session Gap: ${sessionGap} minutes
+
+To switch environments, modify extension/api/config.js`);
+  };
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full bg-[#060606] border-r border-white/10", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-4 flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h1", { className: "text-sm tracking-widest uppercase text-white", children: "Obra" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: openSettings,
+          className: "p-1 text-white/40 hover:text-white transition-colors",
+          title: "Settings",
+          children: /* @__PURE__ */ jsxRuntimeExports.jsx(Settings, { size: 16 })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("nav", { className: "flex flex-col gap-1 px-2", children: navItems.map(({ path, label, icon: Icon2 }) => {
+      const isActive = location.pathname === path;
+      return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+        "button",
+        {
+          onClick: () => navigate(path),
+          className: `flex items-center gap-3 px-3 py-2 rounded text-left transition-colors ${isActive ? "bg-white/10 text-white" : "text-white/50 hover:bg-white/5 hover:text-white/70"}`,
+          children: [
+            /* @__PURE__ */ jsxRuntimeExports.jsx(Icon2, { size: 16 }),
+            /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xs uppercase tracking-[0.2em]", children: label })
+          ]
+        },
+        path
+      );
+    }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "mx-3 my-3 border-t border-white/10" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-2 mb-1", children: /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "px-3 text-[10px] uppercase tracking-[0.25em] text-white/30", children: "Sessions" }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-h-0 overflow-y-auto thin-scrollbar", children: /* @__PURE__ */ jsxRuntimeExports.jsx(SessionList, {}) })
   ] });
 }
 function ok$1() {
@@ -21982,242 +24644,19 @@ function ChatBubble({ message }) {
     ] })
   ] }) });
 }
-class ExtensionBridge {
-  constructor() {
-    __publicField(this, "isReady", false);
-    __publicField(this, "readyPromise", null);
-  }
-  /**
-   * Wait for services to be ready
-   * @param timeout - Timeout in milliseconds (default: 10 seconds to allow for service initialization)
-   */
-  async waitForReady(timeout = 1e4) {
-    if (this.isReady) {
-      return;
-    }
-    if (this.readyPromise) {
-      return this.readyPromise;
-    }
-    this.readyPromise = new Promise((resolve, reject) => {
-      const startTime = Date.now();
-      const retryDelay = 200;
-      const checkReady = () => {
-        const elapsed = Date.now() - startTime;
-        if (elapsed > timeout) {
-          reject(new Error("Timeout waiting for extension services"));
-          return;
-        }
-        if (typeof chrome !== "undefined" && chrome.runtime) {
-          chrome.runtime.sendMessage({ action: "ping" }, (pingResponse) => {
-            if (chrome.runtime.lastError) {
-              if (Date.now() - startTime > timeout) {
-                reject(new Error(`Chrome runtime error: ${chrome.runtime.lastError.message}`));
-                return;
-              }
-              setTimeout(checkReady, retryDelay);
-              return;
-            }
-            if (pingResponse == null ? void 0 : pingResponse.success) {
-              this.isReady = true;
-              resolve();
-              return;
-            }
-            if (Date.now() - startTime > timeout) {
-              reject(new Error("Service worker responded but services not ready"));
-              return;
-            }
-            setTimeout(checkReady, retryDelay);
-          });
-        } else {
-          reject(new Error("Chrome runtime not available"));
-        }
-      };
-      checkReady();
-    });
-    return this.readyPromise;
-  }
-  /**
-   * Send message to service worker and wait for response
-   */
-  sendMessage(message) {
-    return new Promise((resolve, reject) => {
-      chrome.runtime.sendMessage(message, (response) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else if (response.error) {
-          reject(new Error(response.error));
-        } else {
-          resolve(response);
-        }
-      });
-    });
-  }
-  /**
-   * Get all sessions (completed + current)
-   * Returns completedSessions[] + currentSession (if exists)
-   */
-  async getAllSessions() {
-    try {
-      await this.waitForReady();
-      const response = await this.sendMessage({ action: "getAllSessions" });
-      console.log(`Retrieved ${response.sessions.length} sessions from service worker`);
-      return response.sessions || [];
-    } catch (error) {
-      console.error("Error getting all sessions:", error);
-      throw error;
-    }
-  }
-  /**
-   * Get preprocessed history items from Chrome storage
-   * Kept for backward compatibility (fallback)
-   */
-  async getProcessedHistory() {
-    return new Promise((resolve, reject) => {
-      var _a;
-      if (!((_a = chrome == null ? void 0 : chrome.storage) == null ? void 0 : _a.local)) {
-        reject(new Error("Chrome storage not available"));
-        return;
-      }
-      chrome.storage.local.get({ historyItems: [] }, (data) => {
-        if (chrome.runtime.lastError) {
-          reject(new Error(chrome.runtime.lastError.message));
-        } else {
-          console.log(`Retrieved ${data.historyItems.length} preprocessed items from storage`);
-          resolve(data.historyItems);
-        }
-      });
-    });
-  }
-  /**
-   * Process history items into sessions
-   * Kept for backward compatibility (fallback)
-   */
-  async processHistoryIntoSessions(_historyItems) {
-    return await this.getAllSessions();
-  }
-  /**
-   * Send single session to backend for clustering
-   */
-  async clusterSession(session, options) {
-    try {
-      await this.waitForReady();
-      const result = await this.sendMessage({
-        action: "analyzeSession",
-        session,
-        options
-      });
-      console.log("Session clustering result:", result);
-      return result;
-    } catch (error) {
-      console.error("Error clustering session:", error);
-      throw error;
-    }
-  }
-  /**
-   * Check API health
-   */
-  async checkApiHealth() {
-    try {
-      await this.waitForReady();
-      const result = await this.sendMessage({ action: "checkApiHealth" });
-      console.log("API health check:", result);
-      return result;
-    } catch (error) {
-      console.error("Error checking API health:", error);
-      throw error;
-    }
-  }
-  /**
-   * Send chat message
-   */
-  async sendChatMessage(message, conversationId, history) {
-    if (!message || message.trim().length === 0) {
-      throw new Error("Message cannot be empty");
-    }
-    try {
-      await this.waitForReady();
-      const result = await this.sendMessage({
-        action: "sendChatMessage",
-        message,
-        conversationId: conversationId || null,
-        history: history || []
-      });
-      console.log("Chat message result:", result);
-      return result;
-    } catch (error) {
-      console.error("Error sending chat message:", error);
-      throw error;
-    }
-  }
-  /**
-   * Get extension configuration
-   */
-  getConfig() {
-    if (!window.ExtensionConfig) {
-      console.warn("ExtensionConfig not available, using defaults");
-      return {
-        currentEnvironment: "development",
-        getApiBaseUrl: () => "http://localhost:8000"
-      };
-    }
-    return window.ExtensionConfig;
-  }
-  /**
-   * Get extension constants
-   */
-  getConstants() {
-    if (!window.ExtensionConstants) {
-      console.warn("ExtensionConstants not available, using defaults");
-      return {
-        SESSION_GAP_MINUTES: 120,
-        HISTORY_DAYS_BACK: 7,
-        DAY_MS: 24 * 60 * 60 * 1e3,
-        MAX_CLUSTER_ITEMS_DISPLAY: 5,
-        STATUS_CHECKING_API: "Checking API connection...",
-        STATUS_FETCHING_HISTORY: "Fetching history...",
-        STATUS_PROCESSING_SESSIONS: "Processing sessions...",
-        STATUS_ANALYZING_PATTERNS: "Analyzing patterns...",
-        STATUS_ANALYSIS_COMPLETE: "Analysis complete",
-        STATUS_ANALYSIS_FAILED: "Analysis failed",
-        ERROR_NO_HISTORY: "No history found",
-        ERROR_NO_SESSIONS: "No sessions could be created",
-        ERROR_CLUSTERING_FAILED: "Clustering failed"
-      };
-    }
-    return window.ExtensionConstants;
-  }
-  /**
-   * Check if all extension services are loaded and ready
-   */
-  areExtensionServicesReady() {
+const useChatStore = create$1((set, get) => ({
+  // Initial state
+  messages: [],
+  inputValue: "",
+  isLoading: false,
+  error: null,
+  conversationId: null,
+  setInput: (value) => {
+    set({ inputValue: value });
+  },
+  sendMessage: async () => {
     var _a;
-    return !!((chrome == null ? void 0 : chrome.runtime) && window.ExtensionConstants && window.ExtensionConfig && ((_a = chrome == null ? void 0 : chrome.storage) == null ? void 0 : _a.local));
-  }
-  /**
-   * Wait for extension services to be ready
-   * @param timeoutMs - Timeout in milliseconds (default: 10 seconds)
-   */
-  async waitForExtensionServices(timeoutMs = 1e4) {
-    return this.waitForReady(timeoutMs);
-  }
-}
-const extensionBridge = new ExtensionBridge();
-if (typeof window !== "undefined") {
-  window.extensionBridge = extensionBridge;
-}
-function ChatWindow() {
-  const [messages, setMessages] = reactExports.useState([]);
-  const [inputValue, setInputValue] = reactExports.useState("");
-  const [isLoading, setIsLoading] = reactExports.useState(false);
-  const [error, setError] = reactExports.useState(null);
-  const [conversationId, setConversationId] = reactExports.useState(null);
-  const messagesEndRef = reactExports.useRef(null);
-  reactExports.useEffect(() => {
-    var _a;
-    (_a = messagesEndRef.current) == null ? void 0 : _a.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-  const handleSendMessage = async () => {
-    var _a;
+    const { inputValue, isLoading, conversationId, messages } = get();
     const trimmedMessage = inputValue.trim();
     if (!trimmedMessage || isLoading) {
       return;
@@ -22227,10 +24666,12 @@ function ChatWindow() {
       content: trimmedMessage,
       timestamp: /* @__PURE__ */ new Date()
     };
-    setMessages((prev) => [...prev, userMessage]);
-    setInputValue("");
-    setIsLoading(true);
-    setError(null);
+    set({
+      messages: [...messages, userMessage],
+      inputValue: "",
+      isLoading: true,
+      error: null
+    });
     try {
       const result = await extensionBridge.sendChatMessage(
         trimmedMessage,
@@ -22245,35 +24686,56 @@ function ChatWindow() {
           timestamp: new Date(result.data.timestamp),
           sources
         };
-        setMessages((prev) => [...prev, assistantMessage]);
-        setConversationId(result.data.conversation_id);
+        set((state) => ({
+          messages: [...state.messages, assistantMessage],
+          conversationId: result.data.conversation_id
+        }));
       } else {
         throw new Error(result.error || "Failed to send message");
       }
     } catch (err) {
       console.error("Error sending message:", err);
-      setError(err instanceof Error ? err.message : "Failed to send message");
-      setMessages((prev) => prev.slice(0, -1));
+      set((state) => ({
+        error: err instanceof Error ? err.message : "Failed to send message",
+        // Remove the optimistic user message on error
+        messages: state.messages.slice(0, -1)
+      }));
     } finally {
-      setIsLoading(false);
+      set({ isLoading: false });
     }
-  };
-  const handleInputChange = (e) => {
-    setInputValue(e.target.value);
-  };
+  },
+  clearConversation: () => {
+    set({
+      messages: [],
+      conversationId: null,
+      error: null
+    });
+  }
+}));
+function ChatWindow() {
+  const messages = useChatStore((s) => s.messages);
+  const inputValue = useChatStore((s) => s.inputValue);
+  const isLoading = useChatStore((s) => s.isLoading);
+  const error = useChatStore((s) => s.error);
+  const setInput = useChatStore((s) => s.setInput);
+  const sendMessage = useChatStore((s) => s.sendMessage);
+  const messagesEndRef = reactExports.useRef(null);
+  reactExports.useEffect(() => {
+    var _a;
+    (_a = messagesEndRef.current) == null ? void 0 : _a.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
   const handleKeyPress = (e) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      sendMessage();
     }
   };
   return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full text-white", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-4 py-3 border-b border-white/10", children: /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-widest", children: "Chat" }) }),
-    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto px-4 py-2 space-y-2", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 overflow-y-auto px-4 py-2 space-y-2 thin-scrollbar", children: [
       messages.length === 0 ? /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "h-full w-full flex items-center justify-center text-white/40 text-sm", children: "Start a conversation" }) : messages.map((message, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ChatBubble, { message }, `${message.role}-${index2}-${message.timestamp.getTime()}`)),
       /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: messagesEndRef })
     ] }),
-    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "chat-error", children: error }),
+    error && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-4 py-2 text-xs text-red-400/80", children: error }),
     /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-3 flex items-center gap-2 border-t border-white/10 bg-[#080808]", children: [
       /* @__PURE__ */ jsxRuntimeExports.jsx(
         "input",
@@ -22282,8 +24744,8 @@ function ChatWindow() {
           className: "flex-1 bg-transparent border-b border-white/20 outline-none px-0 py-2 text-sm placeholder-white/30 disabled:opacity-40",
           placeholder: "Type your message...",
           value: inputValue,
-          onChange: handleInputChange,
-          onKeyPress: handleKeyPress,
+          onChange: (e) => setInput(e.target.value),
+          onKeyDown: handleKeyPress,
           disabled: isLoading
         }
       ),
@@ -22291,7 +24753,7 @@ function ChatWindow() {
         "button",
         {
           className: "text-sm text-white/70 disabled:text-white/30",
-          onClick: handleSendMessage,
+          onClick: sendMessage,
           disabled: isLoading || !inputValue.trim(),
           children: isLoading ? "Sending" : "Send"
         }
@@ -22299,178 +24761,276 @@ function ChatWindow() {
     ] })
   ] });
 }
-function App() {
-  const [error, setError] = reactExports.useState(null);
-  const [currentSessionResults, setCurrentSessionResults] = reactExports.useState({});
-  const [activeSessionId, setActiveSessionId] = reactExports.useState(null);
-  const [availableSessions, setAvailableSessions] = reactExports.useState([]);
-  const [sessionAnalysisStates, setSessionAnalysisStates] = reactExports.useState({});
-  const [isReanalyzing, setIsReanalyzing] = reactExports.useState(false);
-  reactExports.useEffect(() => {
-    const initializeServices = async () => {
-      try {
-        await extensionBridge.waitForExtensionServices();
-        console.log("Extension services are ready");
-        await loadDashboard();
-      } catch (error2) {
-        console.error("Failed to initialize extension services:", error2);
-        setError("Failed to load extension services");
+const useUIStore = create$1((set) => ({
+  isChatOpen: true,
+  toggleChat: () => {
+    set((state) => ({ isChatOpen: !state.isChatOpen }));
+  }
+}));
+function ChatPanel() {
+  const isChatOpen = useUIStore((s) => s.isChatOpen);
+  const toggleChat = useUIStore((s) => s.toggleChat);
+  if (!isChatOpen) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex flex-col items-center py-4", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "button",
+      {
+        onClick: toggleChat,
+        className: "p-2 text-white/50 hover:text-white transition-colors",
+        title: "Open chat",
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(MessageSquare, { size: 20 })
       }
-    };
-    initializeServices();
-  }, []);
-  const loadDashboard = async () => {
-    try {
-      setError(null);
-      const constants = extensionBridge.getConstants();
-      const healthCheck = await extensionBridge.checkApiHealth();
-      if (!healthCheck.success) {
-        throw new Error(`API not available: ${healthCheck.error}`);
-      }
-      const sessions = await extensionBridge.getAllSessions();
-      console.log("Sessions:", sessions);
-      if (sessions.length === 0) {
-        throw new Error(constants.ERROR_NO_SESSIONS);
-      }
-      const sortedSessions = sessions.sort(
-        (a, b) => new Date(b.start_time).getTime() - new Date(a.start_time).getTime()
-      );
-      const sessionsWithId = sortedSessions.map((session) => __spreadProps(__spreadValues({}, session), {
-        session_id: session.session_identifier
-      }));
-      setAvailableSessions(sessionsWithId);
-      const initialStates = {};
-      sessionsWithId.forEach((session) => {
-        initialStates[session.session_identifier] = "pending";
-      });
-      setSessionAnalysisStates(initialStates);
-      if (sessionsWithId.length > 0) {
-        const firstSessionId = sessionsWithId[0].session_identifier;
-        setActiveSessionId(firstSessionId);
-        const firstSession = sessionsWithId[0];
-        setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_identifier]: "loading"
-        }));
-        const clusterResult = await extensionBridge.clusterSession(firstSession);
-        if (!clusterResult.success) {
-          throw new Error(`Clustering failed: ${clusterResult.error}`);
+    ) });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col h-full", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "px-4 py-3 border-b border-white/10 flex items-center justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-widest text-white", children: "Chat" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(
+        "button",
+        {
+          onClick: toggleChat,
+          className: "text-white/50 hover:text-white text-xs uppercase tracking-widest transition-colors",
+          children: "Hide"
         }
-        setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_identifier]: clusterResult.data
-        }));
-        setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-          [firstSession.session_identifier]: "completed"
-        }));
-      }
-    } catch (error2) {
-      console.error("Dashboard loading failed:", error2);
-      setError(error2 instanceof Error ? error2.message : "Unknown error");
-    }
-  };
-  const analyzeSession = async (sessionId) => {
-    const session = availableSessions.find((s) => s.session_id === sessionId);
-    if (!session) {
-      console.error(`Session ${sessionId} not found`);
-      return;
-    }
-    if (sessionAnalysisStates[sessionId] === "completed") {
-      return;
-    }
+      )
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-h-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChatWindow, {}) })
+  ] });
+}
+function SessionInfo({ sessionData }) {
+  var _a;
+  if (!sessionData) {
+    return null;
+  }
+  const startTime = new Date(sessionData.session_start_time);
+  const endTime = new Date(sessionData.session_end_time);
+  const duration = Math.round((endTime.getTime() - startTime.getTime()) / (1e3 * 60));
+  const clusterCount = ((_a = sessionData.clusters) == null ? void 0 : _a.length) || 0;
+  const dateLabel = startTime.toLocaleDateString();
+  const startLabel = startTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const endLabel = endTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-3 text-[10px] uppercase tracking-[0.25em] text-white/40", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("span", { children: dateLabel }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+      startLabel,
+      " → ",
+      endLabel
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+      duration,
+      " min"
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
+      clusterCount,
+      " topics"
+    ] })
+  ] });
+}
+function ClusterItem({ item }) {
+  const [currentFaviconIndex, setCurrentFaviconIndex] = reactExports.useState(0);
+  const [showFallback, setShowFallback] = reactExports.useState(false);
+  const getDomain = (url) => {
     try {
-      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-        [sessionId]: "loading"
-      }));
-      const clusterResult = await extensionBridge.clusterSession(session);
-      if (!clusterResult.success) {
-        throw new Error(`Clustering failed: ${clusterResult.error}`);
+      if (url === "about:blank" || url.startsWith("chrome-extension://") || url.startsWith("moz-extension://") || url.startsWith("file://") || url.includes(".pdf") || url.includes(".png") || url.includes(".jpg") || url.includes(".jpeg") || url.includes(".doc") || url.includes(".docx")) {
+        return "local-file";
       }
-      setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
-        [sessionId]: clusterResult.data
-      }));
-      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-        [sessionId]: "completed"
-      }));
-    } catch (error2) {
-      console.error(`Session analysis failed for ${sessionId}:`, error2);
-      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-        [sessionId]: "error"
-      }));
-    }
-  };
-  const reanalyzeActiveSession = async () => {
-    if (!activeSessionId) return;
-    const session = availableSessions.find((s) => s.session_id === activeSessionId);
-    if (!session) return;
-    try {
-      setIsReanalyzing(true);
-      const result = await extensionBridge.clusterSession(session, { force: true });
-      if (!result.success) {
-        throw new Error(`Clustering failed: ${result.error}`);
+      const urlObj = new URL(url);
+      return urlObj.hostname;
+    } catch (e) {
+      if (url.includes("://")) {
+        const parts = url.split("://")[1];
+        return parts.split("/")[0];
       }
-      setCurrentSessionResults((prev) => __spreadProps(__spreadValues({}, prev), {
-        [activeSessionId]: result.data
-      }));
-      setSessionAnalysisStates((prev) => __spreadProps(__spreadValues({}, prev), {
-        [activeSessionId]: "completed"
-      }));
-    } catch (error2) {
-      console.error("Re-analysis failed:", error2);
-    } finally {
-      setIsReanalyzing(false);
+      return "unknown";
     }
   };
-  const handleSessionChange = async (sessionId) => {
-    setActiveSessionId(sessionId);
-    if (sessionAnalysisStates[sessionId] === "pending") {
-      await analyzeSession(sessionId);
+  const getAlternativeFaviconUrls = (url) => {
+    const domain2 = getDomain(url);
+    if (domain2 === "local-file" || domain2 === "unknown" || domain2 === "") {
+      return [];
+    }
+    return [
+      `https://www.google.com/s2/favicons?domain=${domain2}&sz=32`,
+      `https://favicon.io/favicon/${domain2}`,
+      `https://icons.duckduckgo.com/ip3/${domain2}.ico`,
+      `https://${domain2}/favicon.ico`,
+      `https://${domain2}/apple-touch-icon.png`,
+      `https://${domain2}/apple-touch-icon-precomposed.png`
+    ];
+  };
+  const formatVisitTime = (visitTime2) => {
+    return new Date(visitTime2).toLocaleDateString();
+  };
+  const handleOpenUrl = (event) => {
+    event.stopPropagation();
+    if (item.url) {
+      chrome.tabs.create({ url: item.url });
     }
   };
-  const openSettings = () => {
-    const config = extensionBridge.getConfig();
-    const constants = extensionBridge.getConstants();
-    const currentEnv = config.currentEnvironment;
-    const apiUrl = config.getApiBaseUrl();
-    const sessionGap = constants.SESSION_GAP_MINUTES;
-    alert(`Settings
-
-Environment: ${currentEnv}
-API URL: ${apiUrl}
-Session Gap: ${sessionGap} minutes
-
-To switch environments, modify extension/api/config.js`);
+  const handleFaviconError = () => {
+    const alternativeUrls2 = getAlternativeFaviconUrls(item.url);
+    if (currentFaviconIndex < alternativeUrls2.length - 1) {
+      setCurrentFaviconIndex(currentFaviconIndex + 1);
+    } else {
+      setShowFallback(true);
+    }
   };
-  const activeIsLoading = activeSessionId ? sessionAnalysisStates[activeSessionId] === "loading" : false;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "min-h-screen bg-black text-white font-sans", children: [
-    /* @__PURE__ */ jsxRuntimeExports.jsx(
-      Header,
+  const getInitials = (title) => {
+    if (title === "about:blank") return "AB";
+    if (title.includes(".pdf")) return "PDF";
+    if (title.includes(".png") || title.includes(".jpg") || title.includes(".jpeg")) return "IMG";
+    if (title.includes(".doc") || title.includes(".docx")) return "DOC";
+    if (title.includes(".xls") || title.includes(".xlsx")) return "XLS";
+    return title.split(" ").slice(0, 2).map((word) => word.charAt(0).toUpperCase()).join("").substring(0, 2);
+  };
+  const domain = getDomain(item.url);
+  const alternativeUrls = getAlternativeFaviconUrls(item.url);
+  const currentFaviconUrl = alternativeUrls[currentFaviconIndex];
+  const visitTime = formatVisitTime(item.visit_time);
+  const shouldShowFallback = showFallback || alternativeUrls.length === 0;
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-3 py-2", children: [
+    !shouldShowFallback ? /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "img",
       {
-        onSettings: openSettings
+        src: currentFaviconUrl,
+        alt: "",
+        className: "w-5 h-5",
+        onError: handleFaviconError
       }
-    ),
+    ) : /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-5 h-5 text-[10px] font-semibold bg-white text-black flex items-center justify-center", children: getInitials(item.title) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white truncate", title: item.title, children: item.title }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/50 truncate", title: domain, children: domain })
+    ] }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs text-white/50", children: visitTime }),
     /* @__PURE__ */ jsxRuntimeExports.jsx(
-      MainLayout,
+      "button",
       {
-        children: /* @__PURE__ */ jsxRuntimeExports.jsxs("main", { className: "w-full", children: [
-          error && /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: loadDashboard }),
-          /* @__PURE__ */ jsxRuntimeExports.jsx(
-            Dashboard,
-            {
-              currentSessionResults,
-              activeSessionId,
-              onReanalyze: reanalyzeActiveSession,
-              isReanalyzing,
-              activeIsLoading,
-              availableSessions,
-              sessionAnalysisStates,
-              onSessionChange: handleSessionChange
-            }
-          )
-        ] }),
-        chatComponent: /* @__PURE__ */ jsxRuntimeExports.jsx(ChatWindow, {})
+        className: "text-white/60 hover:text-white",
+        onClick: handleOpenUrl,
+        title: "Ouvrir dans un nouvel onglet",
+        children: "↗"
       }
     )
   ] });
 }
+function ClusterCard({ cluster }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-[#111111] text-white p-6 space-y-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-xs uppercase tracking-[0.3em] text-white/60", children: cluster.theme }),
+    cluster.summary && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "text-sm text-white/60", title: cluster.summary, children: cluster.summary }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "max-h-80 overflow-y-auto pr-2 space-y-2 thin-scrollbar", children: cluster.items.map((item, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterItem, { item }, `${item.url}-${item.visit_time}-${index2}`)) })
+  ] });
+}
+function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }) {
+  const clusters = (sessionData == null ? void 0 : sessionData.clusters) || [];
+  const isLoading = isAnalyzing || isReanalyzing;
+  if (!isLoading && (!sessionData || clusters.length === 0)) {
+    return null;
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "bg-black text-white w-full", children: [
+    (sessionData || isReanalyzing) && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.4em] text-white/70", children: "Topics" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-wrap items-center gap-4 md:justify-end", children: [
+        sessionData && /* @__PURE__ */ jsxRuntimeExports.jsx(SessionInfo, { sessionData }),
+        onReanalyze && /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "button",
+          {
+            onClick: onReanalyze,
+            disabled: isReanalyzing,
+            className: "px-4 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white disabled:opacity-40",
+            children: isReanalyzing ? "Re-analyzing" : "Re-analyze"
+          }
+        )
+      ] })
+    ] }),
+    isLoading && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "col-span-full flex flex-col items-center justify-center py-16", children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-white/40 uppercase tracking-[0.35em] text-xs mt-6", children: isReanalyzing ? "Re-analyzing Session" : "Analyzing Session" })
+    ] }) }),
+    !isLoading && sessionData && clusters.length > 0 && /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8", children: clusters.map((cluster, index2) => /* @__PURE__ */ jsxRuntimeExports.jsx(ClusterCard, { cluster }, `${cluster.theme}-${index2}`)) })
+  ] });
+}
+function ErrorDisplay({ message, onRetry }) {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center gap-4 py-16 text-white/60", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(CircleAlert, { size: 48, strokeWidth: 1.5 }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h3", { className: "text-sm uppercase tracking-[0.3em]", children: "Analysis Failed" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/40 max-w-sm text-center", children: message }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "button",
+      {
+        className: "px-6 py-2 text-[10px] uppercase tracking-[0.3em] bg-white/10 text-white/80 hover:text-white hover:bg-white/15 transition-colors",
+        onClick: onRetry,
+        children: "Try Again"
+      }
+    )
+  ] });
+}
+function SessionView() {
+  const activeSessionId = useSessionStore((s) => s.activeSessionId);
+  const sessionResults = useSessionStore((s) => s.sessionResults);
+  const sessionAnalysisStates = useSessionStore((s) => s.sessionAnalysisStates);
+  const isReanalyzing = useSessionStore((s) => s.isReanalyzing);
+  const error = useSessionStore((s) => s.error);
+  const reanalyzeActiveSession = useSessionStore((s) => s.reanalyzeActiveSession);
+  const initializeSessions = useSessionStore((s) => s.initializeSessions);
+  const currentSessionData = activeSessionId ? sessionResults[activeSessionId] : null;
+  const activeIsLoading = activeSessionId ? sessionAnalysisStates[activeSessionId] === "loading" : false;
+  const isAnalyzing = !currentSessionData || activeIsLoading;
+  if (error) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx(ErrorDisplay, { message: error, onRetry: initializeSessions });
+  }
+  if (!activeSessionId) {
+    return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex items-center justify-center h-full text-white/30 text-sm", children: "Select a session from the sidebar" });
+  }
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("main", { className: "w-full", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+    ClustersSection,
+    {
+      sessionData: currentSessionData,
+      isAnalyzing,
+      onReanalyze: reanalyzeActiveSession,
+      isReanalyzing
+    }
+  ) });
+}
+function QuizView() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center h-full text-white/40 gap-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(BrainCircuit, { size: 48, strokeWidth: 1 }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.3em]", children: "Quiz & Flashcards" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/25 max-w-sm text-center", children: "Create quizzes and flashcards based on your explored topics to reinforce learning." })
+  ] });
+}
+function TrackingView() {
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex flex-col items-center justify-center h-full text-white/40 gap-4", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx(TrendingDown, { size: 48, strokeWidth: 1 }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("h2", { className: "text-sm uppercase tracking-[0.3em]", children: "Memory Tracking" }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xs text-white/25 max-w-sm text-center", children: "Track explored topics and visualize the forgetting curve to review them at the optimal time." })
+  ] });
+}
+function AppLayout() {
+  const isChatOpen = useUIStore((s) => s.isChatOpen);
+  return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex h-screen bg-black text-white font-sans", children: [
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-56 flex-shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(Sidebar, {}) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-w-0 overflow-y-auto thin-scrollbar", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(Routes, { children: [
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/sessions", element: /* @__PURE__ */ jsxRuntimeExports.jsx(SessionView, {}) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/quiz", element: /* @__PURE__ */ jsxRuntimeExports.jsx(QuizView, {}) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "/tracking", element: /* @__PURE__ */ jsxRuntimeExports.jsx(TrackingView, {}) }),
+      /* @__PURE__ */ jsxRuntimeExports.jsx(Route, { path: "*", element: /* @__PURE__ */ jsxRuntimeExports.jsx(Navigate, { to: "/sessions", replace: true }) })
+    ] }) }),
+    /* @__PURE__ */ jsxRuntimeExports.jsx(
+      "div",
+      {
+        className: `flex-shrink-0 border-l border-white/10 bg-[#080808] transition-all ${isChatOpen ? "w-[320px]" : "w-12"}`,
+        children: /* @__PURE__ */ jsxRuntimeExports.jsx(ChatPanel, {})
+      }
+    )
+  ] });
+}
+function App() {
+  const initializeSessions = useSessionStore((s) => s.initializeSessions);
+  reactExports.useEffect(() => {
+    initializeSessions();
+  }, [initializeSessions]);
+  return /* @__PURE__ */ jsxRuntimeExports.jsx(AppLayout, {});
+}
 clientExports.createRoot(document.getElementById("root")).render(
-  /* @__PURE__ */ jsxRuntimeExports.jsx(reactExports.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) })
+  /* @__PURE__ */ jsxRuntimeExports.jsx(reactExports.StrictMode, { children: /* @__PURE__ */ jsxRuntimeExports.jsx(MemoryRouter, { initialEntries: ["/sessions"], children: /* @__PURE__ */ jsxRuntimeExports.jsx(App, {}) }) })
 );

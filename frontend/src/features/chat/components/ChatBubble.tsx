@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
-import type { ChatMessage } from '../types/chat';
+import type { ChatMessage } from '../../../types/chat';
 
 interface ChatBubbleProps {
   message: ChatMessage;
@@ -11,7 +11,6 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
   const hasSources = message.role === 'assistant' && (message.sources?.length || 0) > 0;
   const [showSources, setShowSources] = useState(false);
   
-  // Format timestamp for display
   const formatTime = (timestamp: Date): string => {
     const date = new Date(timestamp);
     return date.toLocaleTimeString('en-US', { 
@@ -86,4 +85,3 @@ export default function ChatBubble({ message }: ChatBubbleProps) {
     </div>
   );
 }
-

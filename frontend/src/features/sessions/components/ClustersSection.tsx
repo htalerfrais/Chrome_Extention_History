@@ -26,18 +26,15 @@ interface ClustersSectionProps {
 }
 
 export default function ClustersSection({ sessionData, isAnalyzing = false, onReanalyze, isReanalyzing = false }: ClustersSectionProps) {
-  // Compute clusters when available
   const clusters = sessionData?.clusters || [];
   const isLoading = isAnalyzing || isReanalyzing;
 
-  // Si pas de chargement et rien à afficher, ne rien rendre
   if (!isLoading && (!sessionData || clusters.length === 0)) {
     return null;
   }
 
   return (
     <div className="bg-black text-white w-full">
-      {/* Header - affiché si on a des données ou si on réanalyse */}
       {(sessionData || isReanalyzing) && (
         <div className="w-full px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
           <h2 className="text-sm uppercase tracking-[0.4em] text-white/70">Topics</h2>
@@ -56,11 +53,10 @@ export default function ClustersSection({ sessionData, isAnalyzing = false, onRe
         </div>
       )}
       
-      {/* État de chargement - affiché dans la grille des ClusterCards */}
       {isLoading && (
         <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           <div className="col-span-full flex flex-col items-center justify-center py-16">
-            <div className="loading-spinner"></div>
+            <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin" />
             <span className="text-white/40 uppercase tracking-[0.35em] text-xs mt-6">
               {isReanalyzing ? 'Re-analyzing Session' : 'Analyzing Session'}
             </span>
@@ -68,7 +64,6 @@ export default function ClustersSection({ sessionData, isAnalyzing = false, onRe
         </div>
       )}
       
-      {/* ClusterCards - affichés uniquement quand les données sont disponibles et pas de chargement */}
       {!isLoading && sessionData && clusters.length > 0 && (
         <div className="px-6 pb-6 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
           {clusters.map((cluster, index) => (
