@@ -14,6 +14,10 @@ from .services.mapping_service import MappingService
 from .services.embedding_service import EmbeddingService
 from .services.google_auth_service import GoogleAuthService
 from .services.search_service import SearchService
+from .tools.search_tool import SearchHistoryTool
+from .tools.session_tools import ListSessionsTool
+from .tools.stats_tools import BrowsingStatsTool
+from .tools.registry import ToolRegistry
 from .models.session_models import HistorySession, SessionClusteringResponse
 from .models.user_models import AuthenticateRequest, AuthenticateResponse
 from .models.chat_models import ChatRequest, ChatResponse
@@ -51,7 +55,14 @@ llm_service = LLMService()
 google_auth_service = GoogleAuthService()
 user_service = UserService(db_repository, google_auth_service)
 search_service = SearchService(db_repository, embedding_service)
-chat_service = ChatService(llm_service, search_service, user_service)
+
+# Tools & registry
+search_tool = SearchHistoryTool(search_service)
+session_tool = ListSessionsTool(db_repository)
+stats_tool = BrowsingStatsTool(db_repository)
+tool_registry = ToolRegistry([search_tool, session_tool, stats_tool])
+
+chat_service = ChatService(llm_service, tool_registry, user_service)
 
 @app.get("/")
 async def root():

@@ -4,6 +4,8 @@ import logging
 import time
 from contextlib import contextmanager
 
+from sqlalchemy import func
+
 from app.database import SessionLocal
 from app.models.database_models import User, Session, Cluster, HistoryItem
 from app.monitoring import get_request_id
@@ -332,3 +334,100 @@ class DatabaseRepository:
             return item
         
         return self._execute(operation, "Failed to create history item")
+
+    # ── Aggregate / listing queries (used by tools) ──────────────────
+
+    def get_sessions_by_user(
+        self,
+        user_id: int,
+        limit: int = 10,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+    ) -> List[Dict]:
+        """Return recent sessions for a user, each enriched with cluster names."""
+        def operation(db):
+            query = db.query(Session).filter(Session.user_id == user_id)
+            if date_from:
+                query = query.filter(Session.end_time >= date_from)
+            if date_to:
+                query = query.filter(Session.start_time <= date_to)
+            query = query.order_by(Session.start_time.desc()).limit(limit)
+            sessions = query.all()
+
+            results = []
+            for session in sessions:
+                session_dict = self._to_dict(session)
+                clusters = (
+                    db.query(Cluster.name)
+                    .filter(Cluster.session_id == session.id)
+                    .all()
+                )
+                session_dict["cluster_names"] = [c[0] for c in clusters]
+                results.append(session_dict)
+            return results
+
+        result = self._execute(operation, "Failed to get sessions by user")
+        return result if isinstance(result, list) else []
+
+    def get_user_browsing_stats(self, user_id: int) -> Optional[Dict]:
+        """Return aggregate browsing statistics for a user."""
+        def operation(db):
+            session_count = (
+                db.query(func.count(Session.id))
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            cluster_count = (
+                db.query(func.count(Cluster.id))
+                .join(Session)
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            item_count = (
+                db.query(func.count(HistoryItem.id))
+                .join(Cluster)
+                .join(Session)
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            earliest = (
+                db.query(func.min(Session.start_time))
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            latest = (
+                db.query(func.max(Session.end_time))
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            return {
+                "session_count": session_count or 0,
+                "cluster_count": cluster_count or 0,
+                "item_count": item_count or 0,
+                "earliest_session": earliest.isoformat() if earliest else None,
+                "latest_session": latest.isoformat() if latest else None,
+            }
+
+        return self._execute(operation, "Failed to get user browsing stats")
+
+    def get_top_domains(self, user_id: int, limit: int = 10) -> List[Dict]:
+        """Return the most visited domains for a user, ordered by page count."""
+        def operation(db):
+            rows = (
+                db.query(
+                    HistoryItem.domain,
+                    func.count(HistoryItem.id).label("page_count"),
+                )
+                .join(Cluster)
+                .join(Session)
+                .filter(Session.user_id == user_id)
+                .filter(HistoryItem.domain.isnot(None))
+                .group_by(HistoryItem.domain)
+                .order_by(func.count(HistoryItem.id).desc())
+                .limit(limit)
+                .all()
+            )
+            return [{"domain": row[0], "count": row[1]} for row in rows]
+
+        result = self._execute(operation, "Failed to get top domains")
+        return result if isinstance(result, list) else []

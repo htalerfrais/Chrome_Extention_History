@@ -1,19 +1,15 @@
 import asyncio
 import time
-from typing import List, Optional, Tuple
+from typing import List, Optional
 from datetime import datetime
 import uuid
 import logging
 
 from app.config import settings
-from ..models.chat_models import ChatRequest, ChatResponse, ChatMessage, SourceItem, SearchFilters
-from ..models.session_models import ClusterResult, ClusterItem
-from ..models.tool_models import (
-    ToolDefinition, ToolCall, ToolResult,
-    ConversationMessage, ToolAugmentedRequest, ToolAugmentedResponse,
-)
+from ..models.chat_models import ChatRequest, ChatResponse, SourceItem
+from ..models.tool_models import ConversationMessage, ToolAugmentedRequest, ToolAugmentedResponse
+from ..tools.registry import ToolRegistry
 from .llm_service import LLMService
-from .search_service import SearchService
 from .user_service import UserService
 from ..monitoring import get_request_id, metrics, calculate_llm_cost
 
@@ -22,50 +18,14 @@ logger = logging.getLogger(__name__)
 
 class ChatService:
 
-    SEARCH_HISTORY_TOOL = ToolDefinition(
-        name="search_history",
-        description=(
-            "Search the user's browsing history. Use when the user asks about "
-            "pages they visited, topics they explored, or browsing patterns. "
-            "You can call this tool multiple times with different queries to "
-            "compare topics or gather broader information."
-        ),
-        parameters={
-            "type": "object",
-            "properties": {
-                "query": {
-                    "type": "string",
-                    "description": "Semantic search query describing what to look for",
-                },
-                "date_from": {
-                    "type": "string",
-                    "description": "ISO date (YYYY-MM-DD), only items visited after this date",
-                },
-                "date_to": {
-                    "type": "string",
-                    "description": "ISO date (YYYY-MM-DD), only items visited before this date",
-                },
-                "title_contains": {
-                    "type": "string",
-                    "description": "Filter: only items with this keyword in the title",
-                },
-                "domain_contains": {
-                    "type": "string",
-                    "description": "Filter: only items from domains containing this keyword",
-                },
-            },
-            "required": ["query"],
-        },
-    )
-
     def __init__(
         self,
         llm_service: LLMService,
-        search_service: SearchService,
+        tool_registry: ToolRegistry,
         user_service: UserService,
     ):
         self.llm_service = llm_service
-        self.search_service = search_service
+        self.tool_registry = tool_registry
         self.user_service = user_service
 
     # ── Public entry point ────────────────────────────────────────────
@@ -102,8 +62,8 @@ class ChatService:
                 if user_dict:
                     user_id = user_dict["id"]
 
-            # Only offer tools if we have a valid user (needed for search)
-            tools = [self.SEARCH_HISTORY_TOOL] if user_id else []
+            # Only offer tools if we have a valid user
+            tools = self.tool_registry.get_definitions() if user_id else []
 
             # Track tokens across all iterations
             total_tokens_in = 0
@@ -201,21 +161,28 @@ class ChatService:
                         }
                     )
 
-                # Execute all tool calls in parallel
+                # Execute all tool calls in parallel via registry
                 tool_tasks = [
-                    self._execute_tool_call(tc, user_id)
+                    self.tool_registry.execute(tc, user_id)
                     for tc in response.tool_calls
                 ]
                 results = await asyncio.gather(*tool_tasks)
 
                 # Append each tool result as a separate message & collect sources
-                for idx, (tool_result, sources) in enumerate(results):
+                for idx, (tool_result, source_dicts) in enumerate(results):
                     messages.append(ConversationMessage(
                         role="tool",
                         content=tool_result.content,
                         tool_call_id=tool_result.call_id,
                     ))
-                    all_sources.extend(sources)
+                    # Map generic source dicts to SourceItem
+                    for sd in source_dicts:
+                        all_sources.append(SourceItem(
+                            url=sd.get("url", ""),
+                            title=sd.get("title", "Untitled"),
+                            visit_time=sd.get("visit_time", datetime.now()),
+                            url_hostname=sd.get("url_hostname"),
+                        ))
                     
                     # Log tool result
                     result_preview = tool_result.content
@@ -230,7 +197,7 @@ class ChatService:
                             "iteration": iteration + 1,
                             "tool_index": idx,
                             "tool_call_id": tool_result.call_id,
-                            "sources_count": len(sources),
+                            "sources_count": len(source_dicts),
                             "result_preview": result_preview
                         }
                     )
@@ -330,107 +297,6 @@ class ChatService:
         ))
 
         return messages
-
-    # ── Tool execution ────────────────────────────────────────────────
-
-    async def _execute_tool_call(
-        self, tool_call: ToolCall, user_id: Optional[int]
-    ) -> Tuple[ToolResult, List[SourceItem]]:
-        """Execute a single tool call and return (result, sources)."""
-        if tool_call.name == "search_history":
-            return await self._execute_search_history(tool_call, user_id)
-
-        # Unknown tool: return an error message instead of crashing
-        logger.warning(f"Unknown tool call: {tool_call.name}")
-        return (
-            ToolResult(call_id=tool_call.id, content=f"Unknown tool: {tool_call.name}"),
-            [],
-        )
-
-    async def _execute_search_history(
-        self, tool_call: ToolCall, user_id: Optional[int]
-    ) -> Tuple[ToolResult, List[SourceItem]]:
-        """Execute the search_history tool."""
-        args = tool_call.arguments
-
-        # Parse date filters
-        date_from = None
-        date_to = None
-        if args.get("date_from"):
-            try:
-                date_from = datetime.fromisoformat(args["date_from"])
-            except ValueError:
-                logger.warning(f"Invalid date_from: {args['date_from']}")
-        if args.get("date_to"):
-            try:
-                date_to = datetime.fromisoformat(args["date_to"])
-            except ValueError:
-                logger.warning(f"Invalid date_to: {args['date_to']}")
-
-        filters = SearchFilters(
-            query_text=args.get("query"),
-            date_from=date_from,
-            date_to=date_to,
-            title_contains=args.get("title_contains"),
-            domain_contains=args.get("domain_contains"),
-        )
-
-        logger.info(f"🔍 search_history: query='{filters.query_text}', filters={filters}")
-
-        if not user_id:
-            return (
-                ToolResult(call_id=tool_call.id, content="User not authenticated, cannot search history."),
-                [],
-            )
-
-        clusters, items = await self.search_service.search(
-            user_id=user_id,
-            filters=filters,
-        )
-
-        search_context = self._format_search_results(clusters, items)
-        logger.info(f"🔍 search_history returned {len(clusters)} clusters, {len(items)} items")
-
-        sources = [
-            SourceItem(
-                url=item.url,
-                title=item.title,
-                visit_time=item.visit_time,
-                url_hostname=item.url_hostname,
-            )
-            for item in items
-        ]
-
-        return ToolResult(call_id=tool_call.id, content=search_context), sources
-
-    # ── Formatting helpers ────────────────────────────────────────────
-
-    def _format_search_results(
-        self,
-        clusters: List[ClusterResult],
-        items: List[ClusterItem],
-    ) -> str:
-        """Format search results as text context for the LLM."""
-        if not clusters and not items:
-            return "No relevant browsing history found."
-
-        parts = []
-
-        if clusters:
-            parts.append("Relevant browsing themes:")
-            for c in clusters[:5]:
-                parts.append(f"• {c.theme}: {c.summary}")
-
-        if items:
-            parts.append("\nRelevant pages visited:")
-            for item in items[:10]:
-                title = item.title or "Untitled"
-                domain = item.url_hostname or ""
-                url = item.url or ""
-                visit_date = item.visit_time.strftime('%Y-%m-%d') if item.visit_time else ""
-                parts.append(f"• {title} ({domain}) - visited: {visit_date} - {url}")
-
-        return "\n".join(parts)
 
     def _generate_conversation_id(self) -> str:
         return str(uuid.uuid4())
