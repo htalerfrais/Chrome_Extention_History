@@ -40,7 +40,7 @@ CREATE TABLE clusters (
 );
 
 CREATE INDEX idx_clusters_session_id ON clusters(session_id);
-CREATE INDEX idx_clusters_embedding ON clusters USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX idx_clusters_embedding ON clusters USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 
 -- ===========================
 -- HISTORY ITEMS
@@ -58,7 +58,7 @@ CREATE TABLE history_items (
 );
 
 CREATE INDEX idx_history_items_cluster_id ON history_items(cluster_id);
-CREATE INDEX idx_history_items_embedding ON history_items USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);
+CREATE INDEX idx_history_items_embedding ON history_items USING hnsw (embedding vector_cosine_ops) WITH (m = 16, ef_construction = 64);
 
 -- ===========================
 -- SAMPLE DATA  (test)

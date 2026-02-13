@@ -1,5 +1,5 @@
 import logging
-from typing import List, Tuple, Optional
+from typing import List, Tuple, Optional, Dict
 
 from app.config import settings
 from app.repositories.database_repository import DatabaseRepository
@@ -76,7 +76,10 @@ class SearchService:
 
         cluster_ids = [cluster_dict.get("id") for cluster_dict in cluster_dicts if cluster_dict.get("id") is not None]
 
-        # Search items per cluster (limit applied per cluster for diversity)
+        # Over-fetch to allow deduplication while still returning enough diverse items
+        fetch_limit = limit_items_per_cluster * settings.search_overfetch_multiplier
+
+        # Search items per cluster (over-fetch, then deduplicate for diversity)
         all_item_dicts = []
         if cluster_ids:
             for cluster_id in cluster_ids:
@@ -84,11 +87,15 @@ class SearchService:
                     user_id=user_id,
                     query_embedding=query_embedding,
                     cluster_ids=[cluster_id],
-                    limit=limit_items_per_cluster,
+                    limit=fetch_limit,
                     date_from=filters.date_from,
                     date_to=filters.date_to,
                     title_contains=filters.title_contains,
                     domain_contains=filters.domain_contains,
+                )
+                # Deduplicate within this cluster's results
+                cluster_item_dicts = self._deduplicate_item_dicts(
+                    cluster_item_dicts, limit_items_per_cluster
                 )
                 all_item_dicts.extend(cluster_item_dicts)
         else:
@@ -98,12 +105,13 @@ class SearchService:
                 user_id=user_id,
                 query_embedding=query_embedding,
                 cluster_ids=None,
-                limit=fallback_limit,
+                limit=fallback_limit * settings.search_overfetch_multiplier,
                 date_from=filters.date_from,
                 date_to=filters.date_to,
                 title_contains=filters.title_contains,
                 domain_contains=filters.domain_contains,
             )
+            all_item_dicts = self._deduplicate_item_dicts(all_item_dicts, fallback_limit)
         
         items = [self._dict_to_cluster_item(item_dict) for item_dict in all_item_dicts]
 
@@ -115,6 +123,33 @@ class SearchService:
         )
 
         return clusters, items
+
+    def _deduplicate_item_dicts(
+        self, item_dicts: List[Dict], limit: int
+    ) -> List[Dict]:
+        """Keep at most one item per (title, domain) group, preserving DB order (relevance).
+        
+        Items from the same semantic group share the same title and domain,
+        so this effectively picks one representative per group. The first
+        occurrence wins (most relevant, since DB results are sorted by
+        cosine distance or visit_time).
+        """
+        seen: set = set()
+        result: List[Dict] = []
+
+        for item in item_dicts:
+            key = (
+                (item.get("title") or "").strip().lower(),
+                (item.get("domain") or "").strip().lower(),
+            )
+            if key in seen:
+                continue
+            seen.add(key)
+            result.append(item)
+            if len(result) >= limit:
+                break
+
+        return result
 
     def _dict_to_cluster_result(self, cluster_dict: dict) -> ClusterResult:
         cluster_id = cluster_dict.get("id")
