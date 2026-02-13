@@ -1,10 +1,12 @@
 from typing import Optional, Callable, Any, Dict, List
 from datetime import datetime
 import logging
+import time
 from contextlib import contextmanager
 
 from app.database import SessionLocal
 from app.models.database_models import User, Session, Cluster, HistoryItem
+from app.monitoring import get_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +169,8 @@ class DatabaseRepository:
         if not query_embedding and not date_from and not date_to:
             return []
 
+        start = time.perf_counter()
+
         def operation(db):
             query = (
                 db.query(Cluster)
@@ -190,6 +194,21 @@ class DatabaseRepository:
             return query.all()
 
         result = self._execute(operation, "Failed to search clusters by embedding")
+        duration_ms = (time.perf_counter() - start) * 1000
+        
+        results_count = len(result) if isinstance(result, list) else 0
+        logger.info(
+            "db_search_clusters",
+            extra={
+                "request_id": get_request_id(),
+                "limit": limit,
+                "has_embedding": query_embedding is not None,
+                "has_date_filters": date_from is not None or date_to is not None,
+                "results_count": results_count,
+                "duration_ms": round(duration_ms, 2)
+            }
+        )
+        
         return result if isinstance(result, list) else []
 
     def search_history_items_by_embedding(
@@ -203,6 +222,8 @@ class DatabaseRepository:
         title_contains: Optional[str] = None,
         domain_contains: Optional[str] = None,
     ) -> List[Dict]:
+        start = time.perf_counter()
+        
         def operation(db):
             query = (
                 db.query(HistoryItem)
@@ -241,6 +262,22 @@ class DatabaseRepository:
             return query.all()
 
         result = self._execute(operation, "Failed to search history items by embedding")
+        duration_ms = (time.perf_counter() - start) * 1000
+        
+        results_count = len(result) if isinstance(result, list) else 0
+        logger.info(
+            "db_search_items",
+            extra={
+                "request_id": get_request_id(),
+                "limit": limit,
+                "has_embedding": query_embedding is not None,
+                "cluster_ids_count": len(cluster_ids) if cluster_ids else 0,
+                "has_filters": any([date_from, date_to, title_contains, domain_contains]),
+                "results_count": results_count,
+                "duration_ms": round(duration_ms, 2)
+            }
+        )
+        
         return result if isinstance(result, list) else []
 
     def get_session_with_relations(self, session_identifier: str) -> Optional[Dict]:

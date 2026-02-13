@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import List, Optional, Tuple
 from datetime import datetime
 import uuid
@@ -14,6 +15,7 @@ from ..models.tool_models import (
 from .llm_service import LLMService
 from .search_service import SearchService
 from .user_service import UserService
+from ..monitoring import get_request_id, metrics, calculate_llm_cost
 
 logger = logging.getLogger(__name__)
 
@@ -69,12 +71,29 @@ class ChatService:
     # ── Public entry point ────────────────────────────────────────────
 
     async def process_message(self, request: ChatRequest) -> ChatResponse:
+        request_start = time.perf_counter()
+        
         try:
-            logger.info(f"💬 ChatRequest payload: {request.model_dump()}")
-
             conversation_id = request.conversation_id or self._generate_conversation_id()
             messages = self._build_messages(request)
             all_sources: List[SourceItem] = []
+            
+            # Truncate message for logging if verbosity is disabled
+            user_message_display = request.message
+            if not settings.chat_log_full_prompts and len(request.message) > 100:
+                user_message_display = request.message[:100] + "..."
+
+            # Log request start
+            logger.info(
+                "chat_request_start",
+                extra={
+                    "request_id": get_request_id(),
+                    "conversation_id": conversation_id,
+                    "user_message": user_message_display,
+                    "history_length": len(request.history or []),
+                    "provider": request.provider
+                }
+            )
 
             # Resolve user_id once (needed for search tool)
             user_id: Optional[int] = None
@@ -86,10 +105,19 @@ class ChatService:
             # Only offer tools if we have a valid user (needed for search)
             tools = [self.SEARCH_HISTORY_TOOL] if user_id else []
 
+            # Track tokens across all iterations
+            total_tokens_in = 0
+            total_tokens_out = 0
+            tool_calls_made: List[str] = []
+            
             # Agentic loop: LLM can request tools, we execute and feed back
             response: Optional[ToolAugmentedResponse] = None
+            final_iteration = 0
 
             for iteration in range(settings.chat_max_tool_iterations):
+                iteration_start = time.perf_counter()
+                final_iteration = iteration + 1
+                
                 response = await self.llm_service.generate_with_tools(
                     ToolAugmentedRequest(
                         messages=messages,
@@ -99,15 +127,57 @@ class ChatService:
                         temperature=settings.chat_temperature,
                     )
                 )
+                
+                iteration_duration_ms = (time.perf_counter() - iteration_start) * 1000
+                
+                # Extract token usage
+                usage = response.usage or {}
+                if response.provider == "google":
+                    iter_tokens_in = usage.get('promptTokenCount', 0)
+                    iter_tokens_out = usage.get('candidatesTokenCount', 0)
+                elif response.provider == "openai":
+                    iter_tokens_in = usage.get('prompt_tokens', 0)
+                    iter_tokens_out = usage.get('completion_tokens', 0)
+                else:
+                    iter_tokens_in = usage.get('total_tokens', 0)
+                    iter_tokens_out = 0
+                
+                total_tokens_in += iter_tokens_in
+                total_tokens_out += iter_tokens_out
+
+                # Log iteration completion
+                logger.info(
+                    "chat_iteration_complete",
+                    extra={
+                        "request_id": get_request_id(),
+                        "conversation_id": conversation_id,
+                        "iteration": iteration + 1,
+                        "duration_ms": round(iteration_duration_ms, 2),
+                        "has_tool_calls": bool(response.tool_calls),
+                        "tool_calls_count": len(response.tool_calls) if response.tool_calls else 0,
+                        "tool_names": [tc.name for tc in response.tool_calls] if response.tool_calls else [],
+                        "tokens_in": iter_tokens_in,
+                        "tokens_out": iter_tokens_out
+                    }
+                )
 
                 # No tool calls means the model produced a final answer
                 if not response.tool_calls:
+                    # Log final response
+                    response_preview = response.text or ""
+                    if not settings.chat_log_full_prompts and len(response_preview) > 200:
+                        response_preview = response_preview[:200] + "..."
+                    
+                    logger.info(
+                        "chat_final_response",
+                        extra={
+                            "request_id": get_request_id(),
+                            "conversation_id": conversation_id,
+                            "total_iterations": iteration + 1,
+                            "response_preview": response_preview
+                        }
+                    )
                     break
-
-                logger.info(
-                    f"🔧 Iteration {iteration + 1}: "
-                    f"{len(response.tool_calls)} tool call(s) requested"
-                )
 
                 # Append assistant message containing the tool calls
                 messages.append(ConversationMessage(
@@ -115,6 +185,21 @@ class ChatService:
                     content=response.text,
                     tool_calls=response.tool_calls,
                 ))
+
+                # Log each tool call
+                for idx, tool_call in enumerate(response.tool_calls):
+                    tool_calls_made.append(tool_call.name)
+                    logger.info(
+                        "chat_tool_call",
+                        extra={
+                            "request_id": get_request_id(),
+                            "conversation_id": conversation_id,
+                            "iteration": iteration + 1,
+                            "tool_index": idx,
+                            "tool_name": tool_call.name,
+                            "tool_arguments": tool_call.arguments
+                        }
+                    )
 
                 # Execute all tool calls in parallel
                 tool_tasks = [
@@ -124,13 +209,65 @@ class ChatService:
                 results = await asyncio.gather(*tool_tasks)
 
                 # Append each tool result as a separate message & collect sources
-                for tool_result, sources in results:
+                for idx, (tool_result, sources) in enumerate(results):
                     messages.append(ConversationMessage(
                         role="tool",
                         content=tool_result.content,
                         tool_call_id=tool_result.call_id,
                     ))
                     all_sources.extend(sources)
+                    
+                    # Log tool result
+                    result_preview = tool_result.content
+                    if not settings.chat_log_full_tool_responses and len(result_preview) > 300:
+                        result_preview = result_preview[:300] + "..."
+                    
+                    logger.info(
+                        "chat_tool_result",
+                        extra={
+                            "request_id": get_request_id(),
+                            "conversation_id": conversation_id,
+                            "iteration": iteration + 1,
+                            "tool_index": idx,
+                            "tool_call_id": tool_result.call_id,
+                            "sources_count": len(sources),
+                            "result_preview": result_preview
+                        }
+                    )
+
+            # Calculate total duration and cost
+            total_duration_ms = (time.perf_counter() - request_start) * 1000
+            estimated_cost = calculate_llm_cost(
+                response.provider if response else request.provider,
+                response.model if response else "",
+                total_tokens_in,
+                total_tokens_out
+            )
+
+            # Log chat request complete
+            logger.info(
+                "chat_request_complete",
+                extra={
+                    "request_id": get_request_id(),
+                    "conversation_id": conversation_id,
+                    "total_iterations": final_iteration,
+                    "total_sources": len(all_sources),
+                    "total_duration_ms": round(total_duration_ms, 2),
+                    "tokens_in": total_tokens_in,
+                    "tokens_out": total_tokens_out,
+                    "tokens_total": total_tokens_in + total_tokens_out,
+                    "cost_estimate_usd": round(estimated_cost, 6),
+                    "provider": response.provider if response else request.provider,
+                    "model": response.model if response else ""
+                }
+            )
+            
+            # Record to metrics
+            metrics.record_chat_completion(
+                turns=final_iteration,
+                tool_calls=tool_calls_made,
+                duration_ms=total_duration_ms
+            )
 
             chat_response = ChatResponse(
                 response=(response.text if response else "") or "",
@@ -141,11 +278,16 @@ class ChatService:
                 sources=all_sources or None,
             )
 
-            logger.info(f"💬 ChatResponse payload: {chat_response.model_dump()}")
             return chat_response
 
         except Exception as e:
-            logger.error(f"Error processing chat message: {e}")
+            logger.error(
+                "chat_request_failed",
+                extra={
+                    "request_id": get_request_id(),
+                    "error": str(e)
+                }
+            )
             raise
 
     # ── Message building ──────────────────────────────────────────────

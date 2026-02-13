@@ -4,6 +4,8 @@ import logging
 from datetime import datetime, timedelta, timezone
 
 from .config import settings
+from .monitoring import configure_logging, metrics
+from .middleware import RequestLoggingMiddleware
 from .services.clustering_service import ClusteringService
 from .services.llm_service import LLMService
 from .services.chat_service import ChatService
@@ -17,8 +19,8 @@ from .models.user_models import AuthenticateRequest, AuthenticateResponse
 from .models.chat_models import ChatRequest, ChatResponse
 from .repositories.database_repository import DatabaseRepository
 
-# Configure logging
-logging.basicConfig(level=getattr(logging, settings.log_level.upper()))
+# Configure structured logging
+configure_logging(log_level=settings.log_level, use_json=settings.log_json_format)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(
@@ -36,6 +38,9 @@ app.add_middleware(
     allow_methods=settings.cors_allow_methods,
     allow_headers=settings.cors_allow_headers,
 )
+
+# Add request logging middleware (runs after CORS)
+app.add_middleware(RequestLoggingMiddleware)
 
 # Initialize services
 db_repository = DatabaseRepository()
@@ -68,6 +73,21 @@ async def health_check():
         },
         "timestamp": datetime.now().isoformat()
     }
+
+@app.get("/metrics")
+async def get_metrics():
+    """
+    Get aggregated system metrics and usage statistics.
+    
+    Returns:
+        Dictionary containing:
+        - LLM usage (calls, tokens, costs by provider)
+        - Chat metrics (requests, turns, tool calls)
+        - Clustering metrics (sessions, cache hit rate)
+        - Search metrics (queries, results)
+        - Embedding metrics (batches, failures)
+    """
+    return metrics.get_summary()
 
 @app.post("/cluster-session", response_model=SessionClusteringResponse)
 async def cluster_session(session: HistorySession, force: bool = False):

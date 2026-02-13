@@ -1,9 +1,11 @@
 from typing import List, Optional
 import logging
+import time
 
 import httpx
 
 from app.config import settings
+from app.monitoring import get_request_id, metrics, calculate_embedding_cost
 
 logger = logging.getLogger(__name__)
 
@@ -58,6 +60,8 @@ class EmbeddingService:
         Internal method: embed a batch of texts in a single API call.
         Uses Google's batchEmbedContents endpoint.
         """
+        start = time.perf_counter()
+        
         # Build batch request
         # Format: {"requests": [{"model": "...", "content": {"parts": [{"text": "..."}]}}]}
         url = f"{self.base_url}/models/{self.model}:batchEmbedContents"
@@ -73,15 +77,24 @@ class EmbeddingService:
         ]
         payload = {"requests": requests_payload}
         
-        logger.info(f"📤 Batch embedding {len(texts)} texts in single request")
+        total_chars = sum(len(t) for t in texts)
         
         try:
             async with httpx.AsyncClient(timeout=self.timeout) as client:
                 response = await client.post(url, params=params, json=payload)
                 
+                duration_ms = (time.perf_counter() - start) * 1000
+                
                 if response.status_code != 200:
                     error_body = response.text
-                    logger.error(f"EmbeddingService: API returned {response.status_code} - {error_body}")
+                    logger.error(
+                        "embedding_batch_failed",
+                        extra={
+                            "request_id": get_request_id(),
+                            "status_code": response.status_code,
+                            "error": error_body[:200]
+                        }
+                    )
                     return [[] for _ in texts]
                 
                 response.raise_for_status()
@@ -90,17 +103,54 @@ class EmbeddingService:
                 embeddings = data.get("embeddings", [])
                 
                 vectors: List[List[float]] = []
+                failures = 0
                 for i, emb in enumerate(embeddings):
                     values = emb.get("values", [])
                     if isinstance(values, list) and len(values) > 0:
                         vectors.append([float(x) for x in values])
                     else:
-                        logger.warning(f"EmbeddingService: invalid embedding at index {i}")
+                        failures += 1
                         vectors.append([])
                 
-                logger.info(f"✅ Received {len(vectors)} embeddings from batch request")
+                # Calculate embedding cost
+                cost = calculate_embedding_cost(
+                    provider=settings.embedding_provider,
+                    model=self.model,
+                    text_count=len(texts)
+                )
+                
+                # Log batch completion
+                logger.info(
+                    "embedding_batch",
+                    extra={
+                        "request_id": get_request_id(),
+                        "texts_count": len(texts),
+                        "total_chars": total_chars,
+                        "duration_ms": round(duration_ms, 2),
+                        "vectors_returned": len(vectors),
+                        "failures": failures,
+                        "cost_estimate_usd": round(cost, 6)
+                    }
+                )
+                
+                # Record to metrics
+                metrics.record_embedding(
+                    batch_size=len(texts),
+                    failures=failures,
+                    duration_ms=duration_ms
+                )
+                
                 return vectors
                 
         except Exception as exc:
-            logger.error(f"EmbeddingService batch request failed: {exc}")
+            duration_ms = (time.perf_counter() - start) * 1000
+            logger.error(
+                "embedding_batch_exception",
+                extra={
+                    "request_id": get_request_id(),
+                    "texts_count": len(texts),
+                    "duration_ms": round(duration_ms, 2),
+                    "error": str(exc)
+                }
+            )
             return [[] for _ in texts]

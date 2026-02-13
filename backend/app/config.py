@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     cors_allow_headers: List[str] = ["*"]
     
     log_level: str = "INFO"
+    log_json_format: bool = True  # Use JSON logs vs plain text
+    
+    # Chat logging verbosity controls
+    chat_log_full_prompts: bool = False  # Toggle to see full prompts in logs
+    chat_log_full_tool_responses: bool = False  # Toggle to see full tool responses
     
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
