@@ -25,10 +25,19 @@ class LLMProviderInterface(ABC):
     def validate_request(self, request: LLMRequest) -> bool:
         pass
 
+
+
+        """
+        Generate_with_tools est non-abstract avec un défaut NotImplementedError. 
+        Cela respecte le Interface Segregation Principle — 
+        les providers qui ne supportent pas le function calling (Anthropic, Ollama) 
+        n'ont pas besoin de l'implémenter,
+         et on obtient une erreur claire si on essaie quand même.
+        """
+
+
     async def generate_with_tools(self, request: ToolAugmentedRequest) -> ToolAugmentedResponse:
-        """Generate a response with function/tool calling support.
-        
-        Override in providers that support function calling.
+        """
         Providers that don't override will raise NotImplementedError.
         """
         raise NotImplementedError(
