@@ -51,6 +51,10 @@ class ListSessionsTool(BaseTool):
         date_from = self._parse_date(arguments.get("date_from"))
         date_to = self._parse_date(arguments.get("date_to"))
 
+        # If only a date was provided (no time), extend to end of day
+        if date_to and date_to.hour == 0 and date_to.minute == 0 and date_to.second == 0:
+            date_to = date_to.replace(hour=23, minute=59, second=59)
+
         sessions = self.db_repository.get_sessions_by_user(
             user_id=user_id,
             limit=limit,

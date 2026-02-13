@@ -2,6 +2,7 @@ import logging
 from datetime import datetime
 from typing import List, Tuple
 
+from app.config import settings
 from app.models.tool_models import ToolDefinition
 from app.models.chat_models import SearchFilters
 from app.models.session_models import ClusterResult, ClusterItem
@@ -96,6 +97,9 @@ class SearchHistoryTool(BaseTool):
         if arguments.get("date_to"):
             try:
                 date_to = datetime.fromisoformat(arguments["date_to"])
+                # If only a date was provided (no time), extend to end of day
+                if date_to.hour == 0 and date_to.minute == 0 and date_to.second == 0:
+                    date_to = date_to.replace(hour=23, minute=59, second=59)
             except ValueError:
                 logger.warning(f"Invalid date_to: {arguments['date_to']}")
 
@@ -109,6 +113,12 @@ class SearchHistoryTool(BaseTool):
 
     @staticmethod
     def _format_results(clusters: List[ClusterResult], items: List[ClusterItem]) -> str:
+        """Format search results as text context for the LLM.
+
+        No hardcoded caps: SearchService already controls the number of
+        clusters and items returned via config (search_limit_clusters,
+        search_limit_items_per_cluster). We format everything we receive.
+        """
         if not clusters and not items:
             return "No relevant browsing history found."
 
@@ -116,16 +126,16 @@ class SearchHistoryTool(BaseTool):
 
         if clusters:
             parts.append("Relevant browsing themes:")
-            for c in clusters[:5]:
+            for c in clusters:
                 parts.append(f"• {c.theme}: {c.summary}")
 
         if items:
             parts.append("\nRelevant pages visited:")
-            for item in items[:10]:
+            for item in items:
                 title = item.title or "Untitled"
                 domain = item.url_hostname or ""
                 url = item.url or ""
-                visit_date = item.visit_time.strftime('%Y-%m-%d') if item.visit_time else ""
+                visit_date = item.visit_time.strftime('%Y-%m-%d %H:%M') if item.visit_time else ""
                 parts.append(f"• {title} ({domain}) - visited: {visit_date} - {url}")
 
         return "\n".join(parts)

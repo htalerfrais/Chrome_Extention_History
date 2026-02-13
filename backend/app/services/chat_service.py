@@ -268,7 +268,13 @@ class ChatService:
             f"You are a helpful assistant for browsing history analysis. "
             f"Current date and time: {current_date} {current_time}. "
             f"You help users understand their browsing patterns and find information from their history. "
-            f"Be friendly, and helpful in your responses."
+            f"Be friendly and helpful in your responses.\n\n"
+            f"IMPORTANT RULES:\n"
+            f"- NEVER invent or hallucinate browsing history. Only reference data returned by your tools.\n"
+            f"- If a search returns no results, try a different query, broader date range, or fewer filters before concluding.\n"
+            f"- When a search fails, consider: removing date filters, using a more general query, or dropping domain/title filters.\n"
+            f"- Only say 'I found nothing' after at least two different search attempts.\n"
+            f"- When presenting results, clearly distinguish between what the data shows and your interpretation."
         )
 
     def _build_messages(self, request: ChatRequest) -> List[ConversationMessage]:
