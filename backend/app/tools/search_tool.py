@@ -113,12 +113,6 @@ class SearchHistoryTool(BaseTool):
 
     @staticmethod
     def _format_results(clusters: List[ClusterResult], items: List[ClusterItem]) -> str:
-        """Format search results as text context for the LLM.
-
-        No hardcoded caps: SearchService already controls the number of
-        clusters and items returned via config (search_limit_clusters,
-        search_limit_items_per_cluster). We format everything we receive.
-        """
         if not clusters and not items:
             return "No relevant browsing history found."
 
