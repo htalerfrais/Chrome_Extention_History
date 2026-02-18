@@ -26,8 +26,10 @@ Browse normally. Obra silently collects, clusters, and indexes everything. When 
 ## Demo
 
 ![Dashboard](docs-asset/readme-demo-2.png)
+This screenshot demonstrates how the history data processing backbone enables the extraction of relevant semantic information from sparse and noisy history. This stands as the prerequisite for the upcoming features that will provide differentiation for this application.
 
 ## Quick Start
+(So far, the application is not easily deployable, a future goal is to allow it to run locally on everyone's laptop (without sharing the history data on any server))
 
 ### Prerequisites
 
