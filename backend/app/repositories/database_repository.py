@@ -1,10 +1,14 @@
 from typing import Optional, Callable, Any, Dict, List
 from datetime import datetime
 import logging
+import time
 from contextlib import contextmanager
+
+from sqlalchemy import func
 
 from app.database import SessionLocal
 from app.models.database_models import User, Session, Cluster, HistoryItem
+from app.monitoring import get_request_id
 
 logger = logging.getLogger(__name__)
 
@@ -167,6 +171,8 @@ class DatabaseRepository:
         if not query_embedding and not date_from and not date_to:
             return []
 
+        start = time.perf_counter()
+
         def operation(db):
             query = (
                 db.query(Cluster)
@@ -190,6 +196,21 @@ class DatabaseRepository:
             return query.all()
 
         result = self._execute(operation, "Failed to search clusters by embedding")
+        duration_ms = (time.perf_counter() - start) * 1000
+        
+        results_count = len(result) if isinstance(result, list) else 0
+        logger.info(
+            "db_search_clusters",
+            extra={
+                "request_id": get_request_id(),
+                "limit": limit,
+                "has_embedding": query_embedding is not None,
+                "has_date_filters": date_from is not None or date_to is not None,
+                "results_count": results_count,
+                "duration_ms": round(duration_ms, 2)
+            }
+        )
+        
         return result if isinstance(result, list) else []
 
     def search_history_items_by_embedding(
@@ -203,6 +224,8 @@ class DatabaseRepository:
         title_contains: Optional[str] = None,
         domain_contains: Optional[str] = None,
     ) -> List[Dict]:
+        start = time.perf_counter()
+        
         def operation(db):
             query = (
                 db.query(HistoryItem)
@@ -241,6 +264,22 @@ class DatabaseRepository:
             return query.all()
 
         result = self._execute(operation, "Failed to search history items by embedding")
+        duration_ms = (time.perf_counter() - start) * 1000
+        
+        results_count = len(result) if isinstance(result, list) else 0
+        logger.info(
+            "db_search_items",
+            extra={
+                "request_id": get_request_id(),
+                "limit": limit,
+                "has_embedding": query_embedding is not None,
+                "cluster_ids_count": len(cluster_ids) if cluster_ids else 0,
+                "has_filters": any([date_from, date_to, title_contains, domain_contains]),
+                "results_count": results_count,
+                "duration_ms": round(duration_ms, 2)
+            }
+        )
+        
         return result if isinstance(result, list) else []
 
     def get_session_with_relations(self, session_identifier: str) -> Optional[Dict]:
@@ -295,3 +334,100 @@ class DatabaseRepository:
             return item
         
         return self._execute(operation, "Failed to create history item")
+
+    # ── Aggregate / listing queries (used by tools) ──────────────────
+
+    def get_sessions_by_user(
+        self,
+        user_id: int,
+        limit: int = 10,
+        date_from: Optional[datetime] = None,
+        date_to: Optional[datetime] = None,
+    ) -> List[Dict]:
+        """Return recent sessions for a user, each enriched with cluster names."""
+        def operation(db):
+            query = db.query(Session).filter(Session.user_id == user_id)
+            if date_from:
+                query = query.filter(Session.end_time >= date_from)
+            if date_to:
+                query = query.filter(Session.start_time <= date_to)
+            query = query.order_by(Session.start_time.desc()).limit(limit)
+            sessions = query.all()
+
+            results = []
+            for session in sessions:
+                session_dict = self._to_dict(session)
+                clusters = (
+                    db.query(Cluster.name)
+                    .filter(Cluster.session_id == session.id)
+                    .all()
+                )
+                session_dict["cluster_names"] = [c[0] for c in clusters]
+                results.append(session_dict)
+            return results
+
+        result = self._execute(operation, "Failed to get sessions by user")
+        return result if isinstance(result, list) else []
+
+    def get_user_browsing_stats(self, user_id: int) -> Optional[Dict]:
+        """Return aggregate browsing statistics for a user."""
+        def operation(db):
+            session_count = (
+                db.query(func.count(Session.id))
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            cluster_count = (
+                db.query(func.count(Cluster.id))
+                .join(Session)
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            item_count = (
+                db.query(func.count(HistoryItem.id))
+                .join(Cluster)
+                .join(Session)
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            earliest = (
+                db.query(func.min(Session.start_time))
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            latest = (
+                db.query(func.max(Session.end_time))
+                .filter(Session.user_id == user_id)
+                .scalar()
+            )
+            return {
+                "session_count": session_count or 0,
+                "cluster_count": cluster_count or 0,
+                "item_count": item_count or 0,
+                "earliest_session": earliest.isoformat() if earliest else None,
+                "latest_session": latest.isoformat() if latest else None,
+            }
+
+        return self._execute(operation, "Failed to get user browsing stats")
+
+    def get_top_domains(self, user_id: int, limit: int = 10) -> List[Dict]:
+        """Return the most visited domains for a user, ordered by page count."""
+        def operation(db):
+            rows = (
+                db.query(
+                    HistoryItem.domain,
+                    func.count(HistoryItem.id).label("page_count"),
+                )
+                .join(Cluster)
+                .join(Session)
+                .filter(Session.user_id == user_id)
+                .filter(HistoryItem.domain.isnot(None))
+                .group_by(HistoryItem.domain)
+                .order_by(func.count(HistoryItem.id).desc())
+                .limit(limit)
+                .all()
+            )
+            return [{"domain": row[0], "count": row[1]} for row in rows]
+
+        result = self._execute(operation, "Failed to get top domains")
+        return result if isinstance(result, list) else []

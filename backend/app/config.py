@@ -26,6 +26,11 @@ class Settings(BaseSettings):
     cors_allow_headers: List[str] = ["*"]
     
     log_level: str = "INFO"
+    log_json_format: bool = True  # Use JSON logs vs plain text
+    
+    # Chat logging verbosity controls
+    chat_log_full_prompts: bool = False  # Toggle to see full prompts in logs
+    chat_log_full_tool_responses: bool = False  # Toggle to see full tool responses
     
     openai_api_key: Optional[str] = None
     anthropic_api_key: Optional[str] = None
@@ -43,10 +48,10 @@ class Settings(BaseSettings):
     chat_max_tokens: int = 8000
     chat_temperature: float = 0.7
     chat_history_limit: int = 10
-    chat_max_tool_iterations: int = 5
+    chat_max_tool_iterations: int = 6
     
-    search_limit_clusters: int = 5
-    search_limit_items_per_cluster: int = 4
+    search_limit_clusters: int = 6
+    search_limit_items_per_cluster: int = 10
     search_overfetch_multiplier: int = 3
     
     embedding_provider: str = "google"

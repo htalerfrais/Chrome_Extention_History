@@ -1,4 +1,5 @@
 import logging
+import time
 from typing import List, Dict, Any, Optional
 import json
 
@@ -9,6 +10,7 @@ from ..models.session_models import HistorySession, ClusterResult, ClusterItem, 
 from ..models.llm_models import LLMRequest
 from .llm_service import LLMService
 from .embedding_service import EmbeddingService
+from ..monitoring import track_performance, get_request_id, metrics, calculate_llm_cost
 
 logger = logging.getLogger(__name__)
 
@@ -38,29 +40,104 @@ class ClusteringService:
         self.mapping_service = mapping_service
         self.embedding_service = embedding_service or EmbeddingService()
 
+    @track_performance(operation="clustering")
     async def cluster_session(self, session: HistorySession, user_id: int, force: bool = False) -> SessionClusteringResponse:
         session.session_identifier = f"u{user_id}:{session.session_identifier}"
-        logger.info(f"📊 Processing session {session.session_identifier} with {len(session.items)} items (force={force})")
         
         # Step 1: Check cache
+        cache_hit = False
         if self.mapping_service and not force:
             cached_result = self.mapping_service.get_clustering_result(session.session_identifier)
             if cached_result:
-                logger.info(f"✅ Found cached result for session {session.session_identifier}, returning without processing")
+                cache_hit = True
+                logger.info(
+                    "clustering_cache_check",
+                    extra={
+                        "request_id": get_request_id(),
+                        "session_id": session.session_identifier,
+                        "force": force,
+                        "cache_hit": True
+                    }
+                )
+                # Record cache hit
+                metrics.record_clustering(cached=True, groups=0, clusters=len(cached_result.clusters), duration_ms=0)
                 return cached_result
-            logger.info(f"🆕 No cached result found, proceeding with clustering")
+        
+        logger.info(
+            "clustering_cache_check",
+            extra={
+                "request_id": get_request_id(),
+                "session_id": session.session_identifier,
+                "force": force,
+                "cache_hit": False
+            }
+        )
 
+        # Step 2: Create semantic groups
         groups = self._create_semantic_groups(session)
-        logger.info(f"📦 Compressed {len(session.items)} items into {len(groups)} semantic groups")
+        compression_ratio = len(session.items) / len(groups) if groups else 0
+        
+        logger.info(
+            "clustering_groups_created",
+            extra={
+                "request_id": get_request_id(),
+                "session_id": session.session_identifier,
+                "input_items": len(session.items),
+                "output_groups": len(groups),
+                "compression_ratio": round(compression_ratio, 2),
+                "groups_sample": [
+                    {"title": g.title, "hostname": g.hostname, "item_count": g.item_count}
+                    for g in groups[:5]
+                ]
+            }
+        )
 
+        # Step 3: Embed groups
         groups = await self._embed_semantic_groups(groups)
+        
+        # Step 4: LLM cluster identification
+        llm_start = time.perf_counter()
         clusters_meta = await self.identify_clusters_from_groups(groups)
-        logger.info(f"🎯 LLM identified {len(clusters_meta)} thematic clusters")
+        llm_duration_ms = (time.perf_counter() - llm_start) * 1000
+        
+        logger.info(
+            "clustering_llm_identified",
+            extra={
+                "request_id": get_request_id(),
+                "session_id": session.session_identifier,
+                "clusters_identified": len(clusters_meta),
+                "duration_ms": round(llm_duration_ms, 2),
+                "cluster_themes": [c.get("theme") for c in clusters_meta],
+                "clusters_detail": clusters_meta
+            }
+        )
 
+        # Step 5: Embed clusters
         clusters_meta = await self._embed_clusters(clusters_meta)
 
+        # Step 6: Assign groups to clusters
         cluster_id_to_groups = self._assign_groups_by_similarity(groups, clusters_meta)
+        
+        # Calculate assignment distribution
+        assignment_distribution = {
+            cluster_id: len(groups_list)
+            for cluster_id, groups_list in cluster_id_to_groups.items()
+        }
+        generic_count = len(cluster_id_to_groups.get(GENERIC_CLUSTER["cluster_id"], []))
+        generic_percentage = (generic_count / len(groups) * 100) if groups else 0
+        
+        logger.info(
+            "clustering_assignment_complete",
+            extra={
+                "request_id": get_request_id(),
+                "session_id": session.session_identifier,
+                "assignment_distribution": assignment_distribution,
+                "generic_cluster_count": generic_count,
+                "generic_percentage": round(generic_percentage, 2)
+            }
+        )
 
+        # Step 7: Decompress groups to items
         cluster_id_to_items = self._decompress_groups_to_items(cluster_id_to_groups)
 
         cluster_results: List[ClusterResult] = []
@@ -109,20 +186,50 @@ class ClusteringService:
             clusters=cluster_results
         )
 
-        for cluster_result in cluster_results:
-            log_payload = cluster_result.model_dump()
-            log_payload.pop("embedding", None)
-            for item_payload in log_payload.get("items", []):
-                item_payload.pop("embedding", None)
-            logger.info(f"🎯 ClusterResult: {log_payload}")
+        # Log final result
+        logger.info(
+            "clustering_complete",
+            extra={
+                "request_id": get_request_id(),
+                "session_id": session.session_identifier,
+                "final_clusters": len(cluster_results),
+                "total_items": sum(len(c.items) for c in cluster_results),
+                "clusters_summary": [
+                    {
+                        "id": c.cluster_id,
+                        "theme": c.theme,
+                        "items_count": len(c.items),
+                        "has_embedding": c.embedding is not None
+                    }
+                    for c in cluster_results
+                ]
+            }
+        )
         
         # Step 9: Save to database
+        saved_to_db = False
         if self.mapping_service:
             try:
                 session_id = self.mapping_service.save_clustering_result(user_id, response, replace_if_exists=force)
-                logger.info(f"💾 Saved clustering result to database with session_id: {session_id}")
+                saved_to_db = True
             except Exception as e:
-                logger.error(f"❌ Failed to save clustering result to database: {e}")
+                logger.error(
+                    "clustering_save_failed",
+                    extra={
+                        "request_id": get_request_id(),
+                        "session_id": session.session_identifier,
+                        "error": str(e)
+                    }
+                )
+        
+        # Record to metrics (note: duration is tracked by @track_performance decorator)
+        # We'll use 0 as placeholder since decorator handles timing
+        metrics.record_clustering(
+            cached=False,
+            groups=len(groups),
+            clusters=len(cluster_results),
+            duration_ms=0  # Tracked by decorator
+        )
 
         return response
 

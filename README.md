@@ -1,27 +1,31 @@
 # Obra
 
-> Intelligent browsing assistant — Never lose track of your research again
+> Intelligent learning assistant — Remember everything you explore on the web
 
-**Status:** Work in Progress (v0.9)
+**Status:** Work in Progress
 
 ## What is this?
 
-A Chrome extension that acts as your intelligent navigation assistant. It helps you close tabs without worry by automatically organizing your browsing history into thematic clusters (work, hobbies, research, etc.) and making them easily accessible through a dashboard.
+A Chrome extension that turns your browsing history into a **learning tool**. It automatically organizes your navigation into thematic sessions, lets you chat with your history through an AI companion, and — soon — will help you **retain knowledge** using spaced repetition based on the Ebbinghaus forgetting curve.
 
-Think of it as a smart memory for your browsing sessions—everything you've explored is preserved, organized, and ready to chat about.
+Browse normally. Obra silently collects, clusters, and indexes everything. When you need to recall something, just ask.
 
 ## Features
 
-- **Automatic session detection** : Groups browsing activity into sessions based on time gaps
-- **AI-powered clustering** : Organizes pages by theme using LLM analysis
-- **Semantic search** : Find past pages by meaning, not just keywords
-- **Conversational interface** : Chat with your browsing history naturally
+- **Automatic session detection** — Groups browsing activity into sessions based on time gaps, analyzed in the background
+- **AI-powered clustering** — Organizes pages by theme (work, research, hobbies...) using LLM analysis + embeddings
+- **Semantic search** — Two-stage retrieval: finds relevant clusters first, then individual pages within them
+- **Agentic chat** — Multi-step conversational interface with native tool calling; the assistant can search your history, filter by date/domain, and chain reasoning across multiple steps
+- **Monitoring** — Built-in request tracing, LLM cost tracking, and a `/metrics` endpoint
+
+### Coming next
+
+- **Topic tracking** — Visualize how long since you revisited a subject, with forgetting curve graphs and smart reminders
+- **Quiz & flashcards** — Auto-generated from your browsing content, triggered when a topic is fading from memory
 
 ## Demo
 
-![Dashboard](docs-asset/readme-demo-1.png)
-
-*The dashboard automatically clustered a browsing session into "AI Model Development" and "Productivity & Focus Management" themes. On the right, the chat interface retrieves forgotten context: the user asks "what was I working on?" and the assistant finds the exact GitHub PR, research articles, and email threads from that day — with direct links to each source.*
+![Dashboard](docs-asset/readme-demo-2.png)
 
 ## Quick Start
 
@@ -34,74 +38,71 @@ Think of it as a smart memory for your browsing sessions—everything you've exp
 
 ### Installation
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/obra.git
-   cd obra
-   ```
+1. **Clone & configure**
 
-2. **Configure environment**
-   ```bash
-   cp env.template .env
-   # Edit .env and add your GOOGLE_API_KEY
-   ```
+```bash
+git clone https://github.com/your-username/obra.git
+cd obra
+cp env.template .env
+# Edit .env and add your GOOGLE_API_KEY
+```
 
-3. **Start the backend**
-   ```powershell
-   ./scripts/dev_up.ps1
-   ```
-   Or manually:
-   ```bash
-   docker-compose up --build -d
-   ```
+2. **Start the backend**
 
-4. **Build the frontend**
-   ```bash
-   cd frontend
-   npm install
-   npm run build
-   ```
+```powershell
+./scripts/dev_up.ps1
+```
 
-5. **Load the extension in Chrome**
-   - Go to `chrome://extensions/`
-   - Enable "Developer mode"
-   - Click "Load unpacked"
-   - Select the `extension/` folder
+Or manually: `docker-compose up --build -d`
 
-6. **Verify installation**
-   - Backend health: http://localhost:8000/health
-   - Click the extension icon in Chrome
+3. **Build the frontend**
+
+```bash
+cd frontend && npm install && npm run build
+```
+
+4. **Load the extension** — `chrome://extensions/` → Developer mode → Load unpacked → select `extension/`
+
+5. **Verify** — http://localhost:8000/health
 
 ## Architecture
 
 ```
-Chrome Extension ──► FastAPI Backend ──► PostgreSQL
-      │                    │
-      │                    ├── LLM Service (Google Gemini)
-      │                    └── Embedding Service (text-embedding-004)
-      │
-      └── React Dashboard (built into extension)
+Chrome Extension (MV3)
+├── Background worker ── collects history, derives sessions, triggers analysis
+├── React Dashboard ──── 3-column layout (sidebar / content / chat)
+│
+└──► FastAPI Backend
+     ├── Clustering Service ── LLM + embedding assignment
+     ├── Chat Service ──────── agentic loop with tool calling
+     ├── Search Service ────── two-stage semantic search (pgvector)
+     ├── LLM Providers ────── Google, OpenAI, Anthropic, Ollama
+     ├── Monitoring ────────── structured logging, request tracing, cost tracking
+     │
+     └──► PostgreSQL + pgvector (768-dim embeddings, HNSW indexes)
 ```
-
-The extension collects browsing history in real-time, groups it into sessions, and sends completed sessions to the backend for AI-powered clustering. Results are cached in PostgreSQL with vector embeddings for semantic search.
 
 ## Project Structure
 
 ```
 obra/
-├── extension/           # Chrome extension (MV3)
-│   ├── background.js    # Service worker
-│   ├── services/        # Extension services (auth, history, session)
-│   ├── dashboard-assets/# Built React dashboard
-│   └── manifest.json
-├── frontend/            # React dashboard source
-│   └── src/
-├── backend/             # FastAPI server
-│   └── app/
-│       ├── services/    # Clustering, chat, search, LLM providers
-│       ├── models/      # Pydantic & SQLAlchemy models
-│       └── repositories/# Database access
-├── scripts/             # Dev utilities
+├── extension/              # Chrome extension (MV3)
+│   ├── background.js       # Service worker
+│   ├── services/           # Auth, history, session, API services
+│   ├── utils/              # Preprocessing, session utilities
+│   └── dashboard-assets/   # Built React dashboard
+├── frontend/src/           # React + TypeScript + Tailwind
+│   ├── features/           # sessions, chat, quiz, tracking
+│   ├── stores/             # Zustand state (sessions, chat, UI)
+│   └── layouts/            # AppLayout, Sidebar
+├── backend/app/
+│   ├── services/           # Clustering, chat, search, LLM providers
+│   ├── tools/              # Chat tool definitions (search_history, ...)
+│   ├── models/             # Pydantic, SQLAlchemy, tool models
+│   ├── repositories/       # Database access (repository pattern)
+│   ├── monitoring/         # Metrics, decorators, structured logging
+│   └── middleware/         # Request tracing
+├── scripts/                # Dev utilities
 └── docker-compose.yml
 ```
 
@@ -120,20 +121,7 @@ Key environment variables (see `env.template` for full list):
 ## Tech Stack
 
 - **Extension:** Chrome MV3, vanilla JS services
-- **Frontend:** React, TypeScript, Vite, Tailwind CSS
-- **Backend:** FastAPI, SQLAlchemy, pgvector
-- **Database:** PostgreSQL with vector extensions
-
-## Next improvements :
-
-### v2.0 
-- [ ] Improve tool calling in the Chat, allow multiple tool calls and multi steps reflexion 
-- [ ] Make the RAG retrieval more flexible, not only retrieving from closest clusters but also samples closest objects
-- [ ] Improve system prompts
-- [ ] Improve UX and session navigation
-
-### v2.0 — Learning Assistant
-- [ ] Smart reminders to revisit important topics
-- [ ] Spaced repetition integration
-- [ ] Auto-generated flashcards from browsing content
-- [ ] Knowledge retention tracking
+- **Frontend:** React, TypeScript, Vite, Tailwind CSS, Zustand
+- **Backend:** FastAPI, SQLAlchemy, pgvector, structured JSON logging
+- **LLM:** Provider-agnostic (Google Gemini, OpenAI, Anthropic, Ollama)
+- **Database:** PostgreSQL with pgvector (HNSW indexes)

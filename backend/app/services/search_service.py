@@ -1,11 +1,13 @@
 import logging
 from typing import List, Tuple, Optional, Dict
+from collections import defaultdict
 
 from app.config import settings
 from app.repositories.database_repository import DatabaseRepository
 from app.services.embedding_service import EmbeddingService
 from app.models.session_models import ClusterResult, ClusterItem
 from app.models.chat_models import SearchFilters
+from app.monitoring import get_request_id, metrics
 
 
 logger = logging.getLogger(__name__)
@@ -115,11 +117,58 @@ class SearchService:
         
         items = [self._dict_to_cluster_item(item_dict) for item_dict in all_item_dicts]
 
+        # Build items per cluster mapping for detailed logging
+        items_by_cluster: Dict[int, List[ClusterItem]] = defaultdict(list)
+        for item in items:
+            # Match item to cluster based on cluster_id field
+            matching_cluster_id = None
+            for cluster_dict in cluster_dicts:
+                if cluster_dict.get("id") and any(
+                    item_dict.get("cluster_id") == cluster_dict.get("id") 
+                    for item_dict in all_item_dicts 
+                    if item_dict.get("url") == item.url
+                ):
+                    matching_cluster_id = cluster_dict.get("id")
+                    break
+            if matching_cluster_id:
+                items_by_cluster[matching_cluster_id].append(item)
+
+        # Detailed structured logging
         logger.info(
-            "SearchService: search completed (clusters=%s, items=%s, limit_per_cluster=%s)",
-            len(clusters),
-            len(items),
-            limit_items_per_cluster,
+            "search_results_clusters",
+            extra={
+                "request_id": get_request_id(),
+                "total_clusters": len(clusters),
+                "total_items": len(items),
+                "clusters_detail": [
+                    {
+                        "cluster_id": cluster_dict.get("id"),
+                        "theme": cluster_dict.get("name"),
+                        "items_count": len(items_by_cluster.get(cluster_dict.get("id"), []))
+                    }
+                    for cluster_dict in cluster_dicts
+                ],
+                "items_per_cluster_sample": {
+                    str(cluster_dict.get("id")): [
+                        {"title": item.title[:50] if item.title else "Untitled", "domain": item.url_hostname}
+                        for item in items_by_cluster.get(cluster_dict.get("id"), [])[:3]  # First 3 items
+                    ]
+                    for cluster_dict in cluster_dicts[:3]  # First 3 clusters
+                },
+                "filters_applied": {
+                    "query": filters.query_text,
+                    "date_from": str(filters.date_from) if filters.date_from else None,
+                    "date_to": str(filters.date_to) if filters.date_to else None,
+                    "title_contains": filters.title_contains,
+                    "domain_contains": filters.domain_contains
+                }
+            }
+        )
+        
+        # Record to metrics
+        metrics.record_search(
+            clusters_found=len(clusters),
+            items_found=len(items)
         )
 
         return clusters, items
