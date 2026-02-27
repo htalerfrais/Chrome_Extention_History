@@ -96,6 +96,7 @@ class TopicObservation(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     topic_id = Column(Integer, ForeignKey("topics.id", ondelete="CASCADE"), nullable=False, index=True)
     session_id = Column(Integer, ForeignKey("sessions.id", ondelete="CASCADE"), nullable=False, index=True)
+    cluster_id = Column(Integer, ForeignKey("clusters.id", ondelete="SET NULL"), nullable=True, index=True)
     observed_at = Column(DateTime, nullable=False)
     importance_score = Column(Float, nullable=False, default=0.5)
     source = Column(String, nullable=False, default="clustering")

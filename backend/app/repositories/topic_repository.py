@@ -1,11 +1,41 @@
 from datetime import datetime
 from typing import Dict, List, Optional
 
+from app.config import settings
 from app.models.database_models import Topic, TopicObservation, TopicRecallState, RecallEvent
 from .base_repository import BaseRepository
 
 
 class TopicRepository(BaseRepository):
+    def find_similar_topic(self, user_id: int, embedding: List[float], threshold: Optional[float] = None) -> Optional[Dict]:
+        """Return the closest existing topic for this user if cosine similarity >= threshold, else None."""
+        if threshold is None:
+            threshold = settings.topic_similarity_threshold
+
+        def operation(db):
+            row = (
+                db.query(Topic)
+                .filter(Topic.user_id == user_id, Topic.embedding.isnot(None))
+                .order_by(Topic.embedding.cosine_distance(embedding))
+                .first()
+            )
+            if row is None:
+                return None
+            # pgvector cosine_distance returns 1 - cosine_similarity
+            from sqlalchemy import text
+            result = db.execute(
+                text(
+                    "SELECT 1 - (embedding <=> CAST(:emb AS vector)) AS similarity "
+                    "FROM topics WHERE id = :tid"
+                ),
+                {"emb": str(embedding), "tid": row.id},
+            ).fetchone()
+            if result and result.similarity >= threshold:
+                return self._to_dict(row)
+            return None
+
+        return self._execute(operation, "Failed to find similar topic")
+
     def get_or_create_topic(self, user_id: int, name: str, description: Optional[str] = None, embedding: Optional[list] = None) -> Optional[Dict]:
         def operation(db):
             topic = db.query(Topic).filter(Topic.user_id == user_id, Topic.name == name).first()
@@ -26,11 +56,12 @@ class TopicRepository(BaseRepository):
 
         return self._execute(operation, "Failed to get/create topic")
 
-    def add_observation(self, topic_id: int, session_id: int, observed_at: datetime, importance_score: float) -> Optional[Dict]:
+    def add_observation(self, topic_id: int, session_id: int, observed_at: datetime, importance_score: float, cluster_id: Optional[int] = None) -> Optional[Dict]:
         def operation(db):
             obs = TopicObservation(
                 topic_id=topic_id,
                 session_id=session_id,
+                cluster_id=cluster_id,
                 observed_at=observed_at,
                 importance_score=importance_score,
             )

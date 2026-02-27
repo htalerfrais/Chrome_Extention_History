@@ -61,6 +61,7 @@ class ClusteringEngine:
                     summary=meta.get("summary", ""),
                     items=items,
                     embedding=meta.get("embedding"),
+                    is_learning=meta.get("is_learning", False),
                 )
             )
         generic_items = cluster_to_items.get(GENERIC_CLUSTER["cluster_id"], [])
@@ -132,7 +133,8 @@ class ClusteringEngine:
     async def _identify_clusters(self, groups: List[SemanticGroup]) -> List[Dict]:
         simplified = [{"title": g.title, "hostname": g.hostname} for g in groups]
         prompt = (
-            "Return JSON array of thematic clusters with keys cluster_id, theme, summary for browsing groups:\n"
+            "Return JSON array of thematic clusters. Each item must have: cluster_id, theme, summary, "
+            "is_learning (boolean, true only if the cluster represents research, study, learning or professional documentation activity).\n"
             + json.dumps(simplified, ensure_ascii=False)
         )
         try:
@@ -154,9 +156,12 @@ class ClusteringEngine:
                     cid = str(item.get("cluster_id") or f"cluster_{idx+1}")
                     if cid == "cluster_generic":
                         continue
-                    cleaned.append(
-                        {"cluster_id": cid, "theme": str(item.get("theme") or "Miscellaneous"), "summary": str(item.get("summary") or "")}
-                    )
+                    cleaned.append({
+                        "cluster_id": cid,
+                        "theme": str(item.get("theme") or "Miscellaneous"),
+                        "summary": str(item.get("summary") or ""),
+                        "is_learning": bool(item.get("is_learning", False)),
+                    })
                 return cleaned
         except Exception:
             pass
