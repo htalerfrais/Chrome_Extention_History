@@ -33,12 +33,15 @@ do {
     Start-Sleep $interval
     $elapsed += $interval
     
-    # If migrations failed, stop early with actionable logs.
-    $migrateExited = docker compose ps --status exited migrate --format json 2>$null
-    if ($migrateExited -and $migrateExited -ne "[]") {
-        Write-Host "❌ Migration service failed. Displaying logs..." -ForegroundColor Red
-        docker compose logs migrate
-        exit 1
+    # If migrations exited, fail only when exit code is non-zero.
+    $migrateContainerId = docker compose ps -a -q migrate 2>$null
+    if ($migrateContainerId) {
+        $migrateExitCode = docker inspect --format '{{.State.ExitCode}}' $migrateContainerId 2>$null
+        if ($migrateExitCode -and [int]$migrateExitCode -ne 0) {
+            Write-Host "❌ Migration service failed. Displaying logs..." -ForegroundColor Red
+            docker compose logs migrate
+            exit 1
+        }
     }
 
     try {
