@@ -21,7 +21,7 @@ Write-Host "📂 Project root: $projectRoot" -ForegroundColor Yellow
 
 # Build and start services
 Write-Host "🔨 Building and starting services..." -ForegroundColor Yellow
-docker-compose up --build -d
+docker compose up --build -d
 
 # Wait for services to be healthy
 Write-Host "⏳ Waiting for services to be ready..." -ForegroundColor Yellow
@@ -33,6 +33,14 @@ do {
     Start-Sleep $interval
     $elapsed += $interval
     
+    # If migrations failed, stop early with actionable logs.
+    $migrateExited = docker compose ps --status exited migrate --format json 2>$null
+    if ($migrateExited -and $migrateExited -ne "[]") {
+        Write-Host "❌ Migration service failed. Displaying logs..." -ForegroundColor Red
+        docker compose logs migrate
+        exit 1
+    }
+
     try {
         $response = Invoke-RestMethod -Uri "http://localhost:8000/health" -Method Get -TimeoutSec 5
         if ($response.status -eq "healthy") {
@@ -45,17 +53,17 @@ do {
     
     if ($elapsed -ge $timeout) {
         Write-Host "❌ Timeout waiting for services to be ready" -ForegroundColor Red
-        Write-Host "Run 'docker-compose logs backend' to check for errors" -ForegroundColor Yellow
+        Write-Host "Run 'docker compose logs backend migrate' to check for errors" -ForegroundColor Yellow
         exit 1
     }
 } while ($true)
 
 # Show service status
 Write-Host "`n📊 Service Status:" -ForegroundColor Cyan
-docker-compose ps
+docker compose ps
 
 Write-Host "`n🎉 Development environment is ready!" -ForegroundColor Green
 Write-Host "🌐 Backend API: http://localhost:8000" -ForegroundColor Cyan
 Write-Host "📚 API Docs: http://localhost:8000/docs" -ForegroundColor Cyan
 Write-Host "🔧 To stop services: .\scripts\dev_down.ps1" -ForegroundColor Yellow
-Write-Host "📋 To view logs: docker-compose logs -f backend" -ForegroundColor Yellow
+Write-Host "📋 To view logs: docker compose logs -f backend" -ForegroundColor Yellow
