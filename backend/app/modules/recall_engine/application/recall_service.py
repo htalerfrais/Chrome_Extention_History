@@ -15,6 +15,22 @@ class RecallService:
         base = min(1.0, days_since_last_seen / max(1.0, 14.0 * max(0.1, strength)))
         return round(base, 4)
 
+    def _coerce_utc_naive(self, value: Optional[datetime]) -> Optional[datetime]:
+        """
+        Normalize datetimes to UTC-naive values for safe arithmetic/storage.
+        The DB schema uses timezone-naive DateTime columns.
+        """
+        if value is None:
+            return None
+        if isinstance(value, str):
+            # Accept both ISO strings with offset and trailing "Z".
+            value = datetime.fromisoformat(value.replace("Z", "+00:00"))
+        if not isinstance(value, datetime):
+            return None
+        if value.tzinfo is not None:
+            return value.astimezone(timezone.utc).replace(tzinfo=None)
+        return value
+
     def _strengthen_recall(self, topic_id: int, current_state: Dict, observed_at: datetime) -> None:
         """Reinforce memory for a topic that was just observed."""
         repetitions = int(current_state.get("repetitions", 0)) + 1
@@ -37,7 +53,9 @@ class RecallService:
         if not session:
             return
         session_id = session["id"]
-        observed_at = datetime.fromisoformat(session["end_time"]) if isinstance(session["end_time"], str) else session["end_time"]
+        observed_at = self._coerce_utc_naive(session.get("end_time"))
+        if not observed_at:
+            return
 
         # Preload existing topics+states for this user to avoid N+1 queries per cluster
         existing_topics: Dict[int, Dict] = {
@@ -88,7 +106,7 @@ class RecallService:
             self.topic_repository.create_recall_event(topic_id, "observed", {"session_identifier": session_identifier})
 
     def list_topics(self, user_id: int, due_only: bool = False) -> List[TopicTrackingItem]:
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         rows = (
             self.topic_repository.list_due_topics(user_id, now)
             if due_only
@@ -113,16 +131,14 @@ class RecallService:
     def recompute(self, user_id: int, topic_id: Optional[int] = None) -> int:
         rows = self.topic_repository.list_topics_with_state(user_id, limit=1000)
         updated = 0
-        now = datetime.now(timezone.utc)
+        now = datetime.utcnow()
         for row in rows:
             if topic_id and row["id"] != topic_id:
                 continue
             state = row.get("recall_state")
             if not state:
                 continue
-            last_reviewed = state.get("last_reviewed_at") or row.get("updated_at")
-            if isinstance(last_reviewed, str):
-                last_reviewed = datetime.fromisoformat(last_reviewed)
+            last_reviewed = self._coerce_utc_naive(state.get("last_reviewed_at") or row.get("updated_at"))
             if not last_reviewed:
                 continue
             days_since = max(0.0, (now - last_reviewed).total_seconds() / 86400.0)
