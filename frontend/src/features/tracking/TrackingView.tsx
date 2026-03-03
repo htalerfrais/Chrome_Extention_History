@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react'
-import { RefreshCw, Brain, TrendingDown } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { RefreshCw, Brain, TrendingDown, ChevronDown } from 'lucide-react'
 import { useTrackingStore } from '../../stores/useTrackingStore'
 import type { TopicTrackingItem, RecallHistoryEvent } from '../../types/tracking'
 
@@ -8,255 +8,178 @@ const TOPIC_COLORS = [
   '#84cc16', '#eab308', '#06b6d4', '#a855f7',
 ]
 
-// --- Curve computation ---
-
-interface CurvePoint { x: number; y: number }
-
-function computeCurve(
-  events: RecallHistoryEvent[],
-  now: Date,
-  minTime: number,
-  maxTime: number,
-  chartW: number,
-  chartH: number,
-): CurvePoint[] {
-  if (events.length === 0) return []
-  const timeRange = maxTime - minTime || 1
-  const toX = (d: Date) => ((d.getTime() - minTime) / timeRange) * chartW
-  const toY = (v: number) => chartH - v * chartH
-
-  const points: CurvePoint[] = []
-  for (let i = 0; i < events.length; i++) {
-    const recallTime = new Date(events[i].event_time)
-    const nextTime = events[i + 1] ? new Date(events[i + 1].event_time) : now
-    const strength = events[i].strength
-    const segmentMs = nextTime.getTime() - recallTime.getTime()
-    // At least 2 points per segment, max 60 (1 per 6h)
-    const steps = Math.max(2, Math.min(60, Math.ceil(segmentMs / (6 * 3600 * 1000))))
-    for (let s = 0; s <= steps; s++) {
-      const t = new Date(recallTime.getTime() + (segmentMs * s) / steps)
-      const daysSince = (t.getTime() - recallTime.getTime()) / 86400000
-      const score = Math.min(1.0, daysSince / (14.0 * Math.max(0.1, strength)))
-      points.push({ x: toX(t), y: toY(score) })
-    }
-  }
-  return points
+function daysAgo(dateStr: string): string {
+  const diff = (Date.now() - new Date(dateStr).getTime()) / 86400000
+  if (diff < 1) return 'today'
+  if (diff < 2) return '1d ago'
+  return `${Math.floor(diff)}d ago`
 }
 
-// --- Topic list item ---
+function retentionLabel(forgettingScore: number): { pct: number; label: string; cls: string } {
+  const pct = Math.round((1 - forgettingScore) * 100)
+  if (pct >= 70) return { pct, label: 'Healthy', cls: 'text-success' }
+  if (pct >= 40) return { pct, label: 'At risk', cls: 'text-yellow-500' }
+  return { pct, label: 'Critical', cls: 'text-error' }
+}
 
-function TopicPill({
+function StrengthDots({ strength }: { strength: number }) {
+  const filled = Math.round(strength * 5)
+  return (
+    <span className="flex items-center gap-0.5">
+      {Array.from({ length: 5 }).map((_, i) => (
+        <span
+          key={i}
+          className={`w-1.5 h-1.5 rounded-full ${i < filled ? 'bg-text-secondary' : 'bg-surface-active'}`}
+        />
+      ))}
+    </span>
+  )
+}
+
+function EventTimeline({ events, color }: { events: RecallHistoryEvent[]; color: string }) {
+  if (events.length === 0) {
+    return <p className="text-xxs text-text-tertiary italic">No recall events yet.</p>
+  }
+  const sorted = [...events].sort(
+    (a, b) => new Date(b.event_time).getTime() - new Date(a.event_time).getTime()
+  )
+  return (
+    <div className="flex flex-col gap-2">
+      {sorted.map((e, i) => {
+        const ret = Math.round((1 - e.forgetting_score) * 100)
+        const date = new Date(e.event_time).toLocaleDateString(undefined, {
+          month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit',
+        })
+        return (
+          <div key={i} className="flex items-start gap-2">
+            <span className="mt-0.5 w-1.5 h-1.5 rounded-full shrink-0" style={{ backgroundColor: color }} />
+            <div className="min-w-0">
+              <span className="text-xxs font-medium text-text capitalize">{e.event_type}</span>
+              <span className="text-xxs text-text-tertiary"> · {date}</span>
+              <span className="text-xxs text-text-tertiary"> · {ret}% retained</span>
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function TopicRow({
   topic,
   color,
-  isSelected,
-  onClick,
+  events,
+  isLoadingHistory,
+  onOpen,
 }: {
   topic: TopicTrackingItem
   color: string
-  isSelected: boolean
-  onClick: () => void
+  events: RecallHistoryEvent[] | undefined
+  isLoadingHistory: boolean
+  onOpen: () => void
 }) {
-  const score = Math.round(topic.forgetting_score * 100)
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center gap-2 ${
-        isSelected ? 'bg-accent/15 border border-accent/40' : 'hover:bg-surface-hover border border-transparent'
-      }`}
-    >
-      <span className="shrink-0 w-2.5 h-2.5 rounded-full" style={{ backgroundColor: color }} />
-      <span className="flex-1 min-w-0">
-        <span className="block text-xs font-medium text-text truncate">{topic.name}</span>
-        <span className="block text-xxs text-text-tertiary">{score}% forgotten</span>
-      </span>
-    </button>
-  )
-}
+  const [isOpen, setIsOpen] = useState(false)
+  const { pct, cls } = retentionLabel(topic.forgetting_score)
+  const isDue = topic.next_review_at ? new Date(topic.next_review_at) <= new Date() : false
+  const lastSeen = topic.last_reviewed_at ? daysAgo(topic.last_reviewed_at) : null
+  const nextReview = topic.next_review_at
+    ? new Date(topic.next_review_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
+    : null
 
-// --- Chart ---
-
-const CHART_W = 260
-const CHART_H = 140
-const PAD = { top: 8, right: 8, bottom: 28, left: 28 }
-
-function ForgettingChart({
-  topics,
-  histories,
-  selectedTopicId,
-}: {
-  topics: TopicTrackingItem[]
-  histories: Record<number, RecallHistoryEvent[]>
-  selectedTopicId: number | null
-}) {
-  const now = new Date()
-
-  // Determine global time range across all loaded topics
-  const { minTime, maxTime } = useMemo(() => {
-    let min = now.getTime()
-    let max = now.getTime()
-    for (const topic of topics) {
-      const events = histories[topic.topic_id]
-      if (events && events.length > 0) {
-        const first = new Date(events[0].event_time).getTime()
-        if (first < min) min = first
-      } else if (topic.last_reviewed_at) {
-        const t = new Date(topic.last_reviewed_at).getTime()
-        if (t < min) min = t
-      }
-    }
-    // Show at least 14 days of context
-    const fourteenDaysMs = 14 * 24 * 3600 * 1000
-    if (max - min < fourteenDaysMs) min = max - fourteenDaysMs
-    return { minTime: min, maxTime: max }
-  }, [topics, histories])
-
-  const timeRange = maxTime - minTime || 1
-  const toX = (d: Date) => PAD.left + ((d.getTime() - minTime) / timeRange) * CHART_W
-  const toY = (v: number) => PAD.top + (1 - v) * CHART_H
-
-  // X-axis tick labels
-  const xTicks = useMemo(() => {
-    const ticks = []
-    const totalDays = (maxTime - minTime) / 86400000
-    const tickCount = Math.min(5, Math.max(2, Math.floor(totalDays / 2)))
-    for (let i = 0; i <= tickCount; i++) {
-      const t = new Date(minTime + (i / tickCount) * (maxTime - minTime))
-      ticks.push({ x: toX(t), label: t.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) })
-    }
-    return ticks
-  }, [minTime, maxTime])
-
-  const svgW = CHART_W + PAD.left + PAD.right
-  const svgH = CHART_H + PAD.top + PAD.bottom
+  function handleToggle() {
+    if (!isOpen && events === undefined) onOpen()
+    setIsOpen((v) => !v)
+  }
 
   return (
-    <svg
-      viewBox={`0 0 ${svgW} ${svgH}`}
-      className="w-full h-full"
-      style={{ maxHeight: '100%' }}
-    >
-      {/* Grid lines */}
-      {[0, 0.25, 0.5, 0.75, 1].map((v) => (
-        <line
-          key={v}
-          x1={PAD.left}
-          x2={PAD.left + CHART_W}
-          y1={toY(v)}
-          y2={toY(v)}
-          stroke="currentColor"
-          strokeOpacity={0.08}
-          strokeWidth={1}
+    <div className="border-b border-line last:border-b-0">
+      {/* Row header */}
+      <button
+        onClick={handleToggle}
+        className="w-full px-5 py-3 flex items-center gap-3 hover:bg-surface-hover transition-colors text-left"
+      >
+        <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
+
+        <span className="flex-1 text-sm font-medium text-text truncate min-w-0">{topic.name}</span>
+
+        {isDue && (
+          <span className="shrink-0 text-xxs font-semibold text-error bg-error/10 px-1.5 py-0.5 rounded-full">
+            Due
+          </span>
+        )}
+
+        {/* Retention bar */}
+        <div className="w-16 h-1 bg-surface-active rounded-full overflow-hidden shrink-0">
+          <div
+            className="h-full rounded-full transition-all"
+            style={{ width: `${pct}%`, backgroundColor: color, opacity: 0.85 }}
+          />
+        </div>
+
+        <span className={`text-xs font-semibold w-9 text-right shrink-0 ${cls}`}>{pct}%</span>
+
+        {lastSeen && (
+          <span className="text-xxs text-text-tertiary w-14 text-right shrink-0 hidden sm:block">
+            {lastSeen}
+          </span>
+        )}
+
+        <ChevronDown
+          size={12}
+          className={`text-text-tertiary shrink-0 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
         />
-      ))}
+      </button>
 
-      {/* Y-axis labels */}
-      {[0, 0.5, 1].map((v) => (
-        <text
-          key={v}
-          x={PAD.left - 4}
-          y={toY(v) + 3}
-          fontSize={7}
-          textAnchor="end"
-          fill="currentColor"
-          opacity={0.4}
-        >
-          {Math.round(v * 100)}%
-        </text>
-      ))}
+      {/* Accordion panel */}
+      <div
+        className={`grid transition-all duration-300 ease-in-out ${
+          isOpen ? 'grid-rows-[1fr]' : 'grid-rows-[0fr]'
+        }`}
+      >
+        <div className="overflow-hidden">
+          <div className="px-5 pb-4 pt-2 flex flex-col gap-4">
+            {/* KPIs */}
+            <div className="flex items-center gap-6">
+              <div>
+                <p className="text-xxs text-text-tertiary mb-0.5">Strength</p>
+                <StrengthDots strength={topic.strength} />
+              </div>
+              <div>
+                <p className="text-xxs text-text-tertiary mb-0.5">Reviews</p>
+                <p className="text-xs font-medium text-text">{topic.repetitions}</p>
+              </div>
+              {nextReview && (
+                <div>
+                  <p className="text-xxs text-text-tertiary mb-0.5">Next review</p>
+                  <p className={`text-xs font-medium ${isDue ? 'text-error' : 'text-text'}`}>{nextReview}</p>
+                </div>
+              )}
+              {lastSeen && (
+                <div>
+                  <p className="text-xxs text-text-tertiary mb-0.5">Last recall</p>
+                  <p className="text-xs font-medium text-text">{lastSeen}</p>
+                </div>
+              )}
+            </div>
 
-      {/* X-axis ticks */}
-      {xTicks.map((tick, i) => (
-        <text
-          key={i}
-          x={tick.x}
-          y={PAD.top + CHART_H + 16}
-          fontSize={7}
-          textAnchor="middle"
-          fill="currentColor"
-          opacity={0.4}
-        >
-          {tick.label}
-        </text>
-      ))}
-
-      {/* Axes */}
-      <line
-        x1={PAD.left} x2={PAD.left + CHART_W}
-        y1={PAD.top + CHART_H} y2={PAD.top + CHART_H}
-        stroke="currentColor" strokeOpacity={0.2} strokeWidth={1}
-      />
-      <line
-        x1={PAD.left} x2={PAD.left}
-        y1={PAD.top} y2={PAD.top + CHART_H}
-        stroke="currentColor" strokeOpacity={0.2} strokeWidth={1}
-      />
-
-      {/* Curves */}
-      {topics.map((topic, idx) => {
-        const color = TOPIC_COLORS[idx % TOPIC_COLORS.length]
-        const events = histories[topic.topic_id]
-        const isSelected = topic.topic_id === selectedTopicId
-        const opacity = selectedTopicId === null ? 1 : isSelected ? 1 : 0.18
-
-        let polylinePoints = ''
-        let dotX: number | null = null
-        let dotY: number | null = null
-
-        if (events && events.length > 0) {
-          const pts = computeCurve(events, now, minTime, maxTime, CHART_W, CHART_H)
-          // Offset into padded space
-          polylinePoints = pts
-            .map((p) => `${(p.x + PAD.left).toFixed(1)},${(p.y + PAD.top).toFixed(1)}`)
-            .join(' ')
-          const last = pts[pts.length - 1]
-          if (last) {
-            dotX = last.x + PAD.left
-            dotY = last.y + PAD.top
-          }
-        } else if (topic.last_reviewed_at) {
-          // Fallback: draw from last_reviewed_at to now using current state
-          const recallDate = new Date(topic.last_reviewed_at)
-          const days = (now.getTime() - recallDate.getTime()) / 86400000
-          const score = Math.min(1.0, days / (14.0 * Math.max(0.1, topic.strength)))
-          const x0 = toX(recallDate)
-          const x1 = toX(now)
-          const y0 = toY(0)
-          const y1 = toY(score)
-          polylinePoints = `${x0.toFixed(1)},${y0.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`
-          dotX = x1
-          dotY = y1
-        }
-
-        if (!polylinePoints) return null
-
-        return (
-          <g key={topic.topic_id} opacity={opacity}>
-            <polyline
-              points={polylinePoints}
-              fill="none"
-              stroke={color}
-              strokeWidth={isSelected ? 2 : 1.5}
-              strokeLinejoin="round"
-              strokeLinecap="round"
-            />
-            {dotX !== null && dotY !== null && (
-              <circle
-                cx={dotX}
-                cy={dotY}
-                r={isSelected ? 4.5 : 3}
-                fill={color}
-                stroke="white"
-                strokeWidth={1}
-              />
-            )}
-          </g>
-        )
-      })}
-    </svg>
+            {/* History */}
+            <div>
+              <p className="text-xxs font-semibold text-text-tertiary uppercase tracking-wide mb-2">History</p>
+              {isLoadingHistory ? (
+                <div className="flex items-center gap-1.5">
+                  <RefreshCw size={10} className="text-text-tertiary animate-spin" />
+                  <span className="text-xxs text-text-tertiary">Loading…</span>
+                </div>
+              ) : (
+                <EventTimeline events={events ?? []} color={color} />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
-
-// --- Main view ---
 
 export default function TrackingView() {
   const {
@@ -266,26 +189,24 @@ export default function TrackingView() {
     error,
     showDueOnly,
     topicHistories,
-    selectedTopicId,
+    loadingHistories,
     loadTopics,
     toggleDueOnly,
     recompute,
     loadTopicHistory,
-    selectTopic,
   } = useTrackingStore()
 
   useEffect(() => {
     loadTopics()
   }, [])
 
-  // Load histories for all topics once they are available
-  useEffect(() => {
-    for (const topic of topics) {
-      if (!(topic.topic_id in topicHistories)) {
-        loadTopicHistory(topic.topic_id)
-      }
-    }
-  }, [topics])
+  // Sort: due first, then by retention ascending
+  const sorted = [...topics].sort((a, b) => {
+    const aDue = a.next_review_at && new Date(a.next_review_at) <= new Date() ? 0 : 1
+    const bDue = b.next_review_at && new Date(b.next_review_at) <= new Date() ? 0 : 1
+    if (aDue !== bDue) return aDue - bDue
+    return a.forgetting_score - b.forgetting_score
+  })
 
   return (
     <div className="flex flex-col h-full">
@@ -331,7 +252,7 @@ export default function TrackingView() {
             Retry
           </button>
         </div>
-      ) : topics.length === 0 ? (
+      ) : sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center flex-1 gap-4 text-center">
           <div className="p-5 rounded-2xl bg-accent-subtle">
             <TrendingDown size={36} strokeWidth={1.2} className="text-accent" />
@@ -348,71 +269,21 @@ export default function TrackingView() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-1 min-h-0">
-          {/* Topic list */}
-          <div className="w-36 shrink-0 border-r border-line overflow-y-auto thin-scrollbar p-2 flex flex-col gap-0.5">
-            {topics.map((topic, idx) => (
-              <TopicPill
+        <div className="flex-1 overflow-y-auto thin-scrollbar">
+          {sorted.map((topic, idx) => {
+            // Use original index for stable color
+            const colorIdx = topics.findIndex((t) => t.topic_id === topic.topic_id)
+            return (
+              <TopicRow
                 key={topic.topic_id}
                 topic={topic}
-                color={TOPIC_COLORS[idx % TOPIC_COLORS.length]}
-                isSelected={topic.topic_id === selectedTopicId}
-                onClick={() => selectTopic(topic.topic_id === selectedTopicId ? null : topic.topic_id)}
+                color={TOPIC_COLORS[colorIdx % TOPIC_COLORS.length]}
+                events={topicHistories[topic.topic_id]}
+                isLoadingHistory={loadingHistories.has(topic.topic_id)}
+                onOpen={() => loadTopicHistory(topic.topic_id)}
               />
-            ))}
-          </div>
-
-          {/* Chart area */}
-          <div className="flex-1 min-w-0 flex flex-col p-3 gap-2">
-            <div className="flex items-center justify-between">
-              <span className="text-xxs text-text-tertiary">Forgetting score over time</span>
-              {selectedTopicId !== null && (
-                <button
-                  onClick={() => selectTopic(null)}
-                  className="text-xxs text-text-tertiary hover:text-text transition-colors"
-                >
-                  Show all
-                </button>
-              )}
-            </div>
-            <div className="flex-1 min-h-0">
-              <ForgettingChart
-                topics={topics}
-                histories={topicHistories}
-                selectedTopicId={selectedTopicId}
-              />
-            </div>
-            {/* Selected topic detail */}
-            {selectedTopicId !== null && (() => {
-              const idx = topics.findIndex((t) => t.topic_id === selectedTopicId)
-              const topic = topics[idx]
-              if (!topic) return null
-              const color = TOPIC_COLORS[idx % TOPIC_COLORS.length]
-              const isDue = topic.next_review_at ? new Date(topic.next_review_at) <= new Date() : false
-              const score = Math.round(topic.forgetting_score * 100)
-              const lastSeen = topic.last_reviewed_at
-                ? new Date(topic.last_reviewed_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
-                : null
-              return (
-                <div className="rounded-xl bg-surface border border-line p-3 shrink-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: color }} />
-                    <span className="text-xs font-semibold text-text truncate">{topic.name}</span>
-                    {isDue && (
-                      <span className="shrink-0 text-xxs font-semibold text-error bg-error/10 px-2 py-0.5 rounded-full">
-                        Due
-                      </span>
-                    )}
-                  </div>
-                  <div className="flex items-center gap-4 text-xxs text-text-tertiary">
-                    <span><span className="font-medium text-text">{score}%</span> forgotten</span>
-                    <span><span className="font-medium text-text">{topic.repetitions}</span> review{topic.repetitions !== 1 ? 's' : ''}</span>
-                    {lastSeen && <span>Last seen <span className="font-medium text-text">{lastSeen}</span></span>}
-                  </div>
-                </div>
-              )
-            })()}
-          </div>
+            )
+          })}
         </div>
       )}
     </div>

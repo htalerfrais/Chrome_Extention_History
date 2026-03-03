@@ -25209,23 +25209,27 @@ const TOPIC_COLORS = [
   "#06b6d4",
   "#a855f7"
 ];
-function computeCurve(events, now, minTime, maxTime, chartW, chartH) {
+const PX_PER_DAY = 70;
+const CHART_H = 140;
+const PAD = { top: 8, right: 16, bottom: 28, left: 30 };
+function retention(daysSince, strength) {
+  return 1 - Math.min(1, daysSince / (14 * Math.max(0.1, strength)));
+}
+function computeCurve(events, now, minTime, chartW, totalMs) {
   if (events.length === 0) return [];
-  const timeRange = maxTime - minTime || 1;
-  const toX = (d) => (d.getTime() - minTime) / timeRange * chartW;
-  const toY = (v) => chartH - v * chartH;
+  const toX = (d) => (d.getTime() - minTime) / totalMs * chartW;
+  const toY = (v) => CHART_H - v * CHART_H;
   const points = [];
   for (let i = 0; i < events.length; i++) {
     const recallTime = new Date(events[i].event_time);
     const nextTime = events[i + 1] ? new Date(events[i + 1].event_time) : now;
     const strength = events[i].strength;
     const segmentMs = nextTime.getTime() - recallTime.getTime();
-    const steps = Math.max(2, Math.min(60, Math.ceil(segmentMs / (6 * 3600 * 1e3))));
+    const steps = Math.max(2, Math.min(80, Math.ceil(segmentMs / (6 * 3600 * 1e3))));
     for (let s = 0; s <= steps; s++) {
       const t = new Date(recallTime.getTime() + segmentMs * s / steps);
       const daysSince = (t.getTime() - recallTime.getTime()) / 864e5;
-      const score = Math.min(1, daysSince / (14 * Math.max(0.1, strength)));
-      points.push({ x: toX(t), y: toY(score) });
+      points.push({ x: toX(t), y: toY(retention(daysSince, strength)) });
     }
   }
   return points;
@@ -25236,7 +25240,7 @@ function TopicPill({
   isSelected,
   onClick
 }) {
-  const score = Math.round(topic.forgetting_score * 100);
+  const ret = Math.round((1 - topic.forgetting_score) * 100);
   return /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "button",
     {
@@ -25247,26 +25251,24 @@ function TopicPill({
         /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "flex-1 min-w-0", children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "block text-xs font-medium text-text truncate", children: topic.name }),
           /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "block text-xxs text-text-tertiary", children: [
-            score,
-            "% forgotten"
+            ret,
+            "% retained"
           ] })
         ] })
       ]
     }
   );
 }
-const CHART_W = 260;
-const CHART_H = 140;
-const PAD = { top: 8, right: 8, bottom: 28, left: 28 };
-function ForgettingChart({
+function RetentionChart({
   topics,
   histories,
   selectedTopicId
 }) {
   const now = /* @__PURE__ */ new Date();
+  const scrollRef = reactExports.useRef(null);
   const { minTime, maxTime } = reactExports.useMemo(() => {
     let min = now.getTime();
-    let max = now.getTime();
+    const max = now.getTime();
     for (const topic of topics) {
       const events = histories[topic.topic_id];
       if (events && events.length > 0) {
@@ -25277,37 +25279,45 @@ function ForgettingChart({
         if (t < min) min = t;
       }
     }
-    const fourteenDaysMs = 14 * 24 * 3600 * 1e3;
-    if (max - min < fourteenDaysMs) min = max - fourteenDaysMs;
+    const sevenDaysMs = 7 * 24 * 3600 * 1e3;
+    if (max - min < sevenDaysMs) min = max - sevenDaysMs;
     return { minTime: min, maxTime: max };
   }, [topics, histories]);
-  const timeRange = maxTime - minTime || 1;
-  const toX = (d) => PAD.left + (d.getTime() - minTime) / timeRange * CHART_W;
+  const totalMs = maxTime - minTime || 1;
+  const totalDays = totalMs / 864e5;
+  const chartW = Math.round(totalDays * PX_PER_DAY);
+  const toX = (d) => PAD.left + (d.getTime() - minTime) / totalMs * chartW;
   const toY = (v) => PAD.top + (1 - v) * CHART_H;
+  reactExports.useEffect(() => {
+    if (scrollRef.current) {
+      scrollRef.current.scrollLeft = scrollRef.current.scrollWidth;
+    }
+  }, [chartW]);
   const xTicks = reactExports.useMemo(() => {
     const ticks = [];
-    const totalDays = (maxTime - minTime) / 864e5;
-    const tickCount = Math.min(5, Math.max(2, Math.floor(totalDays / 2)));
-    for (let i = 0; i <= tickCount; i++) {
-      const t = new Date(minTime + i / tickCount * (maxTime - minTime));
-      ticks.push({ x: toX(t), label: t.toLocaleDateString(void 0, { month: "short", day: "numeric" }) });
+    for (let d = 0; d <= Math.ceil(totalDays); d++) {
+      const t = new Date(minTime + d * 864e5);
+      ticks.push({
+        x: toX(t),
+        label: t.toLocaleDateString(void 0, { month: "short", day: "numeric" })
+      });
     }
     return ticks;
-  }, [minTime, maxTime]);
-  const svgW = CHART_W + PAD.left + PAD.right;
+  }, [minTime, totalDays, chartW]);
+  const svgW = chartW + PAD.left + PAD.right;
   const svgH = CHART_H + PAD.top + PAD.bottom;
-  return /* @__PURE__ */ jsxRuntimeExports.jsxs(
+  return /* @__PURE__ */ jsxRuntimeExports.jsx("div", { ref: scrollRef, className: "w-full h-full overflow-x-auto thin-scrollbar", children: /* @__PURE__ */ jsxRuntimeExports.jsxs(
     "svg",
     {
-      viewBox: `0 0 ${svgW} ${svgH}`,
-      className: "w-full h-full",
-      style: { maxHeight: "100%" },
+      width: svgW,
+      height: svgH,
+      style: { display: "block", minHeight: svgH },
       children: [
         [0, 0.25, 0.5, 0.75, 1].map((v) => /* @__PURE__ */ jsxRuntimeExports.jsx(
           "line",
           {
             x1: PAD.left,
-            x2: PAD.left + CHART_W,
+            x2: PAD.left + chartW,
             y1: toY(v),
             y2: toY(v),
             stroke: "currentColor",
@@ -25315,6 +25325,19 @@ function ForgettingChart({
             strokeWidth: 1
           },
           v
+        )),
+        xTicks.map((tick, i) => /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "line",
+          {
+            x1: tick.x,
+            x2: tick.x,
+            y1: PAD.top,
+            y2: PAD.top + CHART_H,
+            stroke: "currentColor",
+            strokeOpacity: 0.05,
+            strokeWidth: 1
+          },
+          i
         )),
         [0, 0.5, 1].map((v) => /* @__PURE__ */ jsxRuntimeExports.jsxs(
           "text",
@@ -25349,7 +25372,7 @@ function ForgettingChart({
           "line",
           {
             x1: PAD.left,
-            x2: PAD.left + CHART_W,
+            x2: PAD.left + chartW,
             y1: PAD.top + CHART_H,
             y2: PAD.top + CHART_H,
             stroke: "currentColor",
@@ -25369,6 +25392,19 @@ function ForgettingChart({
             strokeWidth: 1
           }
         ),
+        /* @__PURE__ */ jsxRuntimeExports.jsx(
+          "line",
+          {
+            x1: toX(now),
+            x2: toX(now),
+            y1: PAD.top,
+            y2: PAD.top + CHART_H,
+            stroke: "currentColor",
+            strokeOpacity: 0.25,
+            strokeWidth: 1,
+            strokeDasharray: "3 3"
+          }
+        ),
         topics.map((topic, idx) => {
           const color2 = TOPIC_COLORS[idx % TOPIC_COLORS.length];
           const events = histories[topic.topic_id];
@@ -25378,7 +25414,7 @@ function ForgettingChart({
           let dotX = null;
           let dotY = null;
           if (events && events.length > 0) {
-            const pts = computeCurve(events, now, minTime, maxTime, CHART_W, CHART_H);
+            const pts = computeCurve(events, now, minTime, chartW, totalMs);
             polylinePoints = pts.map((p) => `${(p.x + PAD.left).toFixed(1)},${(p.y + PAD.top).toFixed(1)}`).join(" ");
             const last = pts[pts.length - 1];
             if (last) {
@@ -25387,15 +25423,13 @@ function ForgettingChart({
             }
           } else if (topic.last_reviewed_at) {
             const recallDate = new Date(topic.last_reviewed_at);
-            const days = (now.getTime() - recallDate.getTime()) / 864e5;
-            const score = Math.min(1, days / (14 * Math.max(0.1, topic.strength)));
+            const daysSince = (now.getTime() - recallDate.getTime()) / 864e5;
+            const ret = retention(daysSince, topic.strength);
             const x0 = toX(recallDate);
             const x1 = toX(now);
-            const y0 = toY(0);
-            const y1 = toY(score);
-            polylinePoints = `${x0.toFixed(1)},${y0.toFixed(1)} ${x1.toFixed(1)},${y1.toFixed(1)}`;
+            polylinePoints = `${x0.toFixed(1)},${toY(1).toFixed(1)} ${x1.toFixed(1)},${toY(ret).toFixed(1)}`;
             dotX = x1;
-            dotY = y1;
+            dotY = toY(ret);
           }
           if (!polylinePoints) return null;
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("g", { opacity, children: [
@@ -25425,7 +25459,7 @@ function ForgettingChart({
         })
       ]
     }
-  );
+  ) });
 }
 function TrackingView() {
   const {
@@ -25507,7 +25541,7 @@ function TrackingView() {
       )) }),
       /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex-1 min-w-0 flex flex-col p-3 gap-2", children: [
         /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center justify-between", children: [
-          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xxs text-text-tertiary", children: "Forgetting score over time" }),
+          /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "text-xxs text-text-tertiary", children: "Retention over time" }),
           selectedTopicId !== null && /* @__PURE__ */ jsxRuntimeExports.jsx(
             "button",
             {
@@ -25517,8 +25551,8 @@ function TrackingView() {
             }
           )
         ] }),
-        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-h-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
-          ForgettingChart,
+        /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "flex-1 min-h-0 overflow-hidden", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
+          RetentionChart,
           {
             topics,
             histories: topicHistories,
@@ -25531,7 +25565,7 @@ function TrackingView() {
           if (!topic) return null;
           const color2 = TOPIC_COLORS[idx % TOPIC_COLORS.length];
           const isDue = topic.next_review_at ? new Date(topic.next_review_at) <= /* @__PURE__ */ new Date() : false;
-          const score = Math.round(topic.forgetting_score * 100);
+          const ret = Math.round((1 - topic.forgetting_score) * 100);
           const lastSeen = topic.last_reviewed_at ? new Date(topic.last_reviewed_at).toLocaleDateString(void 0, { month: "short", day: "numeric" }) : null;
           return /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "rounded-xl bg-surface border border-line p-3 shrink-0", children: [
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
@@ -25542,10 +25576,10 @@ function TrackingView() {
             /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { className: "flex items-center gap-4 text-xxs text-text-tertiary", children: [
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "font-medium text-text", children: [
-                  score,
+                  ret,
                   "%"
                 ] }),
-                " forgotten"
+                " retained"
               ] }),
               /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { children: [
                 /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "font-medium text-text", children: topic.repetitions }),
