@@ -132,11 +132,46 @@ class ClusteringEngine:
 
     async def _identify_clusters(self, groups: List[SemanticGroup]) -> List[Dict]:
         simplified = [{"title": g.title, "hostname": g.hostname} for g in groups]
-        prompt = (
-            "Return JSON array of thematic clusters. Each item must have: cluster_id, theme, summary, "
-            "is_learning (boolean, true only if the cluster represents research, study, learning or professional documentation activity).\n"
-            + json.dumps(simplified, ensure_ascii=False)
-        )
+        prompt = f"""
+            You are classifying browsing clusters for learning detection.
+
+            Task:
+            Return a JSON array of thematic clusters.
+            Each item must contain:
+            - cluster_id (string)
+            - theme (string)
+            - summary (string)
+            - is_learning (boolean)
+
+            Definition of is_learning (STRICT):
+            Set is_learning=true ONLY when there is strong evidence of sustained documentation/research/study activity on a specific topic.
+
+            Strong evidence requires MOST of the following:
+            1) Depth: multiple meaningful pages in the same topic (not a single page hit).
+            2) Continuity: repeated or sustained exploration behavior (not a quick bounce).
+            3) Intent: clear learning/research intent (tutorials, docs, API references, troubleshooting, technical Q&A, educational resources).
+            4) Focus: coherent topic focus rather than mixed casual browsing.
+
+            Set is_learning=false for:
+            - one-off page visits
+            - short casual checks
+            - social media, entertainment, shopping, generic news scanning
+            - productivity navigation without study intent
+            - mixed/noisy clusters without clear learning focus
+
+            Conservative policy:
+            If uncertain, set is_learning=false.
+            Avoid false positives.
+
+            Output rules:
+            - Return JSON only (no markdown, no explanation).
+            - Boolean must be real JSON booleans: true/false (not strings).
+            - Do not invent extra keys.
+            - Keep summary concise and factual.
+
+            Browsing groups:
+            {json.dumps(simplified, ensure_ascii=False)}
+            """
         try:
             response = await self.llm_client.generate_text(
                 LLMRequest(
