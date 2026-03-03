@@ -10,7 +10,7 @@ if not os.getenv("DOCKER_CONTAINER"):
 
 
 class Settings(BaseSettings):
-    app_name: str = "Chrome Extension History Clustering API"
+    app_name: str = "Obra Backend"
     app_version: str = "0.2.0"
     debug: bool = False
     
@@ -18,7 +18,7 @@ class Settings(BaseSettings):
     port: int = 8000
     
     cors_origins: List[str] = [
-        "chrome-extension://*", 
+        "obra-extension://*", 
         "http://localhost:*"
     ]
     cors_allow_credentials: bool = True
@@ -43,6 +43,7 @@ class Settings(BaseSettings):
     clustering_max_tokens: int = 16384
     clustering_temperature: float = 0.2
     clustering_similarity_threshold: float = 0.4
+    topic_similarity_threshold: float = 0.82
     current_session_gap_minutes: int = 30
     
     chat_max_tokens: int = 8000

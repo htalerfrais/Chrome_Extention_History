@@ -1,7 +1,7 @@
-# Development shutdown script for Chrome Extension History Backend
+# Development shutdown script for Obra Backend
 # Run this script to stop the backend services
 
-Write-Host "🛑 Stopping Chrome Extension History Backend..." -ForegroundColor Yellow
+Write-Host "🛑 Stopping Obra Backend..." -ForegroundColor Yellow
 
 # Navigate to project root
 $scriptPath = Split-Path -Parent $MyInvocation.MyCommand.Path
