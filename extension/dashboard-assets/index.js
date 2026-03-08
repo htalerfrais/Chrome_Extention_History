@@ -25290,7 +25290,7 @@ function TopicRow({
   onOpen
 }) {
   const [isOpen, setIsOpen] = reactExports.useState(false);
-  const { pct, cls } = retentionLabel(topic.forgetting_score);
+  const { pct } = retentionLabel(topic.forgetting_score);
   const isDue = topic.next_review_at ? new Date(topic.next_review_at) <= /* @__PURE__ */ new Date() : false;
   const lastSeen = topic.last_reviewed_at ? daysAgo(topic.last_reviewed_at) : null;
   const nextReview = topic.next_review_at ? new Date(topic.next_review_at).toLocaleDateString(void 0, { month: "short", day: "numeric" }) : null;
@@ -25307,7 +25307,7 @@ function TopicRow({
         children: [
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "w-2 h-2 rounded-full shrink-0", style: { backgroundColor: color2 } }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "flex-1 text-sm font-medium text-text truncate min-w-0", children: topic.name }),
-          isDue && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "shrink-0 text-xxs font-semibold text-error bg-error/10 px-1.5 py-0.5 rounded-full", children: "Due" }),
+          isDue && /* @__PURE__ */ jsxRuntimeExports.jsx("span", { className: "shrink-0 text-xxs font-semibold text-error/75 bg-error/8 px-1.5 py-0.5 rounded-full", children: "Due" }),
           /* @__PURE__ */ jsxRuntimeExports.jsx("div", { className: "w-16 h-1 bg-surface-active rounded-full overflow-hidden shrink-0", children: /* @__PURE__ */ jsxRuntimeExports.jsx(
             "div",
             {
@@ -25315,7 +25315,7 @@ function TopicRow({
               style: { width: `${pct}%` }
             }
           ) }),
-          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: `text-xs font-semibold w-9 text-right shrink-0 ${cls}`, children: [
+          /* @__PURE__ */ jsxRuntimeExports.jsxs("span", { className: "text-xs font-semibold w-9 text-right shrink-0 text-text-secondary", children: [
             pct,
             "%"
           ] }),
@@ -25346,7 +25346,7 @@ function TopicRow({
             ] }),
             nextReview && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xxs text-text-tertiary mb-0.5", children: "Next review" }),
-              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: `text-xs font-medium ${isDue ? "text-error" : "text-text"}`, children: nextReview })
+              /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: `text-xs font-medium ${isDue ? "text-error/75" : "text-text"}`, children: nextReview })
             ] }),
             lastSeen && /* @__PURE__ */ jsxRuntimeExports.jsxs("div", { children: [
               /* @__PURE__ */ jsxRuntimeExports.jsx("p", { className: "text-xxs text-text-tertiary mb-0.5", children: "Last recall" }),

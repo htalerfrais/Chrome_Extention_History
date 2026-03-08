@@ -103,7 +103,7 @@ function TopicRow({
   onOpen: () => void
 }) {
   const [isOpen, setIsOpen] = useState(false)
-  const { pct, cls } = retentionLabel(topic.forgetting_score)
+  const { pct } = retentionLabel(topic.forgetting_score)
   const isDue = topic.next_review_at ? new Date(topic.next_review_at) <= new Date() : false
   const lastSeen = topic.last_reviewed_at ? daysAgo(topic.last_reviewed_at) : null
   const nextReview = topic.next_review_at
@@ -127,7 +127,7 @@ function TopicRow({
         <span className="flex-1 text-sm font-medium text-text truncate min-w-0">{topic.name}</span>
 
         {isDue && (
-          <span className="shrink-0 text-xxs font-semibold text-error bg-error/10 px-1.5 py-0.5 rounded-full">
+          <span className="shrink-0 text-xxs font-semibold text-error/75 bg-error/8 px-1.5 py-0.5 rounded-full">
             Due
           </span>
         )}
@@ -140,7 +140,7 @@ function TopicRow({
           />
         </div>
 
-        <span className={`text-xs font-semibold w-9 text-right shrink-0 ${cls}`}>{pct}%</span>
+        <span className="text-xs font-semibold w-9 text-right shrink-0 text-text-secondary">{pct}%</span>
 
         {lastSeen && (
           <span className="text-xxs text-text-tertiary w-14 text-right shrink-0 hidden sm:block">
@@ -175,7 +175,7 @@ function TopicRow({
               {nextReview && (
                 <div>
                   <p className="text-xxs text-text-tertiary mb-0.5">Next review</p>
-                  <p className={`text-xs font-medium ${isDue ? 'text-error' : 'text-text'}`}>{nextReview}</p>
+                  <p className={`text-xs font-medium ${isDue ? 'text-error/75' : 'text-text'}`}>{nextReview}</p>
                 </div>
               )}
               {lastSeen && (
