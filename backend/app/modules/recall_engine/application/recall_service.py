@@ -1,13 +1,15 @@
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Optional
+from typing import TYPE_CHECKING, Dict, List, Optional
 
 from app.models.recall_models import TopicTrackingItem, RecallHistoryEvent, TopicHistoryResponse
-from app.repositories.session_repository import SessionRepository
-from app.repositories.topic_repository import TopicRepository
+
+if TYPE_CHECKING:
+    from app.repositories.session_repository import SessionRepository
+    from app.repositories.topic_repository import TopicRepository
 
 
 class RecallService:
-    def __init__(self, topic_repository: TopicRepository, session_repository: SessionRepository):
+    def __init__(self, topic_repository: "TopicRepository", session_repository: "SessionRepository"):
         self.topic_repository = topic_repository
         self.session_repository = session_repository
 
@@ -66,7 +68,7 @@ class RecallService:
             # Only track clusters that represent learning / research / study activity
             if not cluster.get("is_learning"):
                 continue
-
+            
             topic_name = cluster.get("theme") or "Miscellaneous"
             topic_desc = cluster.get("summary") or ""
             cluster_embedding = cluster.get("embedding")
