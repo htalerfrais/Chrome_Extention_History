@@ -30,6 +30,12 @@ Browse normally. Obra silently collects, clusters, and indexes everything. When 
 ![Dashboard](docs-asset/readme-demo-2.png)
 This screenshot demonstrates how the history data processing backbone enables the extraction of relevant semantic information from sparse and noisy history. This stands as the prerequisite for the upcoming features that will provide differentiation for this application.
 
+### Chat interaction demo
+
+<video src="docs-asset/Demo-cropped-1.mp4" controls width="100%"></video>
+
+If the video does not render in your Markdown viewer, open it directly: [Demo-cropped-1.mp4](docs-asset/Demo-cropped-1.mp4)
+
 ## Quick Start
 (So far, the application is not easily deployable, a future goal is to allow it to run locally on everyone's laptop (without sharing the history data on any server))
 
@@ -45,7 +51,7 @@ This screenshot demonstrates how the history data processing backbone enables th
 1. **Clone & configure**
 
 ```bash
-git clone https://github.com/your-username/obra.git
+git clone https://github.com/htalerfrais/obra.git
 cd obra
 cp env.template .env
 # Edit .env and add your GOOGLE_API_KEY
